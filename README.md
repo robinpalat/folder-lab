@@ -1,223 +1,330 @@
-```markdown
-# 📂 Folder Lab para Obsidian
+# Folder Lab
 
-> **Ordena tus notas como capítulos de un libro. Sin romper nada.**
+**Turn an Obsidian folder into a workspace for thinking, researching, and creating.**
 
-Organiza manualmente las notas de una carpeta con **arrastre**, como si estuvieras estructurando los capítulos de un libro. El orden se guarda en un archivo oculto, sin modificar nombres, frontmatter ni metadatos.
+Folder Lab was born from a simple situation:
 
----
+**You are writing a book.**
 
-## ✨ Características
+You have chapters, notes, references, quotations, research, ideas, questions, documents, characters, decisions, unfinished passages, and things you are not yet sure how to use.
 
-| Funcionalidad | Descripción |
-|---------------|-------------|
-| 📁 **Orden manual** | Arrastra y suelta las notas para reordenarlas como quieras |
-| 💾 **Guardado oculto** | El orden se guarda en `.folder-lab/` dentro de cada carpeta |
-| 🔄 **No destructivo** | No modifica nombres, frontmatter ni metadatos |
-| 📋 **Nota General** | Bloc de notas por carpeta (archivo `_nota_general.txt`) |
-| 📝 **Notas particulares** | Cada nota tiene su propio bloc de notas asociado |
-| 📊 **Estadísticas** | Barra de progreso con porcentaje de notas completadas |
-| 📄 **Notas vacías** | Detección automática de notas vacías (se muestran en gris) |
-| 📚 **Exportación** | Exporta el índice o todas las notas en orden (MD, TXT) |
-| 📖 **Conteo de palabras** | Cuenta las palabras de todo el libro (carpeta raíz + subcarpetas) |
-| 🎨 **Diseño elegante** | Estilo tipo libro/índice, compatible con tema oscuro |
-| 🌙 **Modo oscuro** | Soporte completo para tema oscuro de Obsidian |
+They all belong to the same project — but they do not necessarily belong in the same note.
+
+Folder Lab turns the project folder into a **place where all of that material can be actively worked on**.
 
 ---
 
-## 📥 Instalación
+## What is Folder Lab?
 
-### Desde la comunidad de Obsidian
+An Obsidian folder is normally a place where files are stored.
 
-1. Ve a **Configuración** → **Plugins de la comunidad**
-2. Busca **"Folder Lab"**
-3. Haz clic en **Instalar** y luego en **Activar**
+Folder Lab adds another dimension:
 
-### Instalación manual
+> **The folder becomes a workspace.**
 
-```bash
-# Clona el repositorio
-git clone https://github.com/robinpalat/folder-lab.git
+It gives you a working environment around the material contained in a folder, allowing you to collect, explore, organize, analyze, compare, develop, and transform information without losing the context of the project.
 
-# Copia la carpeta a tu vault
-cp -r folder-lab /ruta/a/tu-vault/.obsidian/plugins/
+The original idea was a writer working on a book.
 
-# Reinicia Obsidian
+But the same problem appears everywhere:
+
+* a researcher working on a subject
+* someone studying a book
+* an analyst examining a collection of documents
+* a student developing a thesis
+* a journalist preparing an investigation
+* a designer developing a project
+* a person trying to make sense of a complex body of information
+
+The common element is not the profession.
+
+**It is the need to work with many pieces of related information as one body of material.**
+
+---
+
+# The book as a laboratory
+
+Imagine a writer working on a book.
+
+The project folder might contain:
+
+```text
+My Book/
+├── Chapters/
+├── Research/
+├── References/
+├── Characters/
+├── Ideas/
+├── Quotes/
+└── Notes/
 ```
 
----
+The files are organized, but the actual creative work happens between them.
 
-## 🚀 Cómo usar
+A writer may want to:
 
-### 1. Abrir el panel
+* collect a passage from a reference
+* keep an idea beside a chapter
+* compare two possible formulations
+* preserve an alternative
+* establish a constraint
+* gather material for a future chapter
+* extract the central idea from a document
+* ask questions about the research
+* move fragments from one stage of the work to another
 
-Haz clic en el icono 📂 en el ribbon lateral o usa el comando:
+Folder Lab provides a workspace for that **in-between work**.
 
-```
-Abrir panel de orden de carpeta
-```
-
-### 2. Seleccionar una carpeta
-
-- Haz clic derecho sobre una carpeta → **"Abrir en Folder Lab"**
-- O navega desde el panel
-
-### 3. Reordenar notas
-
-Arrastra el handle `⋮` para reordenar las notas. El orden se guarda automáticamente.
-
-### 4. Nota General
-
-El panel inferior muestra la **Nota General** de la carpeta. Úsala para el contexto general del capítulo.
-
-### 5. Notas particulares
-
-Haz clic en cualquier nota del índice para ver su nota particular en el panel inferior.
-
-### 6. Nota compilada
-
-La nota con el mismo nombre que la carpeta aparece al principio del índice con el icono 🔄. Haz clic en el icono para actualizar su contenido con todas las notas en orden.
-
-### 7. Exportar
-
-Desde el menú **Exportar** puedes:
-- 📋 Copiar lista (TXT)
-- 📄 Guardar como TXT
-- 📝 Guardar como Markdown (índice)
-- 📚 Exportar todas las notas (MD)
-
-### 8. Contar palabras
-
-Haz clic en el botón 📊 para contar las palabras de todo el libro (carpeta raíz + subcarpetas).
+The folder becomes something closer to a writer's desk or studio than a filing cabinet.
 
 ---
 
-## 📋 Estructura de archivos
+# From information to creation
 
-```
-tu-carpeta/
-├── .folder-lab/              ← Carpeta oculta del plugin
-│   ├── _folder_order.json      ← Orden y notas particulares
-│   └── _nota_general.txt       ← Nota General
-├── NombreCarpeta.md            ← Nota compilada (exportada)
-├── nota1.md
-├── nota2.md
-└── ...
+Most creative and intellectual projects do not move directly from information to finished work.
+
+There is an intermediate space where material is uncertain, incomplete, contradictory, or still being developed.
+
+Folder Lab is designed for that space.
+
+```text
+        INFORMATION
+             │
+             ▼
+          COLLECT
+             │
+             ▼
+           EXPLORE
+             │
+             ▼
+          ORGANIZE
+             │
+             ▼
+           ANALYZE
+             │
+             ▼
+           DEVELOP
+             │
+             ▼
+            CREATE
 ```
 
-### `_folder_order.json`
+The process is not necessarily linear.
 
-```json
-{
-  "order": [
-    "nota1.md",
-    "nota2.md",
-    "nota3.md"
-  ],
-  "notes": {
-    "nota1.md": "Nota particular de nota1",
-    "nota2.md": "Nota particular de nota2"
-  },
-  "version": "1.0.0",
-  "lastModified": "2026-07-25T..."
-}
+You can move backward, branch into alternatives, return to an earlier idea, or simply keep material aside until it becomes useful.
+
+---
+
+# Research
+
+Folder Lab can turn a project folder into a research desk.
+
+Keep the material related to a subject together and work with it as a whole:
+
+* source documents
+* notes
+* excerpts
+* references
+* questions
+* hypotheses
+* ideas
+* competing interpretations
+* tasks
+
+This is particularly useful when research is not simply about collecting information, but about **turning information into understanding**.
+
+---
+
+# Books and reading
+
+A book can be more than something you read and annotate.
+
+It can become a laboratory of its own.
+
+Collect:
+
+* important passages
+* concepts
+* questions
+* observations
+* disagreements
+* references
+* connections with other works
+
+Then work with those fragments until they become something meaningful.
+
+Folder Lab is useful both for reading a single book deeply and for building a larger body of knowledge from many books.
+
+---
+
+# Documents
+
+Large collections of documents are often difficult to work with because the relevant information is distributed across many files.
+
+Folder Lab provides a place to gather and work with that material in context.
+
+You might use it to:
+
+* examine documents
+* collect relevant passages
+* compare information
+* identify important ideas
+* preserve alternatives
+* establish constraints
+* develop conclusions
+
+The documents remain in your vault.
+
+Folder Lab becomes the **workbench around them**.
+
+---
+
+# Projects
+
+The same model works for projects of almost any kind.
+
+A project can contain research, drafts, references, decisions, tasks, ideas, source material, and temporary working information.
+
+Instead of forcing everything into a single document or scattering the work across unrelated interfaces, Folder Lab gives the project a working space.
+
+The folder becomes the project's **working table**.
+
+---
+
+# Widgets
+
+Folder Lab uses modular **widgets** as instruments for working with the material.
+
+Different widgets support different kinds of work:
+
+| Widget           | Use                                                      |
+| ---------------- | -------------------------------------------------------- |
+| **Active Note**  | Work directly on the current note                        |
+| **Notes**        | Capture working thoughts and temporary material          |
+| **Snips**        | Collect text fragments and excerpts                      |
+| **Collections**  | Gather selected pieces of information                    |
+| **Candidates**   | Keep alternatives and select what is currently preferred |
+| **Restrictions** | Maintain constraints or conditions                       |
+| **Tasks**        | Track work related to the current context                |
+| **Resources**    | Work with related files and references                   |
+| **Assistant**    | Analyze and transform contextual material with AI        |
+
+The widgets are not the point of Folder Lab.
+
+**They are the instruments.**
+
+The folder and its contents are the laboratory.
+
+---
+
+# Information can move
+
+Ideas rarely arrive in their final form.
+
+A sentence from a book may become a note.
+
+A note may become an argument.
+
+An argument may become part of a chapter.
+
+An alternative that was rejected today may become useful tomorrow.
+
+Folder Lab therefore allows content to move between compatible widgets.
+
+A possible workflow might look like:
+
+```text
+Source
+  ↓
+Snip
+  ↓
+Collection
+  ↓
+Candidate
+  ↓
+Note
+  ↓
+Finished work
 ```
 
----
+This is not a prescribed workflow.
 
-## ⚙️ Configuración
-
-| Opción | Descripción |
-|--------|-------------|
-| **Usar orden manual** | Activa/desactiva el orden manual en el explorador |
-| **Mostrar números** | Muestra numeración en el índice (romana/arábiga) |
-| **Estilo de numeración** | Romana (I, II, III), Arábiga (1, 2, 3) o Sin números |
-| **Carpeta raíz del libro** | Carpeta principal para el conteo de palabras |
+It is simply one possible way of moving material through a project.
 
 ---
 
-## 🎨 Visual
+# AI as another instrument
 
-### Índice
+Folder Lab can also bring AI into the working context.
 
-```
-📂 Mi Carpeta
-├── 📋 Mi Carpeta                     [🔄]  ← Nota compilada
-├── I. Introducción                    [⋮]
-├── II. Desarrollo                     [⋮]
-├── III. 📄 Análisis (pendiente)       [⋮]  ← Nota vacía
-└── IV. Conclusiones                   [⋮]
-```
+Instead of opening an unrelated chatbot and manually explaining the project, the Assistant can work with material already gathered in the workspace.
 
-### Estadísticas
+Depending on the capability being used, this can include:
 
-```
-8 notas  ·  62% completado
-```
+* summarizing material
+* extracting concepts
+* identifying a thesis
+* generating questions
+* reviewing text
+* comparing information
+* transforming selected material
 
----
+The idea is not to make AI the center of the application.
 
-## 🛠️ Comandos
-
-| Comando | Descripción |
-|---------|-------------|
-| `Abrir panel de orden de carpeta` | Abre el panel lateral |
-| `Ordenar carpeta actual` | Abre el panel con la carpeta activa |
+**AI is another instrument on the desk.**
 
 ---
 
-## 📖 Flujo de trabajo recomendado
+# Not another productivity system
 
-1. 📂 **Crea una carpeta** para tu capítulo
-2. ✍️ **Escribe tus notas** (pueden estar vacías)
-3. 📋 **Ordena** las notas en el índice
-4. 📝 **Escribe la Nota General** con el contexto del capítulo
-5. 📄 **Escribe notas particulares** para cada sección
-6. 📚 **Exporta** todas las notas en orden
-7. 🔄 **Actualiza** la nota compilada con el icono de refrescar
+Folder Lab does not attempt to prescribe how you should organize your life or your work.
 
----
+It is not:
 
-## 🤝 Contribuciones
+* a replacement for Markdown
+* a replacement for Obsidian
+* a task-management methodology
+* a project-management system
+* a predefined research method
 
-Las contribuciones son bienvenidas. Si encuentras un bug o tienes una sugerencia, abre un issue o un pull request.
+It is a workspace that adapts to the project.
 
----
+A novelist can use it differently from a historian.
 
-## 📄 Licencia
+A researcher can use it differently from a designer.
 
-MIT © robinpalat
+Someone studying a difficult book can use it differently from someone preparing a report.
 
----
+The underlying idea remains the same:
 
-## 📞 Contacto
-
-- **GitHub**: robinpalat (https://github.com/robinpalat)
-- **Reportar bugs**: [Issues](https://github.com/robinpalat/folder-lab/issues)
+> **Put the material in one context, then give yourself a place to work with it.**
 
 ---
 
-## 🆘 Solución de problemas
+# Why a folder?
 
-### ❌ El orden no se guarda
-- Verifica que la carpeta tenga permisos de escritura
-- Asegúrate de que el archivo `_folder_order.json` se haya creado
+Because the folder already represents something meaningful.
 
-### ❌ La nota compilada no aparece
-- Exporta todas las notas desde el menú **Exportar**
-- O crea manualmente una nota con el nombre de la carpeta
+A folder usually corresponds to a project, a subject, a book, an investigation, a collection, or an area of work.
 
-### ❌ El panel no se abre
-- Verifica que el plugin esté activado
-- Reinicia Obsidian
+Folder Lab does not replace that structure.
 
----
+It asks a different question:
 
-## 💡 Inspiración
+> **What if the folder itself could become the workspace?**
 
-Folder Lab nació de la necesidad de organizar capítulos de un libro sin renombrar archivos ni romper enlaces. Es la herramienta perfecta para escritores, investigadores y cualquier persona que trabaje con grandes conjuntos de notas.
+That is the experiment behind Folder Lab.
 
 ---
 
-**¡Feliz escritura!** ✍️📚
-```
+# The idea in one sentence
+
+**Folder Lab turns a folder from a place where related information lives into a place where that information can be worked on.**
+
+---
+
+## Status
+
+Folder Lab is currently under active development.
+
+The project is evolving as the workspace model and its tools are refined.
