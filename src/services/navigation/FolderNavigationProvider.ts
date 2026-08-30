@@ -1,0 +1,292 @@
+// src/services/navigation/FolderNavigationProvider.ts
+
+import { App, TFolder, TFile } from 'obsidian';
+import { NavigationProvider, NavigationTree, NavigationNode } from '../../models/Navigation';
+import { FolderRepository } from '../../storage/FolderRepository';
+import { isHiddenFolderName } from '../../utils/folderUtils';
+
+export class FolderNavigationProvider implements NavigationProvider {
+  readonly id = 'folders';
+  readonly name = 'Carpetas y archivos';
+
+  private tree: NavigationTree | null = null;
+
+  constructor(
+    private app: App,
+    private repository: FolderRepository
+  ) {}
+
+  async build(): Promise<NavigationTree> {
+    const masterPath = this.repository.getMasterPath();
+    if (!masterPath) {
+      this.tree = { root: [], nodeMap: new Map(), flatNodes: [] };
+      return this.tree;
+    }
+
+    const nodes: NavigationNode[] = [];
+    const nodeMap = new Map<string, NavigationNode>();
+
+    const globalOrder = this.repository.getGlobalOrder();
+    if (globalOrder) {
+      await this.buildFromOrder(globalOrder, masterPath, nodes, nodeMap);
+    } else {
+      const masterFolder = this.app.vault.getAbstractFileByPath(masterPath);
+      if (masterFolder instanceof TFolder) {
+        await this.walkFolder(masterFolder, null, nodes, nodeMap);
+      }
+    }
+
+    const root = this.buildTree(nodes, nodeMap);
+    this.tree = { root, nodeMap, flatNodes: nodes };
+    return this.tree;
+  }
+
+  private async buildFromOrder(
+  globalOrder: any,
+  masterPath: string,
+  nodes: NavigationNode[],
+  nodeMap: Map<string, NavigationNode>
+): Promise<void> {
+  const rootNode: NavigationNode = {
+    id: masterPath,
+    path: masterPath,
+    title: masterPath.split('/').pop() || 'Raíz',
+    parentPath: null,
+    type: 'folder',
+    filePath: masterPath,
+    children: []
+  };
+
+  nodes.push(rootNode);
+  nodeMap.set(masterPath, rootNode);
+
+  const traverseOrder = (
+    orderData: any,
+    currentPath: string,
+    parentPath: string | null
+  ): void => {
+    const processed = new Set<string>();
+
+    // ============================================================
+    // 1. PROCESAR EL ORDEN EXPLÍCITO
+    // ============================================================
+    for (const itemName of orderData.order || []) {
+       if (isHiddenFolderName(itemName)) continue;
+      processed.add(itemName);
+
+      const itemPath = `${currentPath}/${itemName}`;
+      const isFolder =
+        !!orderData.folders &&
+        !!orderData.folders[itemName];
+
+      const file = this.app.vault.getAbstractFileByPath(itemPath);
+
+      if (!file) continue;
+
+      const node: NavigationNode = {
+        id: itemPath,
+        path: itemPath,
+        title: itemName,
+        parentPath,
+        type: isFolder ? 'folder' : 'note',
+        filePath: itemPath,
+        children: []
+      };
+
+      nodes.push(node);
+      nodeMap.set(itemPath, node);
+
+      // Si es carpeta, recorrer su estructura interna
+      if (isFolder) {
+        traverseOrder(
+          orderData.folders[itemName],
+          itemPath,
+          itemPath
+        );
+      }
+    }
+
+    // ============================================================
+    // 2. PROCESAR CARPETAS DECLARADAS EN "folders"
+    //    QUE NO ESTÉN EN "order"
+    // ============================================================
+    for (const folderName of Object.keys(orderData.folders || {})) {
+      if (isHiddenFolderName(folderName)) continue;
+
+      const folderPath = `${currentPath}/${folderName}`;
+      const folderData = orderData.folders[folderName];
+
+      const file = this.app.vault.getAbstractFileByPath(folderPath);
+
+      if (!file) continue;
+
+      const node: NavigationNode = {
+        id: folderPath,
+        path: folderPath,
+        title: folderName,
+        parentPath,
+        type: 'folder',
+        filePath: folderPath,
+        children: []
+      };
+
+      nodes.push(node);
+      nodeMap.set(folderPath, node);
+
+      // Recorrer contenido de la carpeta
+      traverseOrder(
+        folderData,
+        folderPath,
+        folderPath
+      );
+    }
+  };
+
+  traverseOrder(
+    globalOrder.root,
+    masterPath,
+    masterPath
+  );
+}
+
+  private async walkFolder(
+    folder: TFolder,
+    parentPath: string | null,
+    nodes: NavigationNode[],
+    nodeMap: Map<string, NavigationNode>
+  ): Promise<void> {
+    const children = folder.children.sort((a, b) => {
+      if (a instanceof TFolder && b instanceof TFile) return -1;
+      if (a instanceof TFile && b instanceof TFolder) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    for (const child of children) {
+      if (child instanceof TFolder) {
+        if (isHiddenFolderName(child.name)) continue;
+
+        const node: NavigationNode = {
+          id: child.path,
+          path: child.path,
+          title: child.name,
+          parentPath: parentPath,
+          type: 'folder',
+          filePath: child.path,
+          children: []
+        };
+
+        nodes.push(node);
+        nodeMap.set(child.path, node);
+
+        await this.walkFolder(child, child.path, nodes, nodeMap);
+      } else if (child instanceof TFile && child.extension === 'md') {
+        if (child.name.startsWith('_')) continue;
+        if (child.parent && child.name === `${child.parent.name}.md`) continue;
+
+        const node: NavigationNode = {
+          id: child.path,
+          path: child.path,
+          title: child.name.replace(/\.[^/.]+$/, ''),
+          parentPath: parentPath,
+          type: 'note',
+          filePath: child.path,
+          children: []
+        };
+
+        nodes.push(node);
+        nodeMap.set(child.path, node);
+      }
+    }
+  }
+
+  private buildTree(
+    nodes: NavigationNode[],
+    nodeMap: Map<string, NavigationNode>
+  ): NavigationNode[] {
+    const root: NavigationNode[] = [];
+
+    for (const node of nodes) {
+      if (node.parentPath) {
+        const parent = nodeMap.get(node.parentPath);
+        if (parent) {
+          if (!parent.children) parent.children = [];
+          parent.children.push(node);
+        } else {
+          root.push(node);
+        }
+      } else {
+        root.push(node);
+      }
+    }
+
+    const sortNodes = (items: NavigationNode[]) => {
+      items.sort((a, b) => {
+        if (a.type === 'folder' && b.type === 'note') return -1;
+        if (a.type === 'note' && b.type === 'folder') return 1;
+        return a.title.localeCompare(b.title);
+      });
+
+      for (const item of items) {
+        if (item.children && item.children.length > 0) {
+          sortNodes(item.children);
+        }
+      }
+    };
+
+    sortNodes(root);
+    return root;
+  }
+
+  async refresh(): Promise<NavigationTree> {
+    this.tree = null;
+    return this.build();
+  }
+
+  async getNode(path: string): Promise<NavigationNode | null> {
+    if (this.tree) {
+      return this.tree.nodeMap.get(path) || null;
+    }
+    return null;
+  }
+
+getParent(path: string): string | null {
+  if (!this.tree) {
+    console.warn('[FOLDER NAV] No hay tree');
+    return null;
+  }
+
+  const node = this.tree.nodeMap.get(path);
+
+  console.log('[FOLDER NAV PARENT]', {
+    path,
+    found: !!node,
+    node,
+    parentPath: node?.parentPath
+  });
+
+  return node?.parentPath ?? null;
+}
+
+canGoBack(path: string): boolean {
+  console.log('[FOLDER NAV BACK] comprobando:', path);
+
+  if (!this.tree) {
+    console.warn('[FOLDER NAV BACK] No hay tree');
+    return false;
+  }
+
+  const node = this.tree.nodeMap.get(path);
+
+  console.log('[FOLDER NAV BACK] node:', node);
+
+  if (!node) {
+    console.warn('[FOLDER NAV BACK] Nodo NO encontrado:', path);
+    return false;
+  }
+
+  console.log('[FOLDER NAV BACK] parentPath:', node.parentPath);
+
+  return node.parentPath !== null &&
+         node.parentPath !== undefined;
+}
+}

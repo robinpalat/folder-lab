@@ -1,0 +1,25 @@
+{
+  "id": "revision",
+  "label": "Revisión",
+  "description": "Capacidades para evaluar la calidad del contenido.",
+  "capabilities": [
+    {
+      "id": "review-clarity",
+      "label": "Claridad",
+      "description": "Detecta problemas de claridad en el texto.",
+      "prompt": "review-clarity",
+      "priority": 10,
+      "temperature": 0.2,
+      "maxTokens": 600
+    },
+    {
+      "id": "review-coherence",
+      "label": "Coherencia",
+      "description": "Detecta problemas de coherencia y estructura.",
+      "prompt": "review-coherence",
+      "priority": 20,
+      "temperature": 0.2,
+      "maxTokens": 700
+    }
+  ]
+}

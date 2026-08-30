@@ -1,0 +1,161 @@
+// src/views/SubfolderView.ts
+
+import { App, TFolder, TFile } from 'obsidian';
+import { FolderLabState } from '../core/FolderLabState';
+import { OrderService } from '../services/OrderService';
+import { NoteService } from '../services/NoteService';
+import { NoteListComponent, ListItem, FolderHeaderData } from '../components/NoteListComponent';
+import { FolderLabItem } from '../models/FolderLabItem';
+import { INTERNAL_FOLDER } from '../constants/view-types';
+import { FolderLabController } from '../core/FolderLabController';
+import { NavigationNode } from '../models/Navigation';
+import { isHiddenFolderName } from '../utils/folderUtils';
+
+export class SubfolderView {
+  private app: App;
+  private listComponent: NoteListComponent;
+  private container: HTMLElement;
+
+  constructor(
+    app: App,
+    state: FolderLabState,
+    controller: FolderLabController,
+    orderService: OrderService,
+    noteService: NoteService,
+    container: HTMLElement,
+    onNoteSelect: (item: FolderLabItem) => void,
+    onFolderSelect: (path: string) => void,
+    onReorder: (newOrder: string[]) => void
+  ) {
+    this.app = app;
+    this.container = container;
+
+    this.listComponent = new NoteListComponent(
+      app,
+      state,
+      controller,
+      controller.filterService,
+      orderService,
+      noteService,
+      container,
+      onNoteSelect,
+      onFolderSelect,
+      onReorder
+    );
+  }
+
+  // Modo filesystem (comportamiento actual)
+  render(folderPath: string): void {
+    const folder = this.app.vault.getAbstractFileByPath(folderPath);
+    if (!(folder instanceof TFolder)) {
+      this.listComponent.render([]);
+      return;
+    }
+
+    const items: ListItem[] = [];
+    this.walkTree(folder, 0, items);
+
+    this.listComponent.render(items);
+  }
+
+  //  Modo properties (NavigationNode como contexto - solo contenedores)
+  renderNavigationNode(node: NavigationNode): void {
+    const items: ListItem[] = [];
+    
+    // Solo procesar hijos que sean contenedores (carpetas virtuales)
+    if (node.children && node.children.length > 0) {
+      const containerChildren = node.children.filter(child => 
+        child.type === 'folder' || (child.children && child.children.length > 0)
+      );
+      
+      // Procesar estos contenedores con sus respectivos hijos
+      for (const child of containerChildren) {
+        this.walkNavigationContainer(child, items, 0);
+      }
+    }
+
+    this.listComponent.render(items);
+  }
+
+  //  Walk de contenedor (carpeta virtual con sus hijos)
+  private walkNavigationContainer(
+    node: NavigationNode,
+    items: ListItem[],
+    level: number
+  ): void {
+    // Este nodo es un contenedor (carpeta virtual)
+    items.push({
+      type: 'folder',
+      data: {
+        name: node.title,
+        path: node.path,
+        level: level,
+      },
+      level: level
+    });
+
+    // Procesar sus hijos (notas y subcarpetas)
+    if (node.children && node.children.length > 0) {
+      let localNumber = 1;
+      for (const child of node.children) {
+        const isContainer = child.type === 'folder' || (child.children && child.children.length > 0);
+        
+        if (isContainer) {
+          // Subcarpeta: recursivo
+          this.walkNavigationContainer(child, items, level + 1);
+        } else {
+          // Nota: renderizar como nota
+          const file = child.filePath ? this.app.vault.getFileByPath(child.filePath) : null;
+          if (file) {
+            items.push({
+              type: 'note',
+              data: {
+                name: child.title + '.md',
+                path: child.path,
+                isSpecial: false,
+                file: file,
+                isEmpty: false,
+                status: undefined
+              },
+              level: level + 1,
+              number: localNumber++
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Filesystem walk (existente)
+  private walkTree(folder: TFolder, level: number, items: ListItem[]): void {
+    const subfolders = folder.children.filter(child =>
+      child instanceof TFolder &&
+      !isHiddenFolderName(child.name) &&
+      child.name !== INTERNAL_FOLDER
+    ) as TFolder[];
+
+    subfolders.sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const subfolder of subfolders) {
+      items.push({
+        type: 'folder',
+        data: {
+          name: subfolder.name,
+          path: subfolder.path,
+          level: level
+        },
+        level: level
+      });
+
+      this.walkTree(subfolder, level + 1, items);
+    }
+  }
+
+  updateActiveNote(): void {
+    this.listComponent.updateActiveNote();
+  }
+
+  clear(): void {
+    this.listComponent.clear();
+  }
+}

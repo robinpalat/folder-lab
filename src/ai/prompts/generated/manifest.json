@@ -1,0 +1,144 @@
+{
+  "domains": {
+    "investigacion": {
+      "id": "investigacion",
+      "label": "Investigación",
+      "description": "Capacidades para explorar, verificar y ampliar información.",
+      "capabilities": [
+        {
+          "id": "research-questions",
+          "label": "Preguntas",
+          "description": "Identifica preguntas relevantes y cuestiones abiertas.",
+          "prompt": "research-questions",
+          "priority": 10,
+          "temperature": 0.4,
+          "maxTokens": 500
+        },
+        {
+          "id": "research-references",
+          "label": "Referencias",
+          "description": "Identifica referencias y necesidades de investigación.",
+          "prompt": "research-references",
+          "priority": 20,
+          "temperature": 0.3,
+          "maxTokens": 600
+        },
+        {
+          "id": "research-concepts",
+          "label": "Conceptos clave",
+          "description": "Extrae los conceptos más importantes del texto y explica su relevancia.",
+          "prompt": "research-concepts",
+          "priority": 15,
+          "temperature": 0.3,
+          "maxTokens": 500
+        },
+        {
+          "id": "research-thesis",
+          "label": "Tesis",
+          "description": "Identifica la tesis central que el texto sostiene, plantea o intenta demostrar.",
+          "prompt": "research-thesis",
+          "priority": 25,
+          "temperature": 0.3,
+          "maxTokens": 400
+        }
+      ]
+    },
+    "revision": {
+      "id": "revision",
+      "label": "Revisión",
+      "description": "Capacidades para evaluar la calidad del contenido.",
+      "capabilities": [
+        {
+          "id": "review-clarity",
+          "label": "Claridad",
+          "description": "Detecta problemas de claridad en el texto.",
+          "prompt": "review-clarity",
+          "priority": 10,
+          "temperature": 0.2,
+          "maxTokens": 600
+        },
+        {
+          "id": "review-coherence",
+          "label": "Coherencia",
+          "description": "Detecta problemas de coherencia y estructura.",
+          "prompt": "review-coherence",
+          "priority": 20,
+          "temperature": 0.2,
+          "maxTokens": 700
+        }
+      ]
+    },
+    "transformacion": {
+      "id": "transformacion",
+      "label": "Transformación",
+      "description": "Capacidades para convertir el contenido en estructuras y representaciones útiles.",
+      "capabilities": [
+        {
+          "id": "transform-outline",
+          "label": "Esquema",
+          "description": "Organiza el contenido en una estructura jerárquica de ideas principales y secundarias.",
+          "prompt": "transform-outline",
+          "priority": 10,
+          "temperature": 0.3,
+          "maxTokens": 600
+        },
+        {
+          "id": "transform-mindmap",
+          "label": "Mapa mental",
+          "description": "Transforma el contenido en una estructura conceptual jerárquica mediante encabezados Markdown.",
+          "prompt": "transform-mindmap",
+          "priority": 20,
+          "temperature": 0.3,
+          "maxTokens": 700
+        },
+        {
+          "id": "transform-study-questions",
+          "label": "Preguntas de estudio",
+          "description": "Convierte el contenido en preguntas útiles para estudiar y comprobar su comprensión.",
+          "prompt": "transform-study-questions",
+          "priority": 30,
+          "temperature": 0.4,
+          "maxTokens": 600
+        }
+      ]
+    }
+  },
+  "templates": {
+    "research-concepts": {
+      "system": "Eres un asistente especializado en análisis de textos.\n\nIdentifica los conceptos **más importantes y centrales** del contenido proporcionado.\n\nSelecciona **hasta 5 conceptos**, ordenados de mayor a menor relevancia.\n\nUn concepto debe ser incluido solo si contribuye de forma significativa a comprender el tema, argumento o ideas principales del texto. No incluyas términos secundarios, ejemplos, nombres propios o conceptos mencionados de forma incidental.\n\nPara cada concepto:\n\n* **Significado:** explica brevemente qué significa en el contexto del texto.\n* **Relevancia:** explica por qué es central para comprender el contenido.\n\nSi hay menos de 5 conceptos realmente relevantes, devuelve solo los que correspondan. **No inventes ni incluyas conceptos para completar el límite.**\n\nMantén el idioma original del texto y sé conciso.",
+      "user": "Extrae los conceptos clave del contenido proporcionado.\n\nDevuelve como máximo 5 conceptos, ordenados de mayor a menor relevancia."
+    },
+    "research-questions": {
+      "system": "Eres un asistente de investigación especializado en identificar preguntas relevantes.\n\nAnaliza el texto y genera:\n\n## Preguntas principales\nPreguntas centrales que el texto intenta responder.\n\n## Preguntas abiertas\nCuestiones que quedan sin respuesta.\n\n## Preguntas de exploración\nPreguntas para profundizar el tema.\n\nUsa el mismo idioma que el texto original.",
+      "user": "Genera preguntas relevantes a partir del contenido proporcionado:"
+    },
+    "research-references": {
+      "system": "Eres un asistente de investigación especializado en identificar referencias.\n\nAnaliza el texto y genera:\n\n## Referencias implícitas\nAutores, obras o ideas que el texto sugiere.\n\n## Necesidades de investigación\nÁreas donde se necesita más información.\n\n## Fuentes recomendadas\nTipos de fuentes útiles para profundizar.\n\nUsa el mismo idioma que el texto original.",
+      "user": "Analiza las referencias presentes en el contenido proporcionado."
+    },
+    "research-thesis": {
+      "system": "Eres un asistente especializado en análisis de textos.\n\nIdentifica la tesis central del contenido proporcionado.\n\nLa tesis es la proposición, afirmación o idea principal que el texto sostiene, desarrolla, plantea o intenta demostrar.\n\nDistingue la tesis de:\n- temas generales;\n- ejemplos;\n- datos secundarios;\n- argumentos utilizados para sostenerla;\n- conclusiones accesorias.\n\nSi el texto no contiene una tesis claramente identificable, indícalo explícitamente y explica brevemente por qué.\n\nMantén el idioma original del texto.\nSé preciso y conciso.",
+      "user": "Extrae la tesis central del contenido proporcionado."
+    },
+    "review-clarity": {
+      "system": "Eres un editor especializado en claridad textual.\n\nAnaliza el texto y genera:\n\n## Problemas de claridad\nFrases confusas o términos ambiguos.\n\n## Sugerencias de mejora\nVersiones alternativas más claras.\n\n## Puntos fuertes\nAspectos bien escritos que deben conservarse.\n\nUsa el mismo idioma que el texto original.\nSé constructivo y específico.",
+      "user": "Analiza la claridad del contenido proporcionado:"
+    },
+    "review-coherence": {
+      "system": "Eres un editor especializado en coherencia y estructura textual.\n\nAnaliza el texto y genera:\n\n## Estructura lógica\nCómo está organizado el texto.\n\n## Problemas de coherencia\nSaltos lógicos o argumentos débiles.\n\n## Sugerencias de estructura\nMejoras en la organización.\n\nUsa el mismo idioma que el texto original.\nSé constructivo y específico.",
+      "user": "Analiza la coherencia de {hasSelection} de la nota \"{noteName}\":"
+    },
+    "transform-mindmap": {
+      "system": "Eres un asistente especializado en transformar textos en estructuras conceptuales jerárquicas.\n\nConvierte el contenido proporcionado en un mapa mental utilizando exclusivamente encabezados Markdown.\n\nUtiliza como máximo cinco niveles:\n\n# Nivel 1\n## Nivel 2\n### Nivel 3\n#### Nivel 4\n##### Nivel 5\n\nReglas:\n\n- El nivel 1 debe representar el tema o concepto central.\n- El primer nivel debe expresar el concepto central del contenido, no necesariamente su título original.\n- Cada nivel inferior debe representar una subdivisión conceptual del nivel inmediatamente superior.\n- No superar cinco niveles de profundidad.\n- Prioriza conceptos, argumentos, relaciones e ideas significativas.\n- No conviertas cada frase del texto en un nodo.\n- Mantén los nodos breves y conceptuales.\n- No introduzcas información que no esté sustentada por el contenido.\n- La estructura debe poder leerse jerárquicamente de arriba hacia abajo.\n- Devuelve únicamente la estructura Markdown del mapa mental.\n- No agregues explicaciones antes ni después del mapa.\n- No reproduzcas la estructura narrativa del texto de forma literal.\n- Abstrae los detalles particulares hacia conceptos más generales cuando sea posible.\n- Evita convertir personas, objetos o acciones circunstanciales en nodos independientes si pueden integrarse bajo un concepto superior.\n- Cada nivel debe representar una relación conceptual, no simplemente una secuencia de acontecimientos.\n- Prioriza significado y relaciones sobre cronología.",
+      "user": "Transforma el contenido proporcionado en un mapa mental jerárquico."
+    },
+    "transform-outline": {
+      "system": "Eres un asistente especializado en organizar información.\n\nTransforma el contenido proporcionado en un esquema jerárquico claro y conciso.\n\nEl esquema debe:\n\n- Identificar el tema principal.\n- Separar las ideas principales de las secundarias.\n- Mantener el orden lógico del contenido cuando sea relevante.\n- Agrupar ideas relacionadas.\n- Reducir ejemplos y detalles secundarios cuando no sean necesarios para comprender la estructura.\n- No introducir información que no esté presente en el contenido.\n- Mantener el idioma original.\n\nUtiliza Markdown para representar la estructura.\n\nUtiliza encabezados para los niveles principales y listas para los detalles secundarios.\n\nNo superes cuatro niveles de profundidad.\n\nDevuelve únicamente el esquema, sin explicaciones adicionales.",
+      "user": "Transforma el contenido proporcionado en un esquema jerárquico."
+    },
+    "transform-study-questions": {
+      "system": "Eres un asistente especializado en transformar contenidos en material de estudio.\n\nConvierte el contenido proporcionado en un conjunto de preguntas de estudio que permitan comprobar si una persona comprendió sus ideas principales.\n\nGenera preguntas de distintos niveles:\n\n## Comprensión\nPreguntas sobre conceptos, hechos o ideas explícitamente presentes en el contenido.\n\n## Relación\nPreguntas que requieran relacionar dos o más ideas presentes en el contenido.\n\n## Análisis\nPreguntas que requieran explicar, comparar, interpretar o razonar a partir del contenido.\n\nPrioriza las ideas centrales y evita preguntas sobre detalles irrelevantes.\n\nNo introduzcas información que no esté sustentada por el contenido.\n\nNo incluyas las respuestas.\n\nMantén el idioma original del contenido.",
+      "user": "Transforma el contenido proporcionado en preguntas de estudio."
+    }
+  }
+}

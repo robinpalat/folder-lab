@@ -1,0 +1,10 @@
+{
+  "id": "folder-lab",
+  "name": "Folder Lab",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Organiza tus notas como capítulos de un libro con arrastre. Orden manual sin renombrar archivos, notas particulares, compilado automático y estadísticas de progreso.",
+  "author": "Robinpalat",
+  "authorUrl": "https://github.com/robinpalat",
+  "isDesktopOnly": false
+}

@@ -1,0 +1,878 @@
+// ============================================================
+// COMPONENTE: NoteListComponent
+// ============================================================
+// Renderiza cualquier lista de items (notas, carpetas o ambos)
+// Reutilizado por todas las vistas
+// SIN ESTILOS EN LÍNEA
+// ============================================================
+
+import { App, TFile, Menu } from 'obsidian';
+import { FolderLabState } from '../core/FolderLabState';
+import { OrderService } from '../services/OrderService';
+import { NoteService } from '../services/NoteService';
+import { FilterService } from '../services/FilterService';
+import { FolderLabItem } from '../models/FolderLabItem';
+import { NoteItemRenderer } from './NoteItemRenderer';
+import { FolderLabController } from '../core/FolderLabController';
+import { PropertyOrderService } from '../services/navigation/PropertyOrderService';
+
+export interface ListItem {
+  type: 'note' | 'folder';
+  data: FolderLabItem | FolderHeaderData;
+  level: number;
+  number?: number;
+}
+
+export interface FolderHeaderData {
+  name: string;
+  path: string;
+  level: number;
+  noteCount?: number;
+  resetNumbering?: boolean;
+}
+
+export interface NoteListRenderOptions {
+  applyFilter?: boolean;
+  enableDragAndDrop?: boolean;
+}
+
+export class NoteListComponent {
+  private app: App;
+  private state: FolderLabState;
+  private controller: FolderLabController;
+  private filterService: FilterService;
+  private orderService: OrderService;
+  private noteService: NoteService;
+  private container: HTMLElement;
+  private onNoteSelect: (item: FolderLabItem) => void;
+  private onFolderSelect: (path: string) => void;
+  private onReorder: (newOrder: string[]) => void;
+  private propertyOrderService: PropertyOrderService;
+  
+  private element: HTMLElement | null = null;
+  private noteRenderer: NoteItemRenderer;
+  private noteCounter: number = 0;
+  private noteElementsCache: Map<string, HTMLElement> = new Map();
+  private lastRenderedPath: string = '';
+
+  constructor(
+    app: App,
+    state: FolderLabState,
+    controller: FolderLabController,
+    filterService: FilterService,
+    orderService: OrderService,
+    noteService: NoteService,
+    container: HTMLElement,
+    onNoteSelect: (item: FolderLabItem) => void,
+    onFolderSelect: (path: string) => void,
+    onReorder: (newOrder: string[]) => void
+  ) {
+    this.app = app;
+    this.state = state;
+    this.propertyOrderService = controller.propertyOrderService;
+    this.filterService = filterService;
+    this.orderService = orderService;
+    this.noteService = noteService;
+    this.container = container;
+    this.onNoteSelect = onNoteSelect;
+    this.onFolderSelect = onFolderSelect;
+    this.onReorder = onReorder;
+this.controller = controller;
+    this.noteRenderer = new NoteItemRenderer(
+      app,
+      state,
+      controller,
+      noteService,
+      onNoteSelect,
+      {
+        onStatusChange: async (file: TFile, status: string) => {
+          await noteService.setNoteStatusByFile(file, status);
+          this.refreshCurrentView();
+        },
+
+        onDelete: (file: TFile) => {
+          const folderPath = this.controller.getCurrentPath() || '';
+          noteService.deleteNote(folderPath, file);
+          this.refreshCurrentView();
+        }
+      }
+    );
+  }
+
+  // ============================================================
+  // RENDERIZADO PRINCIPAL
+  // ============================================================
+
+  async render(
+    items: ListItem[],
+    options?: NoteListRenderOptions
+  ): Promise<void> {
+    this.noteCounter = 0;
+    this.noteElementsCache.clear();
+
+    const applyFilter = options?.applyFilter ?? true;
+    const enableDragAndDrop =
+      options?.enableDragAndDrop ?? true;
+
+    if (this.element) {
+      this.element.remove();
+    }
+
+    this.element = this.container.createEl('div', {
+      cls: 'folder-lab-items'
+    });
+
+    if (!items || items.length === 0) {
+      this.showEmptyState('No hay elementos para mostrar');
+      return;
+    }
+
+    const noteItems = items
+      .filter(item => item.type === 'note')
+      .map(item => item.data as FolderLabItem);
+
+    let itemsToRender = items;
+
+    // ------------------------------------------------------------
+    // FILTROS
+    // ------------------------------------------------------------
+    //
+    // Las vistas normales utilizan el filtro activo.
+    //
+    // Recientes puede desactivarlo porque su propio ranking
+    // determina exactamente qué notas deben aparecer.
+    //
+    if (applyFilter) {
+      const activeFilter = this.state.activeFilter;
+
+      const filteredNotes =
+        this.filterService.applyFilter(
+          noteItems,
+          activeFilter
+        );
+
+      const filteredPaths = new Set(
+        filteredNotes.map(item => item.path)
+      );
+
+      if (
+        activeFilter !== null &&
+        filteredNotes.length > 0
+      ) {
+        itemsToRender = items.filter(item => {
+          if (item.type === 'folder') {
+            return true;
+          }
+
+          return filteredPaths.has(
+            (item.data as FolderLabItem).path
+          );
+        });
+      } else if (
+        activeFilter !== null &&
+        filteredNotes.length === 0
+      ) {
+        this.showEmptyState(
+          'No hay notas que coincidan con el filtro'
+        );
+        return;
+      }
+    }
+
+    // ------------------------------------------------------------
+    // RENDERIZAR
+    // ------------------------------------------------------------
+
+    for (const item of itemsToRender) {
+      if (item.type === 'folder') {
+        this.renderFolder(
+          item.data as FolderHeaderData
+        );
+      } else {
+        this.renderNote(
+          item.data as FolderLabItem,
+          item.level,
+          item.number
+        );
+      }
+    }
+
+    // ------------------------------------------------------------
+    // DRAG & DROP
+    // ------------------------------------------------------------
+
+    //
+    // En Recientes no queremos permitir reordenamiento:
+    // el orden lo determina RecentActivityService.
+    //
+    if (enableDragAndDrop) {
+      this.setupDragAndDropForAllItems();
+    }
+
+    this.updateActiveNote();
+  }
+
+  // ============================================================
+  // RENDERIZADO DE ELEMENTOS
+  // ============================================================
+
+  private renderFolder(
+    data: FolderHeaderData
+  ): void {
+    if (!this.element) return;
+
+    const {
+      name,
+      path,
+      level,
+      noteCount
+    } = data;
+
+    const header = this.element.createEl('div', {
+      cls: 'folder-lab-folder-header',
+      attr: {
+        'data-indent': Math.min(level, 5).toString(),
+        'data-path': path,
+        'data-level': level.toString()
+      }
+    });
+
+    const nameSpan = header.createEl('span', {
+      cls: 'folder-lab-folder-name'
+    });
+
+    nameSpan.textContent = name;
+
+    if (level === 0) {
+      nameSpan.style.fontWeight = '700';
+      nameSpan.style.fontSize = '1.05em';
+    } else if (level === 1) {
+      nameSpan.style.fontWeight = '600';
+      nameSpan.style.fontStyle = 'italic';
+    } else {
+      nameSpan.style.fontWeight = '500';
+      nameSpan.style.fontStyle = 'italic';
+      nameSpan.style.opacity = '0.85';
+    }
+
+    if (
+      noteCount !== undefined &&
+      noteCount > 0
+    ) {
+      const countSpan = header.createEl('span', {
+        cls: 'folder-lab-folder-count'
+      });
+
+      countSpan.textContent = `(${noteCount})`;
+    }
+
+    header.onclick = () =>
+      this.onFolderSelect(path);
+  }
+
+  private renderNote(
+    item: FolderLabItem,
+    level: number,
+    number?: number
+  ): void {
+    if (!this.element) return;
+
+    const isActive =
+      this.isNoteActive(item.file);
+
+    // Si number es undefined, no mostramos número.
+    const showNumber =
+      number !== undefined;
+
+    const el = this.noteRenderer.render(
+      this.element,
+      item,
+      {
+        index: number ?? 0,
+        showNumber,
+        numberingStyle:
+          this.state.settings.numberingStyle ||
+          'arabic',
+        isActive,
+        indentLevel: level
+      }
+    );
+
+    if (item.isOwnPage) {
+      el.setAttribute(
+        'data-own-page',
+        'true'
+      );
+    }
+
+    this.noteElementsCache.set(
+      item.path,
+      el
+    );
+
+    this.noteCounter++;
+  }
+
+  // ============================================================
+  // DRAG & DROP
+  // ============================================================
+
+  private setupDragAndDropForAllItems(): void {
+    if (!this.element) return;
+
+    const allItems =
+      this.element.querySelectorAll(
+        '.folder-lab-item:not([data-special="true"]):not([data-own-page="true"])'
+      );
+
+    console.log(
+      '📂 Configurando drag & drop para',
+      allItems.length,
+      'items'
+    );
+
+    allItems.forEach((el, index) => {
+      if (el instanceof HTMLElement) {
+        el.setAttribute(
+          'data-normal-index',
+          index.toString()
+        );
+
+        this.setupDragAndDrop(
+          el,
+          index
+        );
+      }
+    });
+  }
+
+  // ============================================================
+  // ACTUALIZACIÓN RÁPIDA
+  // ============================================================
+
+  public updateActiveNote(): void {
+    if (!this.element) return;
+
+    const activeFile =
+      this.app.workspace.getActiveFile();
+
+    this.noteElementsCache.forEach(
+      el => {
+        el.removeClass('is-active');
+      }
+    );
+
+    if (!activeFile) return;
+
+    const activeEl =
+      this.noteElementsCache.get(
+        activeFile.path
+      );
+
+    if (activeEl) {
+      activeEl.addClass('is-active');
+    }
+  }
+
+  private isNoteActive(
+    file: TFile | null
+  ): boolean {
+    if (!file) return false;
+
+    const active =
+      this.app.workspace.getActiveFile();
+
+    return active?.path === file.path;
+  }
+
+  // ============================================================
+  // DRAG & DROP
+  // ============================================================
+
+  private setupDragAndDrop(
+    el: HTMLElement,
+    index: number
+  ): void {
+    el.setAttribute(
+      'data-normal-index',
+      index.toString()
+    );
+
+    el.setAttribute(
+      'draggable',
+      'true'
+    );
+
+    el.addEventListener(
+      'dragstart',
+      (e) => {
+        el.addClass('is-dragging');
+
+        const data =
+          JSON.stringify({
+            folder:
+              this.controller.getCurrentPath() ||
+              '',
+            index
+          });
+
+        e.dataTransfer?.setData(
+          'text/plain',
+          data
+        );
+
+        e.dataTransfer!.effectAllowed =
+          'move';
+      }
+    );
+
+    el.addEventListener(
+      'dragend',
+      () => {
+        el.removeClass(
+          'is-dragging'
+        );
+
+        if (this.element) {
+          this.element
+            .querySelectorAll(
+              '.is-drag-over'
+            )
+            .forEach(
+              el =>
+                el.removeClass(
+                  'is-drag-over'
+                )
+            );
+        }
+      }
+    );
+
+    el.addEventListener(
+      'dragover',
+      (e) => {
+        e.preventDefault();
+
+        if (this.element) {
+          this.element
+            .querySelectorAll(
+              '.is-drag-over'
+            )
+            .forEach(
+              el =>
+                el.removeClass(
+                  'is-drag-over'
+                )
+            );
+        }
+
+        el.addClass(
+          'is-drag-over'
+        );
+      }
+    );
+
+    el.addEventListener(
+      'dragleave',
+      () => {
+        el.removeClass(
+          'is-drag-over'
+        );
+      }
+    );
+
+    el.addEventListener(
+      'drop',
+      async (e) => {
+        e.preventDefault();
+
+        el.removeClass(
+          'is-drag-over'
+        );
+
+        const targetIndex =
+          parseInt(
+            el.getAttribute(
+              'data-normal-index'
+            ) || '0'
+          );
+
+        await this.handleDrop(
+          e,
+          targetIndex
+        );
+      }
+    );
+  }
+
+  private async handleDrop(
+    e: DragEvent,
+    targetIndex: number
+  ): Promise<void> {
+    const dataStr =
+      e.dataTransfer?.getData(
+        'text/plain'
+      );
+
+    if (!dataStr) return;
+
+    const data =
+      JSON.parse(dataStr);
+
+    const fromIndex =
+      data.index;
+
+    if (
+      fromIndex === -1 ||
+      fromIndex === targetIndex
+    ) {
+      return;
+    }
+
+    if (!this.element) return;
+
+    const allItems =
+      this.element.querySelectorAll(
+        '.folder-lab-item:not([data-special="true"]):not([data-own-page="true"])'
+      );
+
+    const items: HTMLElement[] = [];
+
+    allItems.forEach(
+      el => {
+        if (
+          el instanceof HTMLElement
+        ) {
+          items.push(el);
+        }
+      }
+    );
+
+    if (
+      fromIndex >= items.length ||
+      targetIndex >= items.length
+    ) {
+      console.warn(
+        '❌ Drop: índice fuera de rango',
+        {
+          fromIndex,
+          targetIndex,
+          length: items.length
+        }
+      );
+
+      return;
+    }
+
+    const [moved] =
+      items.splice(
+        fromIndex,
+        1
+      );
+
+    if (!moved) {
+      console.warn(
+        '❌ Drop: moved es undefined'
+      );
+
+      return;
+    }
+
+    items.splice(
+      targetIndex,
+      0,
+      moved
+    );
+
+    const newOrder: string[] = [];
+
+    const navigationType =
+      this.controller.navigationService
+        ?.getNavigationType() ||
+      'folders';
+
+    for (const el of items) {
+      const path =
+        el.getAttribute(
+          'data-path'
+        );
+
+      if (!path) continue;
+
+      if (
+        navigationType ===
+        'properties'
+      ) {
+        newOrder.push(path);
+      } else {
+        const fileName =
+          path.split('/').pop();
+
+        if (fileName) {
+          newOrder.push(
+            fileName
+          );
+        }
+      }
+    }
+
+    if (
+      navigationType ===
+      'properties'
+    ) {
+      const files: TFile[] = [];
+
+      for (
+        const path of newOrder
+      ) {
+        const file =
+          this.app.vault.getFileByPath(
+            path
+          );
+
+        if (file) {
+          files.push(file);
+        } else {
+          console.warn(
+            '[PROPERTY ORDER] Archivo no encontrado:',
+            path
+          );
+        }
+      }
+
+      if (files.length > 0) {
+        const orderProperty =
+          this.controller
+            .getPropertyOrderProperty();
+
+        if (!orderProperty) {
+          console.error(
+            '[PROPERTY ORDER] No se pudo determinar la propiedad de orden'
+          );
+
+          return;
+        }
+
+        await this.controller
+          .propertyOrderService
+          .reorder(
+            files,
+            orderProperty
+          );
+      }
+
+      return;
+    }
+
+    const currentPath =
+      this.controller.getCurrentPath();
+
+    if (
+      currentPath &&
+      newOrder.length > 0
+    ) {
+      await this.orderService
+        .updateFolderOrder(
+          currentPath,
+          newOrder
+        );
+
+      this.onReorder(
+        newOrder
+      );
+    }
+  }
+
+  // ============================================================
+  // EVENTOS
+  // ============================================================
+
+  private attachEvents(
+    el: HTMLElement,
+    item: FolderLabItem,
+    index: number
+  ): void {
+    this.attachContextMenu(
+      el,
+      item
+    );
+
+    if (!item.isSpecial) {
+      this.setupDragAndDrop(
+        el,
+        index
+      );
+    }
+
+    this.attachClickHandler(
+      el,
+      item
+    );
+  }
+
+  private attachContextMenu(
+    el: HTMLElement,
+    item: FolderLabItem
+  ): void {
+    el.addEventListener(
+      'contextmenu',
+      (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const menu =
+          new Menu();
+
+        if (item.isSpecial) {
+          menu.addItem(
+            (menuItem) => {
+              menuItem
+                .setTitle(
+                  '🔄 Regenerar compilado'
+                )
+                .setIcon(
+                  'refresh-cw'
+                )
+                .onClick(
+                  () => {
+                    const event =
+                      new CustomEvent(
+                        'folder-lab-export',
+                        {
+                          detail: {
+                            folderPath:
+                              this.controller
+                                .getCurrentPath() ||
+                              ''
+                          }
+                        }
+                      );
+
+                    document.dispatchEvent(
+                      event
+                    );
+                  }
+                );
+            }
+          );
+        } else {
+          menu.addItem(
+            (menuItem) => {
+              menuItem
+                .setTitle(
+                  'Eliminar'
+                )
+                .setIcon(
+                  'trash-2'
+                )
+                .onClick(
+                  async () => {
+                    const currentPath =
+                      this.controller
+                        .getCurrentPath();
+
+                    if (
+                      currentPath &&
+                      item.file
+                    ) {
+                      await this.noteService
+                        .deleteNote(
+                          currentPath,
+                          item.file
+                        );
+
+                      this.refreshCurrentView();
+                    }
+                  }
+                );
+            }
+          );
+        }
+
+        menu.showAtPosition({
+          x: e.clientX,
+          y: e.clientY
+        });
+      }
+    );
+  }
+
+  private attachClickHandler(
+    el: HTMLElement,
+    item: FolderLabItem
+  ): void {
+    el.onclick = async (e) => {
+      if (
+        (
+          e.target as HTMLElement
+        ).closest(
+          '.folder-lab-refresh-icon'
+        )
+      ) {
+        return;
+      }
+
+      if (
+        (
+          e.target as HTMLElement
+        ).closest(
+          '.folder-lab-status'
+        )
+      ) {
+        return;
+      }
+
+      this.onNoteSelect(
+        item
+      );
+    };
+  }
+
+  // ============================================================
+  // UTILIDADES
+  // ============================================================
+
+  private refreshCurrentView(): void {
+    const event =
+      new CustomEvent(
+        'folder-lab-refresh',
+        {
+          detail: {
+            folderPath:
+              this.controller
+                .getCurrentPath() || ''
+          }
+        }
+      );
+
+    document.dispatchEvent(
+      event
+    );
+  }
+
+  private showEmptyState(
+    message: string
+  ): void {
+    if (!this.element) return;
+
+    const el =
+      this.element.createEl(
+        'p',
+        {
+          cls: 'folder-lab-empty'
+        }
+      );
+
+    el.textContent =
+      message;
+  }
+
+  clear(): void {
+    if (this.element) {
+      this.element.remove();
+      this.element = null;
+    }
+
+    this.noteElementsCache.clear();
+  }
+}

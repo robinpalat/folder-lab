@@ -1,0 +1,34 @@
+{
+  "id": "transformacion",
+  "label": "Transformación",
+  "description": "Capacidades para convertir el contenido en estructuras y representaciones útiles.",
+  "capabilities": [
+    {
+      "id": "transform-outline",
+      "label": "Esquema",
+      "description": "Organiza el contenido en una estructura jerárquica de ideas principales y secundarias.",
+      "prompt": "transform-outline",
+      "priority": 10,
+      "temperature": 0.3,
+      "maxTokens": 600
+    },
+    {
+      "id": "transform-mindmap",
+      "label": "Mapa mental",
+      "description": "Transforma el contenido en una estructura conceptual jerárquica mediante encabezados Markdown.",
+      "prompt": "transform-mindmap",
+      "priority": 20,
+      "temperature": 0.3,
+      "maxTokens": 700
+    },
+    {
+      "id": "transform-study-questions",
+      "label": "Preguntas de estudio",
+      "description": "Convierte el contenido en preguntas útiles para estudiar y comprobar su comprensión.",
+      "prompt": "transform-study-questions",
+      "priority": 30,
+      "temperature": 0.4,
+      "maxTokens": 600
+    }
+  ]
+}

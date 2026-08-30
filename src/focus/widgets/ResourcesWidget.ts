@@ -1,0 +1,613 @@
+import { FocusWidget, FocusWidgetFactory, WidgetCallbacks } from "../FocusWidget";
+import { FocusContext } from "../FocusContext";
+import { TFile, TFolder, Notice, setIcon } from "obsidian";
+import { ResourceService } from "../resources/ResourceService";
+import { AddResourceModal } from "../resources/AddResourceModal";
+import { Resource } from "../resources/Resource";
+import { FocusListItem } from '../FocusListItem';
+import {
+  sortPriorityFirst,
+  FolderLabDragDrop,
+  importDroppedFile
+} from '../FocusWidgetsUtils';
+
+import { WidgetControls } from "./tools/WidgetControls";
+import { WidgetControlsRenderer } from "./tools/WidgetControlsRenderer";
+
+export class ResourcesWidget implements FocusWidget {
+  readonly id = "resources";
+  readonly label = "Recursos";
+  readonly icon = "package";
+
+  private container: HTMLElement | null = null;
+  private currentFile: TFile | null = null;
+  private app: any;
+  private position: 'top' | 'bottom' = 'top';
+  private callbacks: WidgetCallbacks = {};
+  private resourceService: ResourceService;
+
+  private resources: Resource[] = [];
+  private listElement: HTMLElement | null = null;
+  private emptyElement: HTMLElement | null = null;
+  private dropCleanup: (() => void) | null = null;
+
+  constructor(app: any) {
+    this.app = app;
+    this.resourceService = new ResourceService(app);
+  }
+
+  // ============================================================
+  // FOCUS WIDGET INTERFACE
+  // ============================================================
+
+  setPosition(position: 'top' | 'bottom'): void {
+    this.position = position;
+  }
+
+  setCallbacks(callbacks: WidgetCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  render(container: HTMLElement, context: FocusContext): void {
+    this.container = container;
+    this.currentFile = context.activeFile;
+
+    this.container.empty();
+    this.container.addClass('fl-widget-resources');
+
+    if (!this.currentFile) {
+      this.renderEmptyState('Abre una nota para ver sus recursos');
+      return;
+    }
+
+    if (this.position === 'top') {
+      this.renderControls();
+      this.renderContent();
+    } else {
+      this.renderContent();
+      this.renderControls();
+    }
+
+    this.loadResources();
+  }
+
+  // ============================================================
+  // RENDER: BARRA DE CONTROLES
+  // ============================================================
+
+  private buildControls(): WidgetControls {
+    const controls = new WidgetControls();
+
+    // ==========================================================
+    // WIDGET
+    // ==========================================================
+
+    controls.setWidget({
+      id: this.id,
+      label: this.label,
+      icon: this.icon,
+      options: []
+    });
+
+    // ==========================================================
+    // AGREGAR RECURSO
+    // ==========================================================
+
+    controls.iconAction({
+      id: "add-resource",
+      icon: "plus",
+      tooltip: "Agregar recurso"
+    });
+
+    controls.iconAction({
+      id: "open-resources-folder",
+      icon: "folder",
+      tooltip: "Abrir carpeta de recursos"
+    });
+
+    return controls;
+  }
+
+  private renderControls(): void {
+    if (!this.container) {
+      return;
+    }
+
+    const controls = this.buildControls();
+
+    WidgetControlsRenderer.render(
+      this.container,
+      controls.getConfig(),
+      {
+        onWidgetSelect: () => {
+          this.callbacks.onWidgetSelect?.();
+        },
+
+        onAction: (controlId) => {
+          if (controlId === 'add-resource') {
+            this.showAddModal();
+            return;
+          }
+
+          if (controlId === 'open-resources-folder') {
+            this.openResourcesFolder();
+            return;
+          }
+        },
+      }
+    );
+  }
+
+  // ============================================================
+  // RENDER: CONTENIDO
+  // ============================================================
+
+  private renderContent(): void {
+    if (!this.container) return;
+
+    // Si el widget se vuelve a renderizar, limpiar el listener
+    // asociado al contenedor anterior antes de crear uno nuevo.
+    this.dropCleanup?.();
+    this.dropCleanup = null;
+
+    const contentEl = this.container.createEl('div', {
+      cls: 'fl-widget-content fl-widget-content-expanded'
+    });
+
+    const listWrapper = contentEl.createEl('div', {
+      cls: 'fl-focus-list-wrapper'
+    });
+
+    this.listElement = listWrapper.createEl('div', {
+      cls: 'fl-focus-list'
+    });
+
+    this.emptyElement = listWrapper.createEl('div', {
+      cls: 'fl-resources-empty'
+    });
+
+    this.renderEmptyState('Sin recursos');
+
+    // ----------------------------------------------------------
+    // DRAG & DROP DE ARCHIVOS
+    // ----------------------------------------------------------
+
+    const dragDrop = FolderLabDragDrop.getInstance(this.app);
+
+    this.dropCleanup = dragDrop.registerFileDropTarget(
+      contentEl,
+      async ({ file }) => {
+        if (!this.currentFile) return;
+
+        try {
+          const folderPath = this.currentFile.parent?.path || '';
+          const resourcesPath = folderPath
+            ? `${folderPath}/_resources`
+            : '_resources';
+
+          // Crear _resources si todavía no existe.
+          const resourcesFolder =
+            this.app.vault.getAbstractFileByPath(resourcesPath);
+
+          if (!resourcesFolder) {
+            await this.app.vault.createFolder(resourcesPath);
+          }
+
+          // Copiar el archivo externo al vault.
+          const imported = await importDroppedFile(
+            this.app,
+            file,
+            resourcesPath
+          );
+
+          const now = Date.now();
+
+          // Registrar el recurso en la metadata de Resources.
+          const resource: Resource = {
+            id: `res-${now}-${Math.random().toString(36).slice(2, 6)}`,
+            type: 'file',
+            title: imported.basename,
+            source: imported.path,
+            createdAt: now,
+            updatedAt: now
+          };
+
+          await this.resourceService.addResource(
+            folderPath,
+            resource
+          );
+
+          await this.loadResources();
+
+          new Notice('Recurso agregado');
+        } catch (error) {
+          console.error(
+            '[ResourcesWidget] Error importando archivo:',
+            error
+          );
+
+          new Notice('No se pudo agregar el recurso');
+        }
+      },
+      (active) => {
+        contentEl.toggleClass(
+          'fl-dnd-drop-active',
+          active
+        );
+      }
+    );
+  }
+
+  private renderEmptyState(text: string): void {
+    if (!this.emptyElement) return;
+
+    this.emptyElement.empty();
+
+    this.emptyElement.createEl('div', {
+      cls: 'fl-resources-empty-icon',
+      text: '🔗'
+    });
+
+    this.emptyElement.createEl('div', {
+      cls: 'fl-resources-empty-text',
+      text: text
+    });
+
+    this.emptyElement.createEl('div', {
+      cls: 'fl-resources-empty-hint',
+      text: 'Agrega archivos o enlaces relacionados con esta nota'
+    });
+  }
+
+  // ============================================================
+  // CARGA DE RECURSOS
+  // ============================================================
+
+  private openResourcesFolder(): void {
+    if (!this.currentFile) {
+      new Notice('No hay nota activa');
+      return;
+    }
+
+    const folderPath = this.currentFile.parent?.path || '';
+    const resourcesPath = folderPath
+      ? `${folderPath}/_resources`
+      : '_resources';
+
+    const folder = this.app.vault.getAbstractFileByPath(resourcesPath);
+
+    if (folder instanceof TFolder) {
+      new Notice('La carpeta de recursos ya está disponible en el vault');
+      return;
+    }
+
+    new Notice('La carpeta de recursos no existe');
+  }
+
+  private async loadResources(): Promise<void> {
+    if (!this.currentFile) return;
+
+    const folderPath = this.currentFile.parent?.path || '';
+    this.resources = await this.resourceService.getAllResources(folderPath);
+    this.renderResources();
+  }
+
+  private renderResources(): void {
+    if (!this.listElement || !this.emptyElement) return;
+
+    this.listElement.empty();
+
+    if (this.resources.length === 0) {
+      this.listElement.style.display = 'none';
+      this.emptyElement.style.display = 'block';
+      return;
+    }
+
+    this.listElement.style.display = 'block';
+    this.emptyElement.style.display = 'none';
+
+    const sortedResources = sortPriorityFirst(
+      this.resources,
+      resource => resource.active !== false
+    );
+
+    for (const resource of sortedResources) {
+      this.renderResourceItem(resource);
+    }
+  }
+
+  private renderResourceItem(resource: Resource): void {
+    if (!this.listElement) return;
+
+    const isActive = resource.active !== false;
+
+    const item = new FocusListItem(this.listElement, {
+      state: isActive ? 'active' : 'inactive',
+
+      primaryAction: {
+        id: 'toggle',
+        label: isActive
+          ? 'Desactivar recurso'
+          : 'Activar recurso',
+        onClick: async () => {
+          await this.toggleResourceActive(resource);
+        }
+      },
+
+      deleteAction: {
+        id: 'delete',
+        label: 'Eliminar recurso',
+        onClick: () => {
+          this.deleteResource(resource);
+        }
+      }
+    });
+
+    const content = item.getContentElement();
+
+    const resourceContent = content.createEl('div', {
+      cls: 'fl-resource-content'
+    });
+
+    // ----------------------------------------------------------
+    // ICONO DEL RECURSO
+    // ----------------------------------------------------------
+
+    const iconContainer = resourceContent.createEl('div', {
+      cls: 'fl-resource-item-icon'
+    });
+
+    const iconName =
+      resource.type === 'link'
+        ? 'link'
+        : this.getFileIcon(resource.source || '');
+
+    setIcon(iconContainer, iconName);
+
+    // ----------------------------------------------------------
+    // CONTENIDO
+    // ----------------------------------------------------------
+
+    const textContainer = resourceContent.createEl('div', {
+      cls: 'fl-resource-item-content'
+    });
+
+    const title = textContainer.createEl('div', {
+      cls: 'fl-resource-item-title'
+    });
+
+    title.textContent = resource.title;
+
+    if (resource.description) {
+      const desc = textContainer.createEl('div', {
+        cls: 'fl-resource-item-description'
+      });
+
+      desc.textContent = resource.description;
+    }
+
+    // ----------------------------------------------------------
+    // META
+    // ----------------------------------------------------------
+
+    const meta = textContainer.createEl('div', {
+      cls: 'fl-resource-item-meta'
+    });
+
+    const typeLabel =
+      resource.type === 'link'
+        ? 'WEB'
+        : this.getFileExtension(resource.source || '');
+
+    meta.textContent = typeLabel;
+
+    // ----------------------------------------------------------
+    // ABRIR RECURSO
+    // ----------------------------------------------------------
+
+    content.onclick = () => {
+      this.openResource(resource);
+    };
+  }
+
+  // ============================================================
+  // ACCIONES DE RECURSOS
+  // ============================================================
+
+  private openResource(resource: Resource): void {
+    if (resource.type === 'link' && resource.url) {
+      window.open(resource.url, '_blank');
+    } else if (resource.type === 'file' && resource.source) {
+      const file = this.app.vault.getFileByPath(resource.source);
+
+      if (file) {
+        this.app.workspace.getLeaf().openFile(file);
+      } else {
+        new Notice('Archivo no encontrado');
+      }
+    }
+  }
+
+  private showResourceMenu(resource: Resource): void {
+    const menu = new (this.app as any).Menu();
+
+    menu.addItem((item: any) => {
+      item
+        .setTitle('Eliminar recurso')
+        .setIcon('trash-2')
+        .onClick(() => {
+          this.deleteResource(resource);
+        });
+    });
+
+    menu.showAtPosition({
+      x: 0,
+      y: 0
+    });
+  }
+
+  private async toggleResourceActive(
+    resource: Resource
+  ): Promise<void> {
+    if (!this.currentFile) return;
+
+    const folderPath = this.currentFile.parent?.path || '';
+    const isActive = resource.active !== false;
+
+    try {
+      await this.resourceService.updateResource(
+        folderPath,
+        resource.id,
+        {
+          active: !isActive
+        }
+      );
+
+      await this.loadResources();
+    } catch (error) {
+      console.error('Error updating resource state:', error);
+      new Notice('Error al actualizar el estado del recurso');
+    }
+  }
+
+  private async deleteResource(resource: Resource): Promise<void> {
+    const folderPath = this.currentFile?.parent?.path || '';
+
+    const metadata = await this.resourceService.loadMetadata(folderPath);
+    const exists = metadata?.resources.some(r => r.id === resource.id);
+
+    if (!exists) {
+      new Notice('Este recurso no está registrado en la metadata');
+      return;
+    }
+
+    if (resource.type === 'file') {
+      new Notice('Eliminado del registro (el archivo permanece en _resources)');
+    }
+
+    await this.resourceService.deleteResource(folderPath, resource.id);
+    await this.loadResources();
+    new Notice('Recurso eliminado');
+  }
+
+  // ============================================================
+  // MODAL PARA AGREGAR RECURSO
+  // ============================================================
+
+  private showAddModal(): void {
+    if (!this.currentFile) {
+      new Notice('No hay nota activa');
+      return;
+    }
+
+    const modal = new AddResourceModal(
+      this.app,
+      (
+        newResource: Omit<
+          Resource,
+          'id' | 'createdAt' | 'updatedAt'
+        >
+      ) => {
+        const folderPath = this.currentFile!.parent?.path || '';
+
+        const resource: Resource = {
+          ...newResource,
+          id: `res-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+
+        this.resourceService.addResource(folderPath, resource)
+          .then(() => {
+            this.loadResources();
+            new Notice('Recurso agregado');
+          })
+          .catch((error) => {
+            console.error('Error adding resource:', error);
+            new Notice('Error al agregar recurso');
+          });
+      }
+    );
+
+    modal.open();
+  }
+
+  // ============================================================
+  // UTILIDADES
+  // ============================================================
+
+  private getFileIcon(path: string): string {
+    const ext = path.split('.').pop()?.toLowerCase() || '';
+
+    const icons: Record<string, string> = {
+      pdf: 'file-text',
+      doc: 'file-text',
+      docx: 'file-text',
+      xls: 'file-spreadsheet',
+      xlsx: 'file-spreadsheet',
+      ppt: 'file-presentation',
+      pptx: 'file-presentation',
+      png: 'image',
+      jpg: 'image',
+      jpeg: 'image',
+      gif: 'image',
+      svg: 'image',
+      mp3: 'music',
+      mp4: 'video',
+      zip: 'archive',
+      json: 'code',
+      csv: 'file-spreadsheet',
+      md: 'file-markdown',
+      txt: 'file-text'
+    };
+
+    return icons[ext] || 'file';
+  }
+
+  private getFileExtension(path: string): string {
+    return path.split('.').pop()?.toUpperCase() || 'ARCHIVO';
+  }
+
+  // ============================================================
+  // FOCUS WIDGET INTERFACE - MÉTODOS RESTANTES
+  // ============================================================
+
+  update(context: FocusContext): void {
+    const newFile = context.activeFile;
+
+    if (newFile === this.currentFile) return;
+
+    this.currentFile = newFile;
+
+    if (this.container) {
+      this.render(this.container, context);
+    }
+  }
+
+  destroy(): void {
+    this.dropCleanup?.();
+    this.dropCleanup = null;
+
+    if (this.container) {
+      this.container.empty();
+      this.container = null;
+    }
+
+    this.currentFile = null;
+    this.listElement = null;
+    this.emptyElement = null;
+  }
+}
+
+export class ResourcesWidgetFactory implements FocusWidgetFactory {
+  readonly widgetId = "resources";
+  private app: any;
+
+  constructor(app: any) {
+    this.app = app;
+  }
+
+  create(): FocusWidget {
+    return new ResourcesWidget(this.app);
+  }
+}

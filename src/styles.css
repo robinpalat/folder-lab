@@ -1,0 +1,3625 @@
+
+/* ================================================================
+   FOLDER LAB - ESTILOS COMPLETOS (VERSIÓN OPTIMIZADA)
+   ================================================================ */
+
+/* ================================================================
+   01 - LAYOUT PRINCIPAL
+   ================================================================ */
+
+.folder-lab-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  min-height: 0;
+}
+
+.folder-lab-explorer-mode {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ================================================================
+   02 - HEADER (Estructura simplificada)
+   ================================================================ */
+
+.folder-lab-header {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 6px;
+  padding: 0px 12px 6px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary-alt);
+  border-radius: 8px;
+  margin: 4px 6px 10px 6px;
+}
+
+.folder-lab-title-block {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 4px;
+}
+
+
+.folder-lab-folder-title {
+  flex: 1;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-lab-statistics {
+  font-size: 0.9em;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.folder-lab-top-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 10px 8px 4px 0;
+  min-height: 32px;
+}
+
+.folder-lab-right-control {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-left: 8px;
+  gap: 4px;
+}
+
+.folder-lab-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0.6;
+  width: 24px;
+  height: 24px;
+}
+
+.folder-lab-title-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.folder-lab-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  width: 28px;
+  height: 28px;
+}
+
+.folder-lab-back-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* ================================================================
+   03 - TOOLBAR
+   ================================================================ */
+
+.folder-lab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0 0 0;
+}
+
+.folder-lab-toolbar-group-left,
+.folder-lab-toolbar-group-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clickable-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.clickable-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.clickable-icon:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.clickable-icon.is-active {
+  color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+/* ================================================================
+   04 - LISTA DE NOTAS
+   ================================================================ */
+
+.folder-lab-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.folder-lab-items {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 8px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.folder-lab-items::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* ================================================================
+   05 - ITEM DE NOTA
+   ================================================================ */
+
+.folder-lab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 1em;
+  color: var(--text-normal);
+}
+
+.folder-lab-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.folder-lab-item.is-active {
+  background: var(--background-modifier-hover);
+  border-left: 3px solid var(--interactive-accent);
+}
+
+.folder-lab-item.is-empty {
+  opacity: 0.6;
+}
+
+.folder-lab-item.is-exported {
+  background: transparent !important;
+  border-left: none !important;
+  opacity: 0.7;
+}
+
+.folder-lab-item.is-exported:hover {
+  background: var(--background-modifier-hover) !important;
+  opacity: 0.7;
+}
+
+.folder-lab-item.is-exported .folder-lab-name {
+  opacity: 0.7;
+}
+
+.folder-lab-item.is-exported.is-active {
+  background: transparent !important;
+  border-left: none !important;
+  opacity: 0.7;
+}
+
+.folder-lab-item.is-exported.is-active .folder-lab-name {
+  opacity: 0.7;
+}
+
+.folder-lab-item.is-exported.is-active:hover {
+  background: var(--background-modifier-hover) !important;
+}
+
+.folder-lab-item.is-dragging {
+  opacity: 0.4;
+}
+
+.folder-lab-item.is-drag-over {
+  background: var(--background-modifier-hover);
+  border: 1px dashed var(--interactive-accent);
+}
+
+.fo-number {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  opacity: 0.5;
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.folder-lab-name {
+  flex: 1;
+  font-size: 1em;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-lab-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.folder-lab-status .icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.folder-lab-status:hover {
+  background: var(--background-modifier-hover);
+}
+
+.folder-lab-status.status-has .icon {
+  opacity: 1;
+}
+
+.folder-lab-status.status-empty {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.folder-lab-status.status-empty .icon {
+  opacity: 1;
+}
+
+.folder-lab-status.status-menu .icon {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.folder-lab-item:hover .folder-lab-status.status-menu .icon {
+  opacity: 0.4;
+}
+
+.folder-lab-item:hover .folder-lab-status.status-menu .icon:hover {
+  opacity: 1;
+}
+
+.folder-lab-special-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.folder-lab-special-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.folder-lab-special-refresh:hover {
+  opacity: 1;
+  color: var(--text-accent);
+  transform: rotate(45deg);
+}
+
+/* ================================================================
+   06 - CARPETAS (ENCABEZADO)
+   ================================================================ */
+
+.folder-lab-folder-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 1em;
+}
+
+.folder-lab-folder-header:hover {
+  background: var(--background-modifier-hover);
+}
+
+.folder-lab-folder-name {
+  font-size: 1em;
+}
+
+.folder-lab-folder-count {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  opacity: 0.4;
+  margin-left: 4px;
+}
+
+.folder-lab-folder-header[data-level="0"] .folder-lab-folder-name {
+  font-weight: 700;
+  font-size: 1.05em;
+  color: var(--text-normal);
+}
+
+.folder-lab-folder-header[data-level="1"] .folder-lab-folder-name {
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text-normal);
+}
+
+.folder-lab-folder-header[data-level="2"] .folder-lab-folder-name,
+.folder-lab-folder-header[data-level="3"] .folder-lab-folder-name,
+.folder-lab-folder-header[data-level="4"] .folder-lab-folder-name,
+.folder-lab-folder-header[data-level="5"] .folder-lab-folder-name {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+[data-indent="0"] { padding-left: 8px; }
+[data-indent="1"] { padding-left: 24px; }
+[data-indent="2"] { padding-left: 40px; }
+[data-indent="3"] { padding-left: 56px; }
+[data-indent="4"] { padding-left: 72px; }
+[data-indent="5"] { padding-left: 88px; }
+
+/* ================================================================
+   07 - ÁREA DE NOTAS (EXPLORER MODE)
+   ================================================================ */
+
+.folder-lab-notearea-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 160px;
+  min-height: 80px;
+  overflow: hidden;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.folder-order-note-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.folder-order-note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  gap: 8px;
+  user-select: none;
+}
+
+.folder-order-note-badge {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  opacity: 0.8;
+  font-weight: 400;
+}
+
+.folder-order-note-maximize {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s, transform 0.15s;
+}
+
+.folder-order-note-maximize:hover {
+  opacity: 1;
+  background: var(--background-modifier-hover);
+  transform: scale(1.08);
+}
+
+.folder-order-note-maximize:active {
+  transform: scale(0.95);
+}
+
+.folder-order-note-maximize.is-maximized {
+  color: var(--interactive-accent);
+  opacity: 0.9;
+}
+
+.folder-order-note-maximize svg {
+  width: 16px;
+  height: 16px;
+}
+
+.folder-order-note-textarea {
+  display: block;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font: inherit;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow: auto;
+  transition: font-size 0.3s ease, opacity 0.3s ease;
+}
+
+.folder-order-note-textarea:hover {
+  border-color: transparent;
+}
+
+.folder-order-note-textarea:focus {
+  opacity: 1 !important;
+  border-color: var(--interactive-accent);
+  background: var(--background-secondary);
+}
+
+.folder-order-note-textarea::-webkit-scrollbar {
+  width: 4px;
+}
+
+.folder-order-note-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.folder-order-note-textarea::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.folder-order-note-textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.folder-order-note-wrapper:not(.note-maximized) .folder-order-note-textarea {
+  opacity: 0.6;
+  font-size: 0.9em;
+}
+
+.folder-order-note-wrapper:not(.note-maximized) .folder-order-note-textarea:hover {
+  opacity: 0.8;
+}
+
+.folder-order-note-wrapper.note-maximized .folder-order-note-textarea {
+  opacity: 1;
+  font-size: 1.2em;
+}
+
+.folder-lab-explorer-mode.note-maximized .folder-lab-header {
+  display: none;
+}
+
+.folder-lab-explorer-mode.note-maximized .folder-lab-list-wrapper {
+  display: none;
+}
+
+.folder-lab-explorer-mode.note-maximized .folder-lab-notearea-wrapper {
+  flex: 1;
+  min-height: 0;
+  border-top: none;
+}
+
+.folder-lab-explorer-mode:not(.note-maximized) .folder-order-note-textarea {
+  font-size: 0.9em !important;
+  opacity: 0.6 !important;
+}
+
+.folder-lab-explorer-mode.note-maximized .folder-order-note-textarea {
+  font-size: 1.2em !important;
+  opacity: 1 !important;
+}
+
+/* ================================================================
+   08 - ESTADO VACÍO
+   ================================================================ */
+
+.folder-lab-empty {
+  color: var(--text-muted);
+  text-align: center;
+  padding: 30px 20px;
+  font-style: italic;
+  font-size: 0.9em;
+  opacity: 0.6;
+}
+
+/* ================================================================
+   09 - FOCUS WORKSPACE
+   ================================================================ */
+
+.focus-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+/* ================================================================
+   10 - FOCUS TITLE
+   ================================================================ */
+
+.focus-title-wrapper {
+  flex-shrink: 0;
+  min-height: 40px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+
+
+/* ================================================================
+   11 - MAIN AREA
+   ================================================================ */
+
+.focus-main-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.focus-pane-wrapper {
+  overflow: hidden;
+  min-height: 80px;
+}
+
+/* ================================================================
+   12 - SPLITTER
+   ================================================================ */
+
+.focus-splitter-wrapper {
+  flex-shrink: 0;
+  height: 4px;
+  cursor: row-resize;
+  background: var(--background-secondary);
+  border: none;
+  user-select: none;
+  position: relative;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.focus-splitter {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: row-resize;
+}
+
+.focus-splitter-handle {
+  width: 40px;
+  height: 2px;
+  background: var(--text-faint);
+  border-radius: 2px;
+  opacity: 0.2;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+.focus-splitter-wrapper:hover .focus-splitter-handle {
+  opacity: 0.5;
+  transform: scaleY(1.5);
+}
+
+/* ================================================================
+   13 - PANE
+   ================================================================ */
+
+.focus-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--background-secondary);
+  padding: 2px;
+}
+
+/* ================================================================
+   14 - SELECTOR
+   ================================================================ */
+
+.focus-pane-selector-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  flex-shrink: 0;
+  background: var(--background-primary);
+  min-height: 34px;
+  border-radius: 6px;
+  margin: 2px 4px;
+  overflow: hidden;
+  border: none;
+}
+
+.focus-pane-top .focus-pane-selector-wrapper {
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 0;
+}
+
+.focus-pane-bottom .focus-pane-selector-wrapper {
+  border-radius: 0 0 6px 6px;
+  margin-top: 0;
+}
+
+
+
+/* ================================================================
+   15 - WIDGET CONTAINER
+   ================================================================ */
+
+.focus-pane-widget-container {
+  flex: 1;
+  overflow: auto;
+  padding: 2px;
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.focus-pane-widget-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* ================================================================
+   16 - WIDGET FRAME - ESTRUCTURA VISUAL COMÚN
+   ================================================================ */
+
+.folder-lab-context-mode {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--background-secondary);
+}
+
+.fl-widget-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fl-widget-frame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--background-primary);
+  border: none !important;
+  border-radius: 0;
+  overflow: hidden;
+  margin: 0;
+}
+
+.fl-widget-frame-top {
+  border-bottom: none;
+}
+
+.fl-widget-frame-bottom {
+  border-top: none;
+}
+
+.fl-focus-list-wrapper {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
+/* ================================================================
+   17 - BARRA DE CONTROLES - ESTRUCTURA UNIFICADA
+   ================================================================ */
+
+.fl-widget-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  padding-left: 8px;
+  padding-right: 8px;
+
+  min-width: 0;
+  max-width: 100%;
+
+  overflow: hidden;
+}
+
+.fl-widget-frame-top .fl-widget-controls {
+  margin: 8px 8px 15px 6px !important;
+  width: auto !important;
+  box-sizing: border-box;
+}
+
+.fl-widget-frame-bottom .fl-widget-controls {
+  margin: 0 8px 12px 8px !important;
+  width: auto !important;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------
+   CONTEXTO
+   ------------------------------------------------------------ */
+
+.fl-widget-toolbar-context {
+  flex: 0 0 auto !important;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   FUENTE
+   ------------------------------------------------------------ */
+
+.fl-widget-toolbar-source {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  margin-left: 10px !important;
+}
+
+.fl-widget-source {
+  flex: 0 0 auto;
+  min-width: auto;
+  width: 24px;
+  height: 28px;
+}
+
+.fl-widget-source-btn {
+  width: 24px;
+  min-width: 24px;
+  height: 28px;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fl-widget-source-label {
+  display: none;
+}
+
+.fl-widget-source-arrow {
+  display: none;
+}
+
+.fl-widget-source-btn:hover {
+  background: transparent !important;
+  color: var(--text-normal);
+}
+
+.fl-widget-source-btn.has-source {
+  color: var(--text-normal);
+}
+
+/* ------------------------------------------------------------
+   WIDGET — IDENTIDAD PRINCIPAL
+   ------------------------------------------------------------ */
+
+.fl-widget-selector {
+  flex: 1 1 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 28px;
+  box-sizing: border-box;
+}
+
+.fl-widget-selector-btn {
+  display: flex;
+  align-items: center;
+
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  height: 28px;
+  box-sizing: border-box;
+
+  padding: 0 2px !important;
+  gap: 10px;
+
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+
+  color: var(--text-normal);
+  font-weight: 600;
+  font-size: var(--font-ui-small);
+
+  cursor: pointer;
+  overflow: hidden;
+}
+
+
+.fl-widget-selector-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  
+  overflow: hidden;
+  font-size: calc(var(--font-ui-small) + 2px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left !important;
+
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.fl-widget-selector-arrow {
+  flex: 0 0 12px;
+  width: 12px;
+
+
+  opacity: 0.35;
+
+}
+
+.fl-widget-selector-btn:hover {
+  background: transparent !important;
+  color: var(--text-normal);
+}
+
+.fl-widget-selector-btn:hover .fl-widget-selector-arrow {
+  opacity: 0.65;
+}
+
+.fl-widget-selector-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
+.fl-widget-selector-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* ================================================================
+   MEMORY — RESULTADOS
+   ================================================================ */
+
+.fl-memory-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.fl-memory-result-content {
+  white-space: normal;
+  overflow-wrap: break-word;
+  cursor: text;
+}
+
+.fl-memory-result-content[contenteditable="true"] {
+  user-select: text;
+}
+
+.fl-memory-result-error {
+  padding: 8px;
+  color: var(--text-error);
+}
+
+.fl-memory-results .fl-widget-result-placeholder {
+  user-select: none;
+  cursor: default;
+}
+
+
+/* ------------------------------------------------------------
+   CONFIGURACIÓN
+   ------------------------------------------------------------ */
+
+.fl-widget-toolbar-configuration {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  display: flex !important;
+  align-items: center;
+  margin: 0 !important;
+  margin-left: auto;
+  
+}
+
+.fl-widget-toolbar-configuration .fl-widget-dynamic-controls {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center;
+  width: auto !important;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  margin-left: 10px !important;
+}
+
+/* ------------------------------------------------------------
+   EJECUCIÓN
+   ------------------------------------------------------------ */
+
+.fl-widget-toolbar-execution {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  display: flex !important;
+  align-items: center;
+  margin-left: auto !important;
+  gap: 10px;
+}
+
+.fl-widget-toolbar-execution .fl-widget-dynamic-controls {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  gap: 15px;
+}
+
+/* ------------------------------------------------------------
+   CONTROLES DE ICONO — GEOMETRÍA GLOBAL
+   ------------------------------------------------------------ */
+
+.fl-widget-control-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 6px !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+  line-height: 1 !important;
+  vertical-align: middle;
+}
+
+.fl-widget-control-icon .fl-control-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.fl-widget-control-icon .fl-control-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  opacity: 0.7;
+}
+
+/* ------------------------------------------------------------
+   CONTROLES DINÁMICOS
+   ------------------------------------------------------------ */
+
+.fl-widget-control-item,
+.fl-widget-control-status {
+  height: 28px;
+  padding: 0 5px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.fl-widget-control-item {
+  cursor: pointer;
+}
+
+.fl-widget-control-item:hover {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-normal);
+}
+
+.fl-widget-control-item .fl-control-value {
+  color: var(--text-normal);
+}
+
+.fl-widget-control-item .fl-control-label {
+  color: var(--text-muted);
+}
+
+.fl-widget-control-item .fl-control-separator {
+  color: var(--text-faint);
+  opacity: 0.7;
+}
+
+.fl-widget-control-item .fl-control-arrow {
+  opacity: 0.3;
+}
+
+.fl-widget-control-item.is-primary {
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  font-weight: 500;
+  padding: 0 12px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.fl-widget-control-item.is-primary:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+}
+
+.fl-widget-control-item.is-primary:active {
+  transform: scale(0.97);
+}
+
+/* ------------------------------------------------------------
+   ESPACIADOR FLEXIBLE
+   ------------------------------------------------------------ */
+
+.fl-widget-dynamic-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ================================================================
+   18 - CONTENIDO DEL WIDGET
+   ================================================================ */
+
+/* ================================================================
+   SUPERFICIE DE CONTENIDO — REGLA COMÚN A TODOS LOS WIDGETS
+   ================================================================ */
+
+.fl-widget-content,
+.fl-widget-content-expanded {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+
+  box-sizing: border-box;
+
+  padding: 10px 0 10px 12px;
+
+  overflow: hidden;
+
+  background: var(--background-primary);
+  color: var(--text-normal);
+
+  font-size: var(--font-ui-normal);
+  line-height: 1.6;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.fl-widget-content-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: var(--font-ui-small);
+  opacity: 0.6;
+}
+
+/* ================================================================
+   LIST ITEM CONTENT — COMÚN A TODOS LOS WIDGETS
+   ================================================================ */
+
+.fl-list-item-content {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-normal);
+}
+
+.fl-list-item-content.is-dragging {
+  opacity: 0.5;
+}
+
+/* ================================================================
+   19 - SPLITTER
+   ================================================================ */
+
+.fl-splitter-wrapper {
+  flex-shrink: 0;
+  height: 6px;
+  cursor: row-resize;
+  background: var(--background-secondary);
+  user-select: none;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.fl-splitter-wrapper:hover {
+  background: var(--background-modifier-hover);
+}
+
+.fl-splitter-handle {
+  width: 40px;
+  height: 2px;
+  background: var(--text-faint);
+  border-radius: 1px;
+  opacity: 0.25;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+}
+
+.fl-splitter-wrapper:hover .fl-splitter-handle {
+  opacity: 0.5;
+  transform: scaleY(1.5);
+}
+
+.fl-splitter-wrapper:active .fl-splitter-handle {
+  opacity: 0.8;
+  transform: scaleY(2);
+}
+
+/* ================================================================
+   20 - BOTÓN CERRAR - FUERA DE LOS WIDGETS
+   ================================================================ */
+
+.fl-context-close {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-top: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.fl-context-close-btn {
+  width: 100%;
+  padding: 6px 0;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-family: var(--font-interface);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.fl-context-close-btn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+  color: var(--text-normal);
+}
+
+.fl-context-close-btn:active {
+  transform: scale(0.98);
+}
+
+/* ================================================================
+   21 - ESTILOS ESPECÍFICOS DE WIDGETS
+   ================================================================ */
+
+/* ------------------------------------------------------------
+   Todos los widgets con el mismo padding
+   ------------------------------------------------------------ */
+
+.fl-widget-memory,
+.fl-widget-notes,
+.fl-widget-resources,
+.fl-widget-snips {
+  padding: 0px 0px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fl-widget-memory .fl-widget-controls,
+.fl-widget-notes .fl-widget-controls,
+.fl-widget-resources .fl-widget-controls,
+.fl-widget-snips .fl-widget-controls {
+  padding: 0 4px;
+  height: 30px;
+  min-height: 30px;
+  gap: 4px;
+}
+
+/* Drag & Drop — Focus widgets */
+.fl-dnd-drop-active {
+  outline: 1px dashed var(--interactive-accent);
+  outline-offset: -2px;
+  background: var(--background-modifier-hover);
+  transition: background 120ms ease, outline 120ms ease;
+}
+
+.fl-widget-resources .fl-dnd-drop-active {
+  background: var(--background-primary-alt);
+  box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
+
+/* ------------------------------------------------------------
+   NotesWidget - textarea
+   ------------------------------------------------------------ */
+
+.fl-widget-notes .fl-widget-textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text-normal);
+  font-size: var(--font-ui-normal);
+  font-family: var(--font-monospace);
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+  box-sizing: border-box;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  box-shadow: none !important;
+}
+
+.fl-widget-notes .fl-widget-textarea:focus {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.fl-widget-notes .fl-widget-content-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: var(--font-ui-small);
+  opacity: 0.6;
+}
+
+.fl-notes-draft-textarea {
+  flex: 1 1 0;
+  width: 100%;
+  height: 0;
+  min-height:  100%;
+  max-height: none;
+  overflow: hidden;
+  resize: none;
+  box-sizing: border-box;
+}
+
+
+.fl-widget-notes .fl-notes-capture-editor {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: auto !important;
+  -ms-overflow-style: auto !important;
+}
+
+
+/*
+ * Notes — superficie de edición
+ *
+ * El FocusListItem es compartido por todos los widgets y normalmente
+ * tiene su propio fondo. El draft de Apuntes es una excepción:
+ * es la superficie de escritura del widget, por lo que deja ver
+ * directamente el fondo nativo del tema de Obsidian.
+ *
+ * Estas reglas están deliberadamente acotadas al draft.
+ */
+.fl-focus-list-item.fl-notes-draft-list-item {
+  background: transparent;
+  box-shadow: none;
+}
+
+.fl-focus-list-item.fl-notes-draft-list-item .fl-notes-draft-item {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.fl-focus-list-item.fl-notes-draft-list-item .fl-notes-draft-textarea {
+  background: transparent;
+  color: inherit;
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.fl-focus-list-item.fl-notes-draft-list-item .fl-notes-draft-textarea:focus {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
+/* ------------------------------------------------------------
+   MemoryWidget - resultado
+   ------------------------------------------------------------ */
+
+.fl-widget-memory .fl-widget-instructions-wrapper {
+  flex-shrink: 0;
+  padding: 0 4px !important;
+  background: transparent !important;
+}
+
+.fl-widget-memory .fl-widget-instructions-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-normal);
+  line-height: 1.6;
+  outline: none;
+  min-height: 36px;
+  max-height: 80px;
+  resize: vertical;
+  overflow-y: auto;
+}
+
+.fl-widget-memory .fl-widget-instructions-input:focus {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.fl-widget-memory .fl-widget-result-rendered {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 0;
+
+  overflow-y: auto;
+
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: 1.3em !important;
+  line-height: 1.6;
+
+  outline: none;
+  user-select: text !important;
+  cursor: text;
+  position: relative;
+}
+
+.fl-widget-memory .fl-widget-result-rendered * {
+  user-select: text !important;
+  cursor: text;
+}
+
+.fl-widget-memory .fl-widget-result-rendered h1,
+.fl-widget-memory .fl-widget-result-rendered h2,
+.fl-widget-memory .fl-widget-result-rendered h3,
+.fl-widget-memory .fl-widget-result-rendered h4 {
+  color: var(--text-normal);
+  margin: 8px 0 4px 0;
+  font-weight: 600;
+}
+
+.fl-widget-memory .fl-widget-result-rendered h1 { font-size: 1.2em; }
+.fl-widget-memory .fl-widget-result-rendered h2 { font-size: 1.1em; }
+.fl-widget-memory .fl-widget-result-rendered h3 { font-size: 1.0em; }
+
+.fl-widget-memory .fl-widget-result-rendered ul,
+.fl-widget-memory .fl-widget-result-rendered ol {
+  margin: 4px 0 4px 18px;
+  padding: 0;
+}
+
+.fl-widget-memory .fl-widget-result-rendered li {
+  margin: 2px 0;
+}
+
+.fl-widget-memory .fl-widget-result-rendered p {
+  margin: 4px 0;
+}
+
+.fl-widget-memory .fl-widget-result-rendered code {
+  background: var(--background-primary);
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 0.9em;
+}
+
+.fl-widget-memory .fl-widget-result-rendered pre {
+  background: var(--background-primary);
+  padding: 6px 8px;
+  border-radius: 3px;
+  overflow-x: auto;
+  margin: 4px 0;
+}
+
+.fl-widget-memory .fl-widget-result-rendered blockquote {
+  border-left: 3px solid var(--background-modifier-border);
+  padding-left: 10px;
+  margin: 4px 0;
+  color: var(--text-muted);
+}
+
+.fl-widget-memory .fl-widget-result-rendered strong {
+  font-weight: 600;
+}
+
+.fl-widget-memory .fl-widget-result-rendered em {
+  font-style: italic;
+}
+
+.fl-widget-memory .fl-widget-result-rendered hr {
+  border: none;
+  border-top: 1px solid var(--background-modifier-border);
+  margin: 8px 0;
+}
+
+/* ================================================================
+   22 - ANIMACIONES Y PLACEHOLDERS
+   ================================================================ */
+
+.fl-widget-loading-dots {
+  display: inline-block;
+}
+
+.fl-widget-loading-dots::after {
+  content: '...';
+  animation: fl-dots 1.2s steps(3, end) infinite;
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+}
+
+@keyframes fl-dots {
+  0% { content: ''; }
+  33% { content: '.'; }
+  66% { content: '..'; }
+  100% { content: '...'; }
+}
+
+.folder-lab-view textarea::placeholder,
+.folder-lab-view input::placeholder,
+.fl-widget-result-placeholder,
+.fl-widget-empty-text,
+.fl-notes-draft-proxy-placeholder {
+  color: var(--text-faint) !important;
+  font-family: var(--font-interface) !important;
+  font-size: var(--font-ui-small) !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  opacity: 0.75 !important;
+  user-select: none;
+}
+
+/* ================================================================
+   23 - TAREAS
+   ================================================================ */
+
+.fl-tasks-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.fl-tasks-item.is-completed {
+  opacity: 0.5;
+}
+
+.fl-tasks-item.is-completed .fl-tasks-title {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.fl-tasks-description {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  opacity: 0.6;
+  min-width: 0;
+  word-break: break-word;
+  margin-left: 4px;
+}
+
+.fl-tasks-item:hover .fl-tasks-delete {
+  opacity: 1;
+}
+
+.fl-tasks-delete:hover {
+  color: var(--text-error);
+  background: var(--background-modifier-error);
+}
+
+
+.fl-tasks-input-area {
+  flex: 0 0 80px;
+  height: 80px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px 0;
+}
+
+.fl-tasks-input-wrapper {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.fl-tasks-input {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+
+  margin: 0;
+  padding: 0;
+
+  box-sizing: border-box;
+
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  color: var(--text-normal);
+  font: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: 1.5;
+
+  appearance: none;
+}
+
+.fl-tasks-input:hover,
+.fl-tasks-input:focus,
+.fl-tasks-input:active {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.fl-tasks-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+
+/* ================================================================
+   24 - RECURSOS
+   ================================================================ */
+
+.fl-resource-content {
+  display: flex;
+  align-items: flex-start; /* icono arriba */
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fl-resource-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.fl-resource-item-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.fl-resource-item-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* nombre y formato a la izquierda */
+  justify-content: flex-start;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fl-resource-item-title {
+  color: var(--text-normal);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.fl-resource-item-description {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  opacity: 0.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.fl-resource-item-meta {
+  font-size: 0.65em;
+  color: var(--text-muted);
+  opacity: 0.4;
+  flex-shrink: 0;
+  width: fit-content;
+  align-self: flex-start;
+  padding: 2px 6px;
+  background: var(--background-secondary);
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+.fl-resources-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 20px;
+  gap: 6px;
+  text-align: center;
+}
+
+.fl-resources-empty-icon {
+  font-size: 2em;
+  opacity: 0.3;
+  margin-bottom: 4px;
+}
+
+.fl-resources-empty-text {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+}
+
+.fl-resources-empty-hint {
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+  opacity: 0.6;
+  margin-bottom: 12px;
+}
+
+.fl-resources-empty-btn {
+  padding: 4px 16px;
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.fl-resources-empty-btn:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+  color: var(--text-normal);
+}
+
+.fl-resource-modal {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.fl-resource-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.fl-resource-dynamic-fields {
+  margin-top: 4px;
+}
+
+/* ================================================================
+   25 - SNIPS
+   ================================================================ */
+
+.fl-snips-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.8em;
+  line-height: 1.5;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.fl-snips-item.is-active {
+  background: color-mix(in srgb, var(--background-secondary) 55%, transparent);
+  border-color: color-mix(in srgb, var(--background-modifier-border) 75%, transparent);
+}
+
+.fl-snips-item.is-inactive {
+  background: transparent;
+  border-color: transparent;
+}
+
+.fl-snips-item.is-inactive .fl-snips-item-content {
+  opacity: 0.6;
+}
+
+.fl-snips-item:not(.is-active):hover {
+  background: color-mix(in srgb, var(--background-secondary) 35%, transparent);
+  border-color: transparent;
+}
+
+.fl-snips-item.is-active:hover {
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border);
+}
+
+.fl-snips-item-content {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-normal);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  cursor: pointer;
+}
+
+.fl-snips-item-actions {
+  order: 2;
+  flex: 0 0 20px;
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.fl-snips-item-toggle,
+.fl-snips-item-delete {
+  position: static !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  flex: 0 0 20px;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  border-radius: 2px;
+  background: transparent !important;
+  color: var(--text-faint);
+  cursor: pointer;
+  box-shadow: none !important;
+  transition: color 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.fl-snips-item-toggle {
+  opacity: 1;
+}
+
+.fl-snips-item-toggle:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover) !important;
+}
+
+.fl-snips-item.is-active .fl-snips-item-toggle {
+  color: var(--text-muted);
+}
+
+.fl-snips-item.is-active .fl-snips-item-toggle:hover {
+  color: var(--text-normal);
+}
+
+.fl-snips-item-toggle-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.fl-snips-item.is-active .fl-snips-item-toggle-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+}
+
+.fl-snips-item-delete {
+  opacity: 0;
+}
+
+.fl-snips-item:hover .fl-snips-item-delete {
+  opacity: 1;
+}
+
+.fl-snips-item-delete:hover {
+  color: var(--text-error);
+  background: var(--background-modifier-hover) !important;
+}
+
+/* ================================================================
+   26 - CAPABILITY BROWSER
+   ================================================================ */
+
+.fl-capability-browser {
+  width: 70% !important;
+  max-width: 1100px !important;
+  height: 70% !important;
+  max-height: 800px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: var(--background-primary) !important;
+}
+
+.fl-capability-browser .modal-close-button {
+  opacity: 0.6;
+  font-size: 1.2rem;
+}
+
+.fl-capability-browser .modal-title {
+  font-weight: 400;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  color: var(--text-normal);
+}
+
+.fl-capability-browser .modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.fl-capability-browser-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  gap: 3rem;
+}
+
+.fl-capability-browser-groups {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fl-capability-browser-section-title {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.fl-capability-browser-groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.fl-capability-browser-groups-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fl-capability-browser-groups-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fl-capability-browser-groups-list::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 0;
+}
+
+.fl-capability-browser-groups-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.fl-capability-browser-group {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.15s ease;
+  color: var(--text-muted);
+  position: relative;
+  border-left: 2px solid transparent;
+}
+
+.fl-capability-browser-group:hover {
+  background-color: var(--background-secondary);
+}
+
+.fl-capability-browser-group.is-selected {
+  color: var(--text-normal);
+  border-left-color: var(--text-normal);
+  background-color: var(--background-secondary);
+}
+
+.fl-capability-browser-capabilities {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.fl-capability-browser-capabilities-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  flex: 1;
+}
+
+.fl-capability-browser-capabilities-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fl-capability-browser-capabilities-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fl-capability-browser-capabilities-list::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 0;
+}
+
+.fl-capability-browser-capabilities-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.fl-capability-browser-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 1rem 0;
+  font-style: italic;
+}
+
+.fl-capability-browser-item {
+  padding: 0.75rem 0.75rem 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-left: 2px solid transparent;
+  position: relative;
+}
+
+.fl-capability-browser-item:not(.is-selected):hover {
+  background-color: var(--background-secondary);
+}
+
+.fl-capability-browser-item:not(.is-selected):hover .fl-capability-browser-item-label {
+  color: var(--text-normal);
+}
+
+.fl-capability-browser-item:not(.is-selected):hover .fl-capability-browser-item-description {
+  opacity: 0.9;
+}
+
+.fl-capability-browser-item-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+  transition: color 0.15s ease;
+}
+
+.fl-capability-browser-item-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  opacity: 0.7;
+  line-height: 1.4;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.fl-capability-browser-item.is-selected {
+  border-left-color: var(--text-normal);
+  background-color: var(--background-secondary);
+}
+
+.fl-capability-browser-item.is-selected .fl-capability-browser-item-label {
+  color: var(--text-normal);
+}
+
+.fl-capability-browser-item.is-selected .fl-capability-browser-item-description {
+  opacity: 0.9;
+  color: var(--text-normal);
+}
+
+.fl-capability-browser-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 2.5rem 0 2.5rem;
+  border-top: 1px solid var(--background-modifier-border);
+  background-color: transparent;
+}
+
+.fl-capability-browser-cancel {
+  background: none;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  font-size: var(--font-ui-medium);
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 0;
+  transition: color 0.15s ease;
+  font-weight: var(--font-normal);
+}
+
+.fl-capability-browser-cancel:hover {
+  color: var(--text-normal);
+}
+
+.fl-capability-browser-select {
+  background: none;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  font-size: var(--font-ui-medium);
+  color: var(--text-normal);
+  cursor: pointer;
+  border-radius: 0;
+  transition: opacity 0.15s ease;
+  font-weight: var(--font-medium);
+  letter-spacing: 0.01em;
+}
+
+.fl-capability-browser-select:hover:not(.is-disabled) {
+  opacity: 0.7;
+}
+
+.fl-capability-browser-select.is-disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ============================================================
+   CAPABILITY BROWSER — FUENTES
+   ============================================================ */
+
+.fl-capability-browser-sources {
+  position: relative;
+  padding-right: 28px;
+}
+
+.fl-capability-browser-sources::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--background-modifier-border);
+}
+
+.fl-capability-browser-sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.fl-capability-browser-sources-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.fl-capability-browser-sources-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fl-capability-browser-sources-list::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 0;
+}
+
+.fl-capability-browser-sources-list::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.fl-capability-browser-source {
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  border-left: 2px solid transparent;
+  position: relative;
+
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.fl-capability-browser-source:hover {
+  background-color: var(--background-secondary);
+}
+
+.fl-capability-browser-source.is-selected {
+  color: var(--text-normal);
+  border-left-color: var(--text-normal);
+  background-color: var(--background-secondary);
+}
+
+.fl-capability-browser-source-label {
+  color: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* ================================================================
+   27 - MODAL WORD COUNT
+   ================================================================ */
+
+.word-count-modal {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
+.word-count-modal h2 {
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  font-size: 1.4em;
+  font-weight: 600;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.word-count-modal h4 {
+  margin: 16px 0 8px 0;
+  font-size: 0.9em;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+}
+
+.word-count-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.word-count-stat-item {
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary-alt);
+  transition: all 0.2s ease;
+}
+
+.word-count-stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.word-count-number {
+  margin-bottom: 4px;
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-accent);
+}
+
+.word-count-label {
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  color: var(--text-muted);
+}
+
+.word-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-size: 0.9em;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  color: var(--text-normal);
+  transition: background 0.15s ease;
+}
+
+.word-count-row:last-child {
+  border-bottom: none;
+}
+
+.word-count-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.word-count-row span:first-child {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.word-count-count {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-accent);
+}
+
+.word-count-details {
+  max-height: 250px;
+  padding: 4px 0;
+  margin-top: 8px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  background: var(--background-primary);
+}
+
+.word-count-details::-webkit-scrollbar {
+  width: 4px;
+}
+
+.word-count-details::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.word-count-details::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: var(--background-modifier-border);
+}
+
+/* ================================================================
+   28 - RESPONSIVE
+   ================================================================ */
+
+@media (max-width: 768px) {
+  .folder-lab-title-name {
+    font-size: 0.95em;
+  }
+
+  .folder-lab-toolbar .clickable-icon {
+    width: 34px;
+    height: 34px;
+    padding: 6px;
+  }
+
+  .folder-lab-toolbar .clickable-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .folder-lab-stats {
+    font-size: 0.65em;
+  }
+
+  .fl-widget-controls {
+    height: 32px;
+    padding: 0 8px;
+    min-height: 32px;
+    gap: 4px;
+  }
+
+  .fl-widget-selector {
+    min-width: 80px;
+    max-width: 140px;
+  }
+
+  .fl-widget-selector-btn {
+    font-size: 0.8em;
+    padding: 0 8px;
+  }
+
+  .fl-widget-source {
+    min-width: 60px;
+    max-width: 120px;
+  }
+
+  .fl-widget-source-btn {
+    font-size: 0.8em;
+    padding: 0 8px;
+  }
+
+  .fl-widget-control-item {
+    font-size: 0.8em;
+    padding: 0 6px;
+  }
+
+  .fl-widget-control-item.is-primary {
+    padding: 0 10px;
+    margin-left: 8px;
+  }
+
+  .fl-widget-content {
+    padding: 8px 10px;
+    font-size: 0.9em;
+  }
+
+  .fl-context-close {
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 500px) {
+  .folder-lab-header {
+    padding: 6px 8px 4px 8px;
+  }
+
+  .folder-lab-title-name {
+    font-size: 0.85em;
+  }
+
+  .folder-lab-toolbar {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 0;
+    flex-wrap: nowrap !important;
+  }
+
+  .folder-lab-toolbar-group-left,
+  .folder-lab-toolbar-group-right {
+    justify-content: center;
+    gap: 2px;
+    flex-shrink: 0;
+    flex-wrap: nowrap !important;
+  }
+
+  .folder-lab-toolbar .clickable-icon {
+    width: 30px;
+    height: 30px;
+    padding: 5px;
+  }
+
+  .folder-lab-toolbar .clickable-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .folder-lab-items {
+    padding: 2px 4px;
+  }
+
+  .folder-lab-item {
+    padding: 4px 6px;
+    gap: 6px;
+    font-size: 0.9em;
+  }
+
+  .fo-number {
+    min-width: 24px;
+    font-size: 0.75em;
+  }
+
+  .fl-widget-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .fl-widget-selector {
+    min-width: 60px;
+    max-width: 100px;
+  }
+
+  .fl-widget-source {
+    min-width: 50px;
+    max-width: 80px;
+  }
+
+  .fl-widget-control-item .fl-control-label {
+    max-width: 50px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .fl-widget-source-btn .fl-widget-source-label {
+    max-width: 40px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .word-count-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .word-count-number {
+    font-size: 1.5em;
+  }
+}
+
+/* ================================================================
+   29 - MISCELÁNEA
+   ================================================================ */
+
+.view-content.folder-lab-view {
+  padding-bottom: 0 !important;
+  padding-right: 0px;
+   padding-left: 0px; 
+   padding-top: 5px;
+}
+
+.menu {
+  min-width: 200px !important;
+}
+
+.focus-pane-selector-btn + .menu {
+  min-width: var(--menu-width, 200px) !important;
+}
+
+
+/* ================================================================
+   FOCUS LIST ITEM — COMPONENTE VISUAL COMÚN
+   ================================================================ */
+
+.fl-focus-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 4px;
+}
+
+.fl-focus-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+
+  height: 68px;
+  min-height: 68px;
+
+  box-sizing: border-box;
+  padding: 7px;
+  margin-bottom: 4px;
+
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+
+  font-size: 0.8em;
+  line-height: 1.5;
+
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.fl-focus-list-item.is-active {
+
+/*
+   border-color: color-mix(in srgb, var(--background-secondary) 85%, transparent);
+*/
+   background: color-mix(in srgb, var(--background-secondary) 45%, transparent);
+}
+
+.fl-focus-list-item.is-inactive {
+  background: transparent;
+  border-color: transparent;
+}
+
+.fl-focus-list-item.is-inactive .fl-focus-list-item-content {
+  opacity: 0.6;
+}
+
+.fl-focus-list-item:not(.is-active):hover {
+  background: color-mix(
+    in srgb,
+    var(--background-secondary) 35%,
+    transparent
+  );
+  border-color: transparent;
+}
+
+.fl-focus-list-item.is-active:hover {
+  background: color-mix(in srgb, var(--background-secondary) 65%, transparent);
+  border-color: color-mix(in srgb, var(--background-secondary) 65%, transparent);
+}
+
+
+/* ================================================================
+   NOTES — SUPERFICIE DE EDICIÓN NATIVA
+   El draft editable no debe conservar el fondo de FocusListItem.
+   Se deja transparente para mostrar directamente la superficie
+   nativa del widget / tema de Obsidian.
+   ================================================================ */
+
+
+
+.fl-focus-list-item.fl-notes-draft-list-item
+.fl-notes-draft-item {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.fl-focus-list-item.fl-notes-draft-list-item
+.fl-notes-draft-textarea,
+.fl-focus-list-item.fl-notes-draft-list-item
+.fl-notes-draft-textarea:focus {
+  background: transparent !important;
+  color: inherit;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.fl-focus-list-item-content {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fl-focus-list-item-actions {
+  order: 2;
+  flex: 0 0 20px;
+  width: 20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+
+  align-self: stretch;
+
+  margin-left: auto;
+}
+
+.fl-focus-list-item-action,
+.fl-focus-list-item-delete {
+  position: static !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  flex: 0 0 20px;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none !important;
+  border-radius: 2px;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.fl-focus-list-item-action {
+  color: var(--text-faint);
+}
+
+.fl-focus-list-item-action:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover) !important;
+}
+
+.fl-focus-list-item-action-indicator {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 0;
+  background: var(--text-faint);
+  transition:
+    width 0.15s ease,
+    height 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.fl-focus-list-item-action-indicator.is-active {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+}
+
+.fl-focus-list-item-delete {
+  opacity: 0;
+  color: var(--text-error);
+  font-size: 15px;
+  line-height: 1;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.fl-focus-list-item:hover .fl-focus-list-item-delete {
+  opacity: 1;
+}
+
+.fl-focus-list-item-delete:hover {
+  color: var(--text-error);
+  background: var(--background-modifier-hover) !important;
+}
+
+.fl-focus-list-item.is-completed {
+  background: transparent;
+  border-color: transparent;
+}
+
+.fl-focus-list-item.is-completed .fl-focus-list-item-content {
+  opacity: 0.5;
+}
+
+
+.fl-focus-list-item.is-expanded {
+  display: block;
+}
+
+.fl-focus-list-item.is-expanded
+.fl-focus-list-item-content {
+  width: 100%;
+}
+
+.fl-focus-list-item.is-expanded
+.fl-focus-list-item-actions {
+  display: none;
+}
+
+
+
+/*___________________________ PARCHES
+ * 
+ * 
+ * 
+ * 
+ * 
+ * -------------------kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk-----*/
+ 
+ /* ============================================================
+   PROPERTIES — NODOS ESTRUCTURALES EN TODAS LAS NOTAS
+   ============================================================ */
+
+.folder-lab-item.property-structural-level-0 .folder-lab-name {
+  font-weight: 700;
+  font-style: normal;
+}
+
+.folder-lab-item.property-structural-level-1 .folder-lab-name {
+  font-weight: 600;
+  font-style: italic;
+}
+
+
+/* ============================================================
+   EDITORIAL DROP CAP — SNIPS
+   ============================================================ */
+
+.fl-snips-expandable-content {
+  --fl-dropcap-size: 30px;
+  --fl-dropcap-line-height: 30px;
+  --fl-dropcap-gap: 5px;
+
+  line-height: 16px;
+}
+
+.fl-snips-expandable-content .fl-dropcap {
+  float: left;
+
+  font-size: var(--fl-dropcap-size);
+  line-height: var(--fl-dropcap-line-height);
+  font-weight: 600;
+
+  margin-right: var(--fl-dropcap-gap);
+  margin-bottom: 0;
+}
+
+/*
+ * Cuando el fragmento está contraído, la capitular sigue siendo
+ * parte del flujo normal del texto.
+ */
+.fl-snips-expandable.is-collapsed .fl-snips-expandable-content {
+  overflow: hidden;
+}
+
+
+.fl-snips-expandable-content {
+  line-height: 18px;
+}
+
+.fl-snips-expandable-content .fl-dropcap {
+  float: left;
+  font-size: 20px;
+  line-height: 18px;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.fl-tasks-expandable-content .fl-dropcap {
+  float: left;
+  font-size: 20px;
+  line-height: 18px;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.fl-notes-expandable-content .fl-dropcap {
+  float: left;
+  font-size: 20px;
+  line-height: 18px;
+  font-weight: 600;
+  margin-right: 5px;
+}
+
+.fl-context-close {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.fl-board-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 1000 !important;
+  overflow: hidden;
+  display: block;
+  box-sizing: border-box;
+}
+.fl-board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0 !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.fl-board-surface {
+  position: absolute;
+  inset: 0;
+}
+
+.fl-context-board-btn {
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+}
+.fl-context-close {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.fl-notes-draft-compact {
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+}
+
+.fl-notes-draft-compact .fl-notes-draft-textarea {
+  min-height: 0;
+  height: 100%;
+}
+
+.fl-expandable-text-collapse-action {
+  width: 100%;
+  box-sizing: border-box;
+
+  margin-top: 6px;
+  padding: 0;
+
+  text-align: center;
+
+  color: var(--text-muted);
+  background: var(--background-secondary);
+
+  font-size: 0.58rem;
+  line-height: 1.2;
+
+  border: none;
+
+  cursor: pointer;
+  user-select: none;
+}
+
+
+/* ============================================================
+   WIDGET SELECTOR MENU
+   ============================================================ */
+
+.fl-widget-selector-menu {
+  padding: 6px;
+}
+
+.fl-widget-selector-menu .menu-item {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 0.95rem;
+}
+
+/* ============================================================
+   BOARD — TARJETAS DE TEXTO
+   ============================================================ */
+
+.fl-board-surface {
+  display: block;
+  overflow: auto;
+  transition: background-color 120ms ease;
+}
+
+.fl-board-surface.is-text-dragging {
+  background: var(--background-modifier-hover);
+}
+
+.fl-board-surface.is-connecting {
+  cursor: crosshair;
+}
+
+.fl-board-card-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  align-content: start;
+  gap: 12px;
+  min-width: 100%;
+  min-height: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.fl-board-connection-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.fl-board-connection-line {
+  fill: none;
+  stroke: var(--interactive-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+}
+
+.fl-board-text-card {
+  position: relative;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  box-shadow: var(--shadow-s);
+}
+
+.fl-board-text-card.is-connection-source {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.fl-board-text-card-content {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fl-board-text-card-content.is-compact {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.fl-board-text-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fl-board-text-card-toggle,
+.fl-board-text-card-connect {
+  display: none;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.fl-board-text-card.is-expandable .fl-board-text-card-toggle,
+.fl-board-text-card-connect {
+  display: inline-flex;
+}
+
+.fl-board-text-card-toggle:hover,
+.fl-board-text-card-connect:hover {
+  color: var(--text-accent);
+}
+
+
+/* ============================================================
+   NOTA
+   ============================================================ */
+
+
+.fl-widget-active-note {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fl-active-note-content {
+  display: flex;
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fl-active-note-editor {
+  display: block;
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  resize: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--text-normal);
+  padding: 14px;
+  font-family: var(--font-text);
+  font-size: var(--font-ui-small);
+  line-height: var(--line-height-normal);
+}
+
+.fl-active-note-editor:hover,
+.fl-active-note-editor:focus {
+  background: transparent !important;
+  box-shadow: none;
+  outline: none;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.fl-library-browser {
+  width: min(900px, 90vw);
+}
+
+.fl-library-browser-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+}
+
+.fl-library-browser-tabs,
+.fl-capability-browser-tabs {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.fl-library-browser-tabs {
+  border-bottom: 1px solid var(--background-modifier-border);
+  padding-bottom: 8px;
+}
+
+.fl-library-browser-tab,
+.fl-capability-browser-tab {
+  position: relative;
+  border: none;
+  border-left: 2px solid transparent;
+  background: transparent;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.fl-library-browser-tab:hover,
+.fl-capability-browser-tab:hover {
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.fl-library-browser-tab.is-selected,
+.fl-capability-browser-tab.is-selected {
+  color: var(--text-normal);
+  border-left-color: var(--text-normal);
+  background-color: var(--background-secondary);
+}
+
+.fl-library-browser-body {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 0;
+}
+
+.fl-library-browser-section {
+  height: 100%;
+}
+
+.fl-library-browser-section-title,
+.fl-widget-manager-column-title {
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.fl-library-browser-section-title {
+  margin-bottom: 12px;
+}
+
+.fl-library-browser-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fl-library-browser-item {
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.fl-library-browser-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.fl-library-browser-item-label,
+.fl-widget-manager-card-name,
+.fl-widget-manager-instance-name {
+  font-weight: 500;
+}
+
+.fl-library-browser-item-description {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.fl-library-browser-empty,
+.fl-widget-manager-empty {
+  color: var(--text-muted);
+  padding: 20px 0;
+}
+
+/* ============================================================
+   WIDGET MANAGER
+   ============================================================ */
+
+.fl-widget-manager {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding-top: 24px;
+}
+
+.fl-widget-manager-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fl-widget-manager-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fl-widget-manager-column-title {
+  flex: 0 0 auto;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.fl-widget-manager-column-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ============================================================
+   WIDGET CARDS
+   ============================================================ */
+
+.fl-widget-manager-card,
+.fl-widget-manager-instance-card {
+  border: 0px solid var(--background-modifier-border);
+  padding: 7px 10px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+}
+
+.fl-widget-manager-instance-header {
+  min-height: 20px;
+}
+
+.fl-widget-manager-card {
+  position: relative;
+  padding-right: 40px;
+}
+
+.fl-widget-manager-card-header,
+.fl-widget-manager-instance-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fl-widget-manager-card-description {
+  margin-top: 6px;
+  font-size: 0.85em;
+  line-height: 1.45;
+  opacity: 0.7;
+}
+
+/* ============================================================
+   AGREGAR
+   ============================================================ */
+
+.fl-widget-manager-add-button {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  padding: 2px 5px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.fl-widget-manager-add-button:hover {
+  background: transparent;
+  color: var(--text-normal);
+}
+
+/* ============================================================
+   INSTANCIAS
+   ============================================================ */
+
+.fl-widget-manager-instance-name {
+  flex: 1;
+  min-width: 0;
+  cursor: text;
+}
+
+.fl-widget-manager-instance-name-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fl-widget-manager-delete-button {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.fl-widget-manager-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* ============================================================
+   TAB CONTENT
+   ============================================================ */
+
+.fl-capability-browser-tab-content {
+  width: 100%;
+  min-height: 0;
+}
+
+
+/* ================================================================
+   WIDGET MANAGER - ACCIONES ICONOGRÁFICAS MINIMALISTAS
+   ================================================================ */
+
+/* Estilos para el botón de agregar (+) */
+.fl-widget-manager-add-button {
+  /* Eliminar toda apariencia de botón */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  
+  /* Estilo del icono */
+  color: var(--text-muted) !important;
+  font-size: 20px;
+  line-height: 1;
+  
+  /* Comportamiento cursor */
+  cursor: pointer;
+  
+  /* Transición suave solo para color */
+  transition: color 0.2s ease;
+}
+
+/* Hover para el botón de agregar - solo cambio de color */
+.fl-widget-manager-add-button:hover {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--text-normal) !important;
+}
+
+/* Focus para el botón de agregar - sin feedback visual */
+.fl-widget-manager-add-button:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.fl-widget-manager-add-button:focus-visible {
+  /* Opcional: mantener accesibilidad con outline sutil */
+  outline: 1px solid var(--text-muted);
+  outline-offset: 2px;
+}
+
+/* Estilos para el botón de eliminar (papelera) */
+.fl-widget-manager-delete-button {
+  /* Eliminar toda apariencia de botón */
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  
+  /* Estilo del icono */
+  color: var(--text-muted) !important;
+  font-size: 16px;
+  line-height: 1;
+  
+  /* Comportamiento cursor */
+  cursor: pointer;
+  
+  /* Transición suave solo para color */
+  transition: color 0.2s ease;
+}
+
+/* Hover para el botón de eliminar - solo cambio de color */
+.fl-widget-manager-delete-button:hover {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--text-normal) !important;
+}
+
+/* Focus para el botón de eliminar - sin feedback visual */
+.fl-widget-manager-delete-button:focus {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.fl-widget-manager-delete-button:focus-visible {
+  /* Opcional: mantener accesibilidad con outline sutil */
+  outline: 1px solid var(--text-muted);
+  outline-offset: 2px;
+}
+
+/* Mantener posicionamiento exacto del botón de agregar */
+.fl-widget-manager-card {
+  position: relative;
+}
+
+.fl-widget-manager-add-button {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+}
+
+/* Ajuste del hover para eliminar en las instancias */
+.fl-widget-manager-instance-header {
+  position: relative;
+}
+
+.fl-widget-manager-delete-button {
+  margin-left: auto;
+  padding: 0 4px;
+}
+
+/* Estilos específicos para el ícono de agregar en hover */
+.fl-widget-manager-card:hover .fl-widget-manager-add-button {
+  color: var(--text-normal) !important;
+}
+
+/* Estilos para el ícono de eliminar en hover */
+.fl-widget-manager-instance-card:hover .fl-widget-manager-delete-button {
+  color: var(--text-normal) !important;
+}
+
+/* Asegurar que el texto del botón sea solo el ícono */
+.fl-widget-manager-add-button {
+  text-indent: 0;
+  padding: 0;
+  margin: 0;
+  min-width: auto;
+}
+
+.fl-widget-manager-delete-button {
+  text-indent: 0;
+  padding: 0;
+  margin: 0;
+  min-width: auto;
+}
+
+
+
+/* ============================================================
+   FRAGMENT TEXT SCALE
+   Característica visual común a todos los widgets declarativos
+   ============================================================ */
+
+.fl-fragment-text-large .fl-fragment-text-content {
+  font-size: 1.40em !important;
+}
+
+.fl-fragment-text-medium-large .fl-fragment-text-content {
+  font-size: 1.20em !important;
+}
+
+.fl-fragment-text-medium .fl-fragment-text-content {
+  font-size: 1.10em !important;
+}
+
+.fl-fragment-text-small .fl-fragment-text-content {
+  font-size: 1.00em !important;
+}
+
+/* Expandido: tamaño máximo */
+.fl-fragment-text-expanded .fl-fragment-text-content {
+  font-size: 1.40em !important;
+}
+
+.fl-expandable-text-interactive {
+  cursor: pointer;
+}
+
+.fl-expandable-text-interactive.is-editing {
+  cursor: text;
+}
+
+.fl-expandable-text-collapse-action {
+  cursor: pointer;
+}
+
+/* ================================================================
+   SCROLL FADE — LÍMITES DE LAS SUPERFICIES DESPLAZABLES
+   ================================================================ */
+
+/*
+ * El fade se aplica desde FocusPane mediante mask-image.
+ *
+ * La máscara:
+ *   - no modifica dimensiones
+ *   - no ocupa espacio
+ *   - no afecta al splitter
+ *   - no captura eventos del mouse
+ *
+ * La clase solamente identifica las superficies gestionadas
+ * por FocusPane. La máscara propiamente dicha se establece
+ * dinámicamente desde TypeScript.
+ */
+
+.fl-scroll-fade-surface {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
+.fl-focus-list-item.is-expanded {
+  height: auto;
+  min-height: 68px;
+}
+
+.fl-expandable-text-collapse-action {
+  width: 100%;
+  box-sizing: border-box;
+
+  margin-top: 30px;
+  padding: 4px 0;
+
+  text-align: center;
+
+  color: var(--text-muted);
+  background: var(--background-secondary);
+
+  font-size: 0.58rem;
+  line-height: 1.2;
+
+  border: none;
+
+  cursor: pointer;
+  user-select: none;
+}

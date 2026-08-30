@@ -1,0 +1,43 @@
+{
+  "id": "investigacion",
+  "label": "Investigación",
+  "description": "Capacidades para explorar, verificar y ampliar información.",
+  "capabilities": [
+    {
+      "id": "research-questions",
+      "label": "Preguntas",
+      "description": "Identifica preguntas relevantes y cuestiones abiertas.",
+      "prompt": "research-questions",
+      "priority": 10,
+      "temperature": 0.4,
+      "maxTokens": 500
+    },
+    {
+      "id": "research-references",
+      "label": "Referencias",
+      "description": "Identifica referencias y necesidades de investigación.",
+      "prompt": "research-references",
+      "priority": 20,
+      "temperature": 0.3,
+      "maxTokens": 600
+    },
+    {
+      "id": "research-concepts",
+      "label": "Conceptos clave",
+      "description": "Extrae los conceptos más importantes del texto y explica su relevancia.",
+      "prompt": "research-concepts",
+      "priority": 15,
+      "temperature": 0.3,
+      "maxTokens": 500
+    },
+    {
+      "id": "research-thesis",
+      "label": "Tesis",
+      "description": "Identifica la tesis central que el texto sostiene, plantea o intenta demostrar.",
+      "prompt": "research-thesis",
+      "priority": 25,
+      "temperature": 0.3,
+      "maxTokens": 400
+    }
+  ]
+}
