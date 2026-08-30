@@ -361,6 +361,10 @@ export class WidgetController {
   // ORDERING
   // ============================================================
 
+    // ============================================================
+  // ORDERING
+  // ============================================================
+
   readonly ordering = {
 
     sort: (
@@ -380,38 +384,36 @@ export class WidgetController {
       }
     ): WidgetRecord[] => {
 
-      const result =
-        [...items];
+      return [...items].sort((a, b) => {
 
-      const priority =
-        definition.priority;
+        // ------------------------------------------------------
+        // 1. PRIORIDAD
+        // ------------------------------------------------------
 
-      if (priority) {
-        result.sort((a, b) => {
+        const priority =
+          definition.priority;
+
+        if (priority) {
 
           const aPriority =
-            a[priority.field] ===
-            priority.value;
+            a[priority.field] === priority.value;
 
           const bPriority =
-            b[priority.field] ===
-            priority.value;
+            b[priority.field] === priority.value;
 
-          if (aPriority === bPriority) {
-            return 0;
+          if (aPriority !== bPriority) {
+            return aPriority ? -1 : 1;
           }
+        }
 
-          return aPriority
-            ? -1
-            : 1;
-        });
-      }
+        // ------------------------------------------------------
+        // 2. ORDEN PRINCIPAL
+        // ------------------------------------------------------
 
-      const primary =
-        definition.primary;
+        const primary =
+          definition.primary;
 
-      if (primary) {
-        result.sort((a, b) => {
+        if (primary) {
 
           const av =
             a[primary.field];
@@ -419,21 +421,19 @@ export class WidgetController {
           const bv =
             b[primary.field];
 
-          if (av === bv) {
-            return 0;
+          if (av !== bv) {
+
+            const comparison =
+              av < bv ? -1 : 1;
+
+            return primary.direction === 'ascending'
+              ? comparison
+              : -comparison;
           }
+        }
 
-          const comparison =
-            av < bv ? -1 : 1;
-
-          return primary.direction ===
-            'ascending'
-            ? comparison
-            : -comparison;
-        });
-      }
-
-      return result;
+        return 0;
+      });
     }
   };
 

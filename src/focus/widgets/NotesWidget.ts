@@ -387,7 +387,8 @@ export class NotesWidget implements FocusWidget {
       display: this.sessionView === "capture" ? "flex" : "none",
       flexDirection: "column",
       overflow: "hidden",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      paddingRight: "12px"
     });
 
     const todayPanel = contentWrapper.createEl("div", {
@@ -402,7 +403,8 @@ export class NotesWidget implements FocusWidget {
       flexDirection: "column",
       overflowY: "auto",
       overflowX: "hidden",
-      boxSizing: "border-box"
+      boxSizing: "border-box",
+      paddingRight: "12px"
     });
 
 
@@ -836,10 +838,17 @@ export class NotesWidget implements FocusWidget {
           editable: true,
           rootClass: "fl-notes-expandable",
           contentClass: "fl-notes-expandable-content",
-          actionClass: "fl-notes-expandable-action"
+          actionClass: "fl-notes-expandable-action",
+              onExpandedChange: (expanded) => {
+      console.log('[NotesWidget] onExpandedChange', expanded, 'item=', item);
+      item.setExpanded(expanded);
+    }
         }
+
+        
       );
 
+      
       const cleanupDrag =
         FolderLabDragDrop.getInstance(this.app)
           .registerTextDragSource(
@@ -872,6 +881,7 @@ export class NotesWidget implements FocusWidget {
           expandable.content.innerText
         );
       });
+      
 
       expandable.content.addEventListener("blur", () => {
         void this.updateSavedBlock(

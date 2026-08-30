@@ -62,18 +62,18 @@ export class ContextResolver {
   private widgetController: WidgetController;
   private notesController: NotesController;
 
-constructor(
-  app: App,
-  plugin: any,
-  widgetController: WidgetController,
-  widgetManager: WidgetManager
-) {
-  this.app = app;
-  this.plugin = plugin;
-  this.widgetController = widgetController;
-  this.widgetManager = widgetManager;
-  this.notesController = new NotesController(plugin);
-}
+  constructor(
+    app: App,
+    plugin: any,
+    widgetController: WidgetController,
+    widgetManager: WidgetManager
+  ) {
+    this.app = app;
+    this.plugin = plugin;
+    this.widgetController = widgetController;
+    this.widgetManager = widgetManager;
+    this.notesController = new NotesController(plugin);
+  }
 
   // ============================================================
   // MÉTODOS EXISTENTES (mantener)
@@ -305,49 +305,94 @@ constructor(
     //
     // La nota activa se carga arriba como contexto de workspace, pero
     // NO funciona como fallback de una fuente explícitamente seleccionada.
-// 5. Resolver las fuentes seleccionadas por la capacidad.
-//
-// `request.sources` es ahora la fuente de verdad.
-// `contextType` se conserva únicamente por compatibilidad
-// con capacidades antiguas.
+    // 5. Resolver las fuentes seleccionadas por la capacidad.
+    //
+    // `request.sources` es ahora la fuente de verdad.
+    // `contextType` se conserva únicamente por compatibilidad
+    // con capacidades antiguas.
 
-const sources = request.sources?.length
-  ? request.sources
-  : [request.contextType];
+    const sources = request.sources?.length
+      ? request.sources
+      : [request.contextType];
 
-for (const source of sources) {
-  switch (source) {
-    case 'note':
-      // La nota ya está disponible en context.note.
-      break;
+    const semanticSources: Array<{
+      sourceId: string;
+      contentType: string;
+      role: string;
+      properties?: string[];
+    }> = [];
 
-case 'snips':
-  context.additional!.snips =
-    await this.resolveWidgetSource(
-      'snips',
-      notePath
-    );
-  break;
+    for (const source of sources) {
+      switch (source) {
+        case 'note':
+          // La nota ya está disponible en context.note.
+          break;
 
-case 'tasks':
-  context.additional!.tasks =
-    await this.resolveWidgetSource(
-      'tasks',
-      notePath
-    );
-  break;
+        case 'snips':
+          context.additional!.snips =
+            await this.resolveWidgetSource(
+              'snips',
+              notePath
+            );
 
-    case 'notes':
-      context.additional!.notes =
-        await this.resolveNotes(notePath);
-      break;
+          const snipsDefinition =
+            this.widgetManager.getDefinition('snips');
 
-    default:
-      throw new Error(
-        `[ContextResolver] Fuente no soportada: ${source}`
-      );
-  }
-}
+          if (snipsDefinition?.semantic) {
+            semanticSources.push({
+              sourceId: 'snips',
+              contentType:
+                snipsDefinition.semantic.contentType,
+              role:
+                snipsDefinition.semantic.role,
+              properties:
+                snipsDefinition.semantic.properties
+            });
+          }
+
+          break;
+
+
+        case 'tasks':
+
+          context.additional!.tasks =
+            await this.resolveWidgetSource(
+              'tasks',
+              notePath
+            );
+
+          const tasksDefinition =
+            this.widgetManager.getDefinition('tasks');
+
+          if (tasksDefinition?.semantic) {
+
+            semanticSources.push({
+              sourceId: 'tasks',
+              contentType:
+                tasksDefinition.semantic.contentType,
+              role:
+                tasksDefinition.semantic.role,
+              properties:
+                tasksDefinition.semantic.properties
+            });
+          }
+
+          break;
+
+        case 'notes':
+          context.additional!.notes =
+            await this.resolveNotes(notePath);
+          break;
+
+        default:
+          throw new Error(
+            `[ContextResolver] Fuente no soportada: ${source}`
+          );
+      }
+    }
+
+    context.additional!.semanticSources =
+      semanticSources;
 
     return context;
   }
@@ -359,48 +404,54 @@ case 'tasks':
   /**
    * Resuelve los Snips activos asociados a la nota.
    */
-private async resolveWidgetSource(
-  widgetId: string,
-  notePath: string
-): Promise<any[]> {
+  private async resolveWidgetSource(
+    widgetId: string,
+    notePath: string
+  ): Promise<any[]> {
 
-  if (!notePath) {
-    return [];
-  }
+    if (!notePath) {
+      return [];
+    }
 
-  const instances =
-    this.widgetManager
-      .getInstances()
-      .filter(
-        instance =>
-          instance.typeId === widgetId
+    const instances =
+      this.widgetManager
+        .getInstances()
+        .filter(
+          instance =>
+            instance.typeId === widgetId
+        );
+
+    const definition =
+      this.widgetManager.getDefinition(
+        widgetId
       );
 
-  const resolved: any[] = [];
+    const resolved: any[] = [];
 
-  for (const instance of instances) {
+    for (const instance of instances) {
 
-    const data =
-      await this.widgetController.storage.get(
-        widgetId,
-        notePath,
-        instance.instanceId
-      );
+      const data =
+        await this.widgetController.storage.get(
+          widgetId,
+          notePath,
+          instance.instanceId
+        );
 
-    const items =
-      Array.isArray(data.items)
-        ? data.items
-        : [];
+      const items =
+        Array.isArray(data.items)
+          ? data.items
+          : [];
 
-    resolved.push({
-      instanceId: instance.instanceId,
-      name: instance.name,
-      items
-    });
+      resolved.push({
+        instanceId: instance.instanceId,
+        name: instance.name,
+        semantic: definition?.semantic,
+        items
+      });
+    }
+
+    return resolved;
   }
-
-  return resolved;
-}
 
 
   /**
@@ -412,7 +463,7 @@ private async resolveWidgetSource(
    * 1. localStorage con la clave focus-notes-<notePath>
    * 2. fallback al archivo <nota>.notes.md del Vault
    */
-private async resolveNotes(notePath: string): Promise<string> {
-  return this.notesController.getActiveSource(notePath);
-}
+  private async resolveNotes(notePath: string): Promise<string> {
+    return this.notesController.getActiveSource(notePath);
+  }
 }

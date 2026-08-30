@@ -832,20 +832,69 @@ export function applyWidgetIdentity(
     setIcon(element, identity.icon);
   }
 
-  if (identity.color) {
-    element.addClass('fl-widget-identity-colored');
-    element.setAttribute(
-      'data-widget-color',
-      identity.color
-    );
-  } else {
-    element.removeClass(
-      'fl-widget-identity-colored'
-    );
-    element.removeAttribute(
-      'data-widget-color'
-    );
-  }
+if (identity.color) {
+
+  element.addClass(
+    'fl-widget-identity-colored'
+  );
+
+  element.setAttribute(
+    'data-widget-color',
+    identity.color
+  );
+
+  element.style.setProperty(
+    '--fl-widget-identity-color',
+    identity.color
+  );
+
+} else {
+
+  element.removeClass(
+    'fl-widget-identity-colored'
+  );
+
+  element.removeAttribute(
+    'data-widget-color'
+  );
+
+  element.style.removeProperty(
+    '--fl-widget-identity-color'
+  );
+}
 
   return element;
+}
+
+
+
+export function applyMenuItemIdentity(
+  item: any,
+  identity: WidgetIdentityVisual
+): void {
+
+  if (!identity.color) {
+    return;
+  }
+
+  const itemEl =
+    item?.dom as HTMLElement | undefined;
+
+  if (!itemEl) {
+    return;
+  }
+
+  const iconEl =
+    itemEl.querySelector(
+      '.menu-item-icon'
+    ) as HTMLElement | null;
+
+  if (!iconEl) {
+    return;
+  }
+
+  applyWidgetIdentity(
+    iconEl,
+    identity
+  );
 }

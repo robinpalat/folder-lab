@@ -1,93 +1,90 @@
 {
   "widgets": {
-
-"snips": {
-  "id": "snips",
-
-  "identity": {
-    "label": "Snips",
-    "icon": "scissors",
-    "color": "#C47A3A",
-    "description": "Fragmentos de texto consolidados"
-  },
-
-  "cardinality": "multiple",
-
-  "storage": {
-    "scope": "note-instance"
-  },
-
-  "entity": {
-    "collection": "items",
-    "content": {
-      "fields": ["text"],
-      "renderer": "expandable-text",
-      "editable": false,
-      "expandable": true,
-      "previewLines": 3
-    }
-  },
-
-  "state": {
-    "field": "active",
-    "initial": true,
-    "toggleable": true
-  },
-
-  "ordering": {
-    "primary": {
-      "field": "createdAt",
-      "direction": "descending"
+    "snips": {
+      "id": "snips",
+      "identity": {
+        "label": "Snips",
+        "icon": "scissors",
+        "color": "#C47A3A",
+        "description": "Fragmentos de texto consolidados"
+      },
+      "semantic": {
+        "contentType": "text-fragment",
+        "role": "source-material"
+      },
+      "cardinality": "multiple",
+      "storage": {
+        "scope": "note-instance"
+      },
+      "entity": {
+        "collection": "items",
+        "content": {
+          "fields": [
+            "text"
+          ],
+          "renderer": "expandable-text",
+          "editable": false,
+          "expandable": true,
+          "previewLines": 3
+        }
+      },
+      "state": {
+        "field": "active",
+        "initial": true,
+        "toggleable": true
+      },
+      "ordering": {
+        "primary": {
+          "field": "createdAt",
+          "direction": "descending"
+        },
+        "priority": {
+          "field": "active",
+          "value": true
+        }
+      },
+      "controls": [
+        {
+          "type": "widget-selector"
+        },
+        {
+          "type": "status",
+          "id": "counter",
+          "metric": "total"
+        },
+        {
+          "type": "icon-action",
+          "id": "clear",
+          "icon": "trash-2"
+        }
+      ],
+      "itemActions": [
+        {
+          "id": "toggle",
+          "type": "toggle-state"
+        },
+        {
+          "id": "delete",
+          "type": "delete"
+        }
+      ],
+      "transfer": {
+        "inputs": [
+          "text"
+        ],
+        "outputs": [
+          "text"
+        ]
+      },
+      "metrics": {
+        "total": {
+          "type": "count"
+        }
+      },
+      "emptyState": {
+        "message": "Arrastra aquí un fragmento de texto"
+      }
     },
-    "priority": {
-      "field": "active",
-      "value": true
-    }
-  },
-
-  "controls": [
-    {
-      "type": "widget-selector"
-    },
-    {
-      "type": "status",
-      "id": "counter",
-      "metric": "total"
-    },
-    {
-      "type": "icon-action",
-      "id": "clear",
-      "icon": "trash-2"
-    }
-  ],
-
-  "itemActions": [
-    {
-      "id": "toggle",
-      "type": "toggle-state"
-    },
-    {
-      "id": "delete",
-      "type": "delete"
-    }
-  ],
-
-  "transfer": {
-    "inputs": ["text"],
-    "outputs": ["text"]
-  },
-
-  "metrics": {
-    "total": {
-      "type": "count"
-    }
-  },
-
-  "emptyState": {
-    "message": "Arrastra aquí un fragmento de texto"
-  }
-},
-
     "collections": {
       "id": "collections",
       "identity": {
@@ -95,6 +92,10 @@
         "icon": "library",
         "color": "#5B7FA3",
         "description": "Colección de fragmentos de texto"
+      },
+      "semantic": {
+        "contentType": "text-collection",
+        "role": "reference-material"
       },
       "cardinality": "multiple",
       "storage": {
@@ -161,281 +162,289 @@
         ]
       },
       "metrics": {
-  "total": {
-    "type": "count"
-  }
-},
+        "total": {
+          "type": "count"
+        }
+      },
       "emptyState": {
         "message": "Arrastra aquí un fragmento de texto"
       }
-
-  },
-
-  "restrictions": {
-  "id": "restrictions",
-
-  "identity": {
-    "label": "Restricciones",
-    "icon": "shield-alert",
-    "color": "#A64B4B",
-    "description": "Colección de restricciones"
-  },
-
-  "cardinality": "multiple",
-
-  "storage": {
-    "scope": "note-instance"
-  },
-
-  "entity": {
-    "collection": "items",
-
-    "content": {
-      "fields": ["text"],
-      "renderer": "expandable-text",
-      "editable": false,
-      "expandable": true,
-      "previewLines": 3
-    }
-  },
-
-  "state": {
-    "field": "active",
-    "initial": true,
-    "toggleable": true
-  },
-
-  "ordering": {
-    "primary": {
-      "field": "createdAt",
-      "direction": "descending"
     },
-    "priority": {
-      "field": "active",
-      "value": true
-    }
-  },
-
-  "controls": [
-    {
-      "type": "widget-selector"
+    "restrictions": {
+      "id": "restrictions",
+      "identity": {
+        "label": "Restricciones",
+        "icon": "shield-alert",
+        "color": "#A64B4B",
+        "description": "Colección de restricciones"
+      },
+      "semantic": {
+        "contentType": "restriction",
+        "role": "constraint"
+      },
+      "cardinality": "multiple",
+      "storage": {
+        "scope": "note-instance"
+      },
+      "entity": {
+        "collection": "items",
+        "content": {
+          "fields": [
+            "text"
+          ],
+          "renderer": "expandable-text",
+          "editable": false,
+          "expandable": true,
+          "previewLines": 3
+        }
+      },
+      "state": {
+        "field": "active",
+        "initial": true,
+        "toggleable": true
+      },
+      "ordering": {
+        "primary": {
+          "field": "createdAt",
+          "direction": "descending"
+        },
+        "priority": {
+          "field": "active",
+          "value": true
+        }
+      },
+      "controls": [
+        {
+          "type": "widget-selector"
+        },
+        {
+          "type": "status",
+          "id": "counter",
+          "metric": "active"
+        },
+        {
+          "type": "icon-action",
+          "id": "clear",
+          "icon": "trash-2"
+        }
+      ],
+      "itemActions": [
+        {
+          "id": "toggle",
+          "type": "toggle-state"
+        },
+        {
+          "id": "delete",
+          "type": "delete"
+        }
+      ],
+      "transfer": {
+        "inputs": [
+          "text"
+        ],
+        "outputs": [
+          "text"
+        ]
+      },
+      "metrics": {
+        "total": {
+          "type": "count"
+        },
+        "active": {
+          "type": "count",
+          "field": "active",
+          "value": true
+        }
+      },
+      "emptyState": {
+        "message": "Arrastra aquí un fragmento de texto"
+      }
     },
-    {
-      "type": "status",
-      "id": "counter",
-      "metric": "active"
+    "candidates": {
+      "id": "candidates",
+      "identity": {
+        "label": "Candidatos",
+        "icon": "list-checks",
+        "color": "#6B8E5A",
+        "description": "Candidatos seleccionables"
+      },
+      "semantic": {
+        "contentType": "candidate",
+        "role": "selection-option"
+      },
+      "cardinality": "multiple",
+      "storage": {
+        "scope": "note-instance"
+      },
+      "entity": {
+        "collection": "items",
+        "content": {
+          "fields": [
+            "text"
+          ],
+          "renderer": "expandable-text",
+          "editable": false,
+          "expandable": true,
+          "previewLines": 3
+        }
+      },
+      "state": {
+        "field": "selected",
+        "initial": false,
+        "toggleable": false
+      },
+      "selection": {
+        "mode": "single",
+        "field": "selected"
+      },
+      "ordering": {
+        "primary": {
+          "field": "createdAt",
+          "direction": "descending"
+        }
+      },
+      "controls": [
+        {
+          "type": "widget-selector"
+        },
+        {
+          "type": "status",
+          "id": "counter",
+          "metric": "total"
+        },
+        {
+          "type": "icon-action",
+          "id": "clear",
+          "icon": "trash-2"
+        }
+      ],
+      "itemActions": [
+        {
+          "id": "select",
+          "type": "select"
+        },
+        {
+          "id": "delete",
+          "type": "delete"
+        }
+      ],
+      "transfer": {
+        "inputs": [
+          "text"
+        ],
+        "outputs": [
+          "text"
+        ]
+      },
+      "metrics": {
+        "total": {
+          "type": "count"
+        }
+      },
+      "emptyState": {
+        "message": "Arrastra aquí un fragmento de texto"
+      }
     },
-    {
-      "type": "icon-action",
-      "id": "clear",
-      "icon": "trash-2"
+    "tasks": {
+      "id": "tasks",
+      "identity": {
+        "label": "Tareas",
+        "icon": "check-square",
+        "color": "#7A6A9A",
+        "description": "Lista de tareas"
+      },
+      "semantic": {
+        "contentType": "task",
+        "role": "actionable"
+      },
+      "cardinality": "multiple",
+      "storage": {
+        "scope": "note-instance"
+      },
+      "entity": {
+        "collection": "items",
+        "content": {
+          "fields": [
+            "text"
+          ],
+          "renderer": "expandable-text",
+          "editable": true,
+          "expandable": true,
+          "previewLines": 3
+        }
+      },
+      "state": {
+        "field": "completed",
+        "initial": true,
+        "toggleable": true
+      },
+      "ordering": {
+        "primary": {
+          "field": "createdAt",
+          "direction": "descending"
+        },
+        "priority": {
+          "field": "completed",
+          "value": true
+        }
+      },
+      "controls": [
+        {
+          "type": "widget-selector"
+        },
+        {
+          "type": "status",
+          "id": "counter",
+          "metric": "pending"
+        },
+        {
+          "type": "icon-action",
+          "id": "clear-completed",
+          "icon": "trash-2"
+        }
+      ],
+      "itemActions": [
+        {
+          "id": "toggle",
+          "type": "toggle-state"
+        },
+        {
+          "id": "delete",
+          "type": "delete"
+        }
+      ],
+      "input": {
+        "text": {
+          "enabled": true,
+          "placeholder": "Nueva tarea..."
+        }
+      },
+      "transfer": {
+        "inputs": [
+          "text"
+        ],
+        "outputs": [
+          "text"
+        ]
+      },
+      "metrics": {
+        "total": {
+          "type": "count"
+        },
+        "completed": {
+          "type": "count",
+          "field": "completed",
+          "value": true
+        },
+        "pending": {
+          "type": "count",
+          "field": "completed",
+          "value": true
+        }
+      },
+      "emptyState": {
+        "message": "Crea una tarea o arrastra aquí un texto"
+      }
     }
-  ],
-
-  "itemActions": [
-    {
-      "id": "toggle",
-      "type": "toggle-state"
-    },
-    {
-      "id": "delete",
-      "type": "delete"
-    }
-  ],
-
-  "transfer": {
-    "inputs": [
-      "text"
-    ],
-    "outputs": [
-      "text"
-    ]
-  },
-
-  "metrics": {
-  "total": {
-    "type": "count"
-  },
-  "active": {
-    "type": "count",
-    "field": "active",
-    "value": true
   }
-},
-
-  "emptyState": {
-    "message": "Arrastra aquí un fragmento de texto"
-  }
-  
-},
-
-"candidates": {
-  "id": "candidates",
-  "identity": {
-    "label": "Candidatos",
-    "icon": "list-checks",
-    "color": "#6B8E5A",
-    "description": "Candidatos seleccionables"
-  },
-  "cardinality": "multiple",
-  "storage": {
-    "scope": "note-instance"
-  },
-  "entity": {
-    "collection": "items",
-    "content": {
-      "fields": ["text"],
-      "renderer": "expandable-text",
-      "editable": false,
-      "expandable": true,
-      "previewLines": 3
-    }
-  },
-  "state": {
-    "field": "selected",
-    "initial": false,
-    "toggleable": false
-  },
-  "selection": {
-    "mode": "single",
-    "field": "selected"
-  },
-  "ordering": {
-    "primary": {
-      "field": "createdAt",
-      "direction": "descending"
-    }
-  },
-  "controls": [
-    {
-      "type": "widget-selector"
-    },
-    {
-      "type": "status",
-      "id": "counter",
-      "metric": "total"
-    },
-    {
-      "type": "icon-action",
-      "id": "clear",
-      "icon": "trash-2"
-    }
-  ],
-  "itemActions": [
-    {
-      "id": "select",
-      "type": "select"
-    },
-    {
-      "id": "delete",
-      "type": "delete"
-    }
-  ],
-  "transfer": {
-    "inputs": ["text"],
-    "outputs": ["text"]
-  },
-  "metrics": {
-  "total": {
-    "type": "count"
-  }
-},
-  "emptyState": {
-    "message": "Arrastra aquí un fragmento de texto"
-  }
-},
-
-"tasks": {
-  "id": "tasks",
-  "identity": {
-    "label": "Tareas",
-    "icon": "check-square",
-    "color": "#7A6A9A",
-    "description": "Lista de tareas"
-  },
-  "cardinality": "multiple",
-  "storage": {
-    "scope": "note-instance"
-  },
-  "entity": {
-    "collection": "items",
-    "content": {
-      "fields": ["text"],
-      "renderer": "expandable-text",
-      "editable": true,
-      "expandable": true,
-      "previewLines": 3
-    }
-  },
-  "state": {
-    "field": "completed",
-    "initial": true,
-    "toggleable": true
-  },
-  "ordering": {
-    "primary": {
-      "field": "createdAt",
-      "direction": "descending"
-    },
-    "priority": {
-      "field": "completed",
-      "value": false
-    }
-  },
-  "controls": [
-    {
-      "type": "widget-selector"
-    },
-    {
-      "type": "status",
-      "id": "counter",
-      "metric": "pending"
-    },
-    {
-      "type": "icon-action",
-      "id": "clear-completed",
-      "icon": "trash-2"
-    }
-  ],
-  "itemActions": [
-    {
-      "id": "toggle",
-      "type": "toggle-state"
-    },
-    {
-      "id": "delete",
-      "type": "delete"
-    }
-  ],
-  "input": {
-    "text": {
-      "enabled": true,
-      "placeholder": "Nueva tarea..."
-    }
-  },
-  "transfer": {
-    "inputs": ["text"],
-    "outputs": ["text"]
-  },
-"metrics": {
-  "total": {
-    "type": "count"
-  },
-  "completed": {
-    "type": "count",
-    "field": "completed",
-    "value": true
-  },
-  "pending": {
-    "type": "count",
-    "field": "completed",
-    "value": true
-  }
-},
-  "emptyState": {
-    "message": "Crea una tarea o arrastra aquí un texto"
-  }
-}
-
-}
 }

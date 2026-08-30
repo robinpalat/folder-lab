@@ -784,7 +784,7 @@
 }
 
 .fl-widget-frame-top .fl-widget-controls {
-  margin: 8px 8px 15px 6px !important;
+  margin: 8px 8px 5px 6px !important;
   width: auto !important;
   box-sizing: border-box;
 }
@@ -2645,6 +2645,8 @@ body.focus-splitter-dragging {
   font-size: 0.8em;
   line-height: 1.5;
 
+  flex-shrink: 0;
+
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease;
@@ -3604,4 +3606,13 @@ body.focus-splitter-dragging {
 
   cursor: pointer;
   user-select: none;
+}
+
+.fl-widget-identity-colored {
+  color: var(--fl-widget-identity-color);
+}
+
+
+.fl-focus-list-item {
+  flex-shrink: 0;
 }

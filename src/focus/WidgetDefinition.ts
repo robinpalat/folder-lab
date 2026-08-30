@@ -32,23 +32,34 @@ export interface WidgetControlDefinition {
   metric?: string;
 }
 
+
+
 export interface WidgetActionDefinition {
   id: string;
   type: string;
+}
+
+export interface WidgetSemanticDefinition {
+
+  contentType: string;
+
+  role: string;
+
+  properties?: string[];
 }
 
 export interface WidgetDefinition {
 
   id: string;
 
-identity: {
-  label: string;
-  icon?: string;
-  color?: string;
-  description?: string;
-};
+  identity: {
+    label: string;
+    icon?: string;
+    color?: string;
+    description?: string;
+  };
 
-  semantic?: string;
+  semantic?: WidgetSemanticDefinition;
 
   cardinality: WidgetCardinality;
 
@@ -87,8 +98,8 @@ identity: {
     primary?: {
       field: string;
       direction:
-        'ascending' |
-        'descending';
+      'ascending' |
+      'descending';
     };
 
     priority?: {

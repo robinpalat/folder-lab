@@ -271,6 +271,13 @@ this.contextResolver = new ContextResolver(
       return controls;
     }
 
+        controls.action({
+      id: 'execute',
+      label: 'Aplicar',
+      primary: true
+    });
+
+
     controls.select({
       id: 'session',
       label: 'Sesión',
@@ -283,17 +290,6 @@ this.contextResolver = new ContextResolver(
       ]
     });
 
-    controls.action({
-      id: 'work',
-      label: 'Trabajo',
-      primary: true
-    });
-
-    controls.action({
-      id: 'execute',
-      label: 'Aplicar',
-      primary: true
-    });
 
     return controls;
   }
@@ -494,7 +490,8 @@ this.contextResolver = new ContextResolver(
       overflowY: 'auto',
       overflowX: 'hidden',
       color: 'var(--text-normal)',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      paddingRight: '12px'
     });
 
     if (this.sessionView === 'today') {
@@ -590,7 +587,10 @@ this.contextResolver = new ContextResolver(
         editable: false,
         rootClass: 'fl-memory-expandable',
         contentClass: 'fl-memory-expandable-content',
-        actionClass: 'fl-memory-expandable-action'
+        actionClass: 'fl-memory-expandable-action',
+        onExpandedChange: (expanded) => {
+        listItem.setExpanded(expanded);
+    }
       }
     );
 

@@ -3,6 +3,9 @@ import { FocusWidget, WidgetCallbacks } from './FocusWidget';
 import { FocusContext } from './FocusContext';
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
 import { WidgetManager } from './WidgetManager';
+import {
+  applyWidgetIdentity
+} from './FocusWidgetsUtils';
 
 export enum FocusPanePosition {
   Top = 'top',
@@ -28,94 +31,94 @@ export class FocusPane {
   private scrollFadeCleanups: Array<() => void> = [];
   private scrollFadeMutationObserver: MutationObserver | null = null;
 
-constructor(
-  container: HTMLElement,
-  position: FocusPanePosition,
-  widgetInstanceId: string,
-  registry: FocusWidgetRegistry,
-  widgetManager: WidgetManager,
-  context: FocusContext,
-  app: any,
-  onWidgetSelect?: (instanceId: string) => void
-) {
-  this.container = container;
-  this.position = position;
-  this.registry = registry;
-  this.widgetManager = widgetManager;
-  this.context = context;
-  this.app = app;
-  this.widgetInstanceId = widgetInstanceId;
-  this.onWidgetSelectCallback = onWidgetSelect;
-}
-
-render(): void {
-  // El contenedor del pane pertenece a FocusWorkspace.
-  // FocusPane no debe crear otro .fl-widget-container.
-  this.element = this.container;
-
-  // Limpiar cualquier frame anterior que pudiera existir.
-  if (this.widgetContainer) {
-    this.widgetContainer.remove();
-    this.widgetContainer = null;
+  constructor(
+    container: HTMLElement,
+    position: FocusPanePosition,
+    widgetInstanceId: string,
+    registry: FocusWidgetRegistry,
+    widgetManager: WidgetManager,
+    context: FocusContext,
+    app: any,
+    onWidgetSelect?: (instanceId: string) => void
+  ) {
+    this.container = container;
+    this.position = position;
+    this.registry = registry;
+    this.widgetManager = widgetManager;
+    this.context = context;
+    this.app = app;
+    this.widgetInstanceId = widgetInstanceId;
+    this.onWidgetSelectCallback = onWidgetSelect;
   }
 
-  // El contenedor del pane ya tiene la geometría asignada por
-  // FocusWorkspace. El frame debe heredarla sin introducir otra
-  // dimensión independiente.
-  Object.assign(this.element.style, {
-    height: "100%",
-    minHeight: "0",
-    minWidth: "0",
-    display: "flex",
-    flexDirection: "column",
-    boxSizing: "border-box",
-    overflow: "hidden"
-  });
+  render(): void {
+    // El contenedor del pane pertenece a FocusWorkspace.
+    // FocusPane no debe crear otro .fl-widget-container.
+    this.element = this.container;
 
-  // Crear únicamente la superficie visual del widget.
-  this.widgetContainer = this.container.createEl('div', {
-    cls: `fl-widget-frame fl-widget-frame-${this.position}`
-  });
+    // Limpiar cualquier frame anterior que pudiera existir.
+    if (this.widgetContainer) {
+      this.widgetContainer.remove();
+      this.widgetContainer = null;
+    }
 
-  Object.assign(this.widgetContainer.style, {
-    height: "100%",
-    minHeight: "0",
-    minWidth: "0",
-    flex: "1 1 0",
-    display: "flex",
-    flexDirection: "column",
-    boxSizing: "border-box",
-    overflow: "hidden"
-  });
-
-  this.createAndRenderWidget(this.widgetInstanceId);
-
-  requestAnimationFrame(() => {
-    const measure = (el: HTMLElement | null) => {
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      const cs = getComputedStyle(el);
-      return {
-        height: Math.round(r.height * 100) / 100,
-        cssHeight: cs.height,
-        minHeight: cs.minHeight,
-        maxHeight: cs.maxHeight,
-        flex: cs.flex,
-        display: cs.display,
-        overflowY: cs.overflowY
-      };
-    };
-
-    const widget =
-      this.widgetContainer?.querySelector(".fl-widget-notes") as HTMLElement | null;
-
-    console.log("[FOCUS PANE GEOMETRY]", {
-      pane: measure(this.element),
-      frame: measure(this.widgetContainer),
-      widget: measure(widget)
+    // El contenedor del pane ya tiene la geometría asignada por
+    // FocusWorkspace. El frame debe heredarla sin introducir otra
+    // dimensión independiente.
+    Object.assign(this.element.style, {
+      height: "100%",
+      minHeight: "0",
+      minWidth: "0",
+      display: "flex",
+      flexDirection: "column",
+      boxSizing: "border-box",
+      overflow: "hidden"
     });
-  });
-}
+
+    // Crear únicamente la superficie visual del widget.
+    this.widgetContainer = this.container.createEl('div', {
+      cls: `fl-widget-frame fl-widget-frame-${this.position}`
+    });
+
+    Object.assign(this.widgetContainer.style, {
+      height: "100%",
+      minHeight: "0",
+      minWidth: "0",
+      flex: "1 1 0",
+      display: "flex",
+      flexDirection: "column",
+      boxSizing: "border-box",
+      overflow: "hidden"
+    });
+
+    this.createAndRenderWidget(this.widgetInstanceId);
+
+    requestAnimationFrame(() => {
+      const measure = (el: HTMLElement | null) => {
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        return {
+          height: Math.round(r.height * 100) / 100,
+          cssHeight: cs.height,
+          minHeight: cs.minHeight,
+          maxHeight: cs.maxHeight,
+          flex: cs.flex,
+          display: cs.display,
+          overflowY: cs.overflowY
+        };
+      };
+
+      const widget =
+        this.widgetContainer?.querySelector(".fl-widget-notes") as HTMLElement | null;
+
+      console.log("[FOCUS PANE GEOMETRY]", {
+        pane: measure(this.element),
+        frame: measure(this.widgetContainer),
+        widget: measure(widget)
+      });
+    });
+  }
 
   private createAndRenderWidget(instanceId: string): void {
     this.destroyWidget();
@@ -142,12 +145,12 @@ render(): void {
       return;
     }
 
-  if (newWidget.setInstanceIdentity) {
-    newWidget.setInstanceIdentity(
-      instance.instanceId,
-      instance.name
-    );
-  }
+    if (newWidget.setInstanceIdentity) {
+      newWidget.setInstanceIdentity(
+        instance.instanceId,
+        instance.name
+      );
+    }
 
     this.widget = newWidget;
     this.widgetInstanceId = instanceId;
@@ -321,66 +324,145 @@ render(): void {
   }
 
   private showWidgetMenu(): void {
-    const menu = new Menu();
+  const menu = new Menu();
 
-    const available = this.widgetManager.getInstances();
+  const available =
+    this.widgetManager.getInstances();
 
-    for (const instance of available) {
-      const definition =
-        this.widgetManager.getDefinition(instance.typeId);
+  for (const instance of available) {
 
-      if (!definition) {
-        continue;
-      }
-
-      const isActive =
-        instance.instanceId === this.widgetInstanceId;
-
-      menu.addItem((item) => {
-        item
-          .setTitle(instance.name)
-          .setIcon(definition.identity.icon || 'blank')
-          .setChecked(isActive)
-          .onClick(() => {
-
-            this.createAndRenderWidget(
-              instance.instanceId
-            );
-
-            if (this.onWidgetSelectCallback) {
-              this.onWidgetSelectCallback(
-                instance.instanceId
-              );
-            }
-          });
-      });
-    }
-
-    const selectorBtn =
-      this.element?.querySelector(
-        '.fl-widget-selector-btn'
+    const definition =
+      this.widgetManager.getDefinition(
+        instance.typeId
       );
 
-    if (selectorBtn) {
-      const rect =
-        selectorBtn.getBoundingClientRect();
-
-      menu.showAtPosition({
-        x: rect.left,
-        y: rect.bottom + 4
-      });
-    } else {
-      const rect =
-        this.element?.getBoundingClientRect();
-
-      if (rect) {
-        menu.showAtPosition({
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2
-        });
-      }
+    if (!definition) {
+      continue;
     }
+
+    const isActive =
+      instance.instanceId ===
+      this.widgetInstanceId;
+
+    menu.addItem((item) => {
+
+      item
+        .setTitle(instance.name)
+        .setIcon(
+          definition.identity.icon || 'blank'
+        )
+        .setChecked(isActive);
+
+      item.onClick(() => {
+
+        this.createAndRenderWidget(
+          instance.instanceId
+        );
+
+        if (this.onWidgetSelectCallback) {
+          this.onWidgetSelectCallback(
+            instance.instanceId
+          );
+        }
+      });
+    });
   }
+
+  const selectorBtn =
+    this.element?.querySelector(
+      '.fl-widget-selector-btn'
+    );
+
+  let x: number;
+  let y: number;
+
+  if (selectorBtn) {
+
+    const rect =
+      selectorBtn.getBoundingClientRect();
+
+    x = rect.left;
+    y = rect.bottom + 4;
+
+  } else {
+
+    const rect =
+      this.element?.getBoundingClientRect();
+
+    if (!rect) {
+      return;
+    }
+
+    x =
+      rect.left +
+      rect.width / 2;
+
+    y =
+      rect.top +
+      rect.height / 2;
+  }
+
+  menu.showAtPosition({
+    x,
+    y
+  });
+
+  window.setTimeout(() => {
+
+    const menus =
+      document.querySelectorAll('.menu');
+
+    const menuEl =
+  menus.item(menus.length - 1) as HTMLElement | null;
+
+    if (!menuEl) {
+      return;
+    }
+
+    const items =
+      Array.from(
+        menuEl.querySelectorAll(
+          '.menu-scroll .menu-item'
+        )
+      ) as HTMLElement[];
+
+    items.forEach(
+      (itemEl, index) => {
+
+        const instance =
+          available[index];
+
+        if (!instance) {
+          return;
+        }
+
+        const definition =
+          this.widgetManager.getDefinition(
+            instance.typeId
+          );
+
+        if (!definition) {
+          return;
+        }
+
+        const iconEl =
+          itemEl.querySelector(
+            '.menu-item-icon'
+          ) as HTMLElement | null;
+
+        if (!iconEl) {
+          return;
+        }
+
+        applyWidgetIdentity(
+          iconEl,
+          definition.identity
+        );
+      }
+    );
+
+  }, 0);
+}
 
   private destroyWidget(): void {
     this.clearScrollFades();
@@ -433,16 +515,16 @@ render(): void {
     return this.widget;
   }
 
-destroy(): void {
-  this.destroyWidget();
+  destroy(): void {
+    this.destroyWidget();
 
-  // FocusPane NO es propietario de this.element.
-  // El contenedor pertenece a FocusWorkspace.
-  if (this.widgetContainer) {
-    this.widgetContainer.remove();
-    this.widgetContainer = null;
+    // FocusPane NO es propietario de this.element.
+    // El contenedor pertenece a FocusWorkspace.
+    if (this.widgetContainer) {
+      this.widgetContainer.remove();
+      this.widgetContainer = null;
+    }
+
+    this.element = null;
   }
-
-  this.element = null;
-}
 }

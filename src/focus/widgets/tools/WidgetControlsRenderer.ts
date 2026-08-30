@@ -6,6 +6,10 @@ import type {
   WidgetDynamicControl
 } from './WidgetControlTypes';
 
+import {
+  applyWidgetIdentity
+} from '../../FocusWidgetsUtils';
+
 export interface WidgetControlsRendererCallbacks {
   onWidgetSelect?: (widgetId: string) => void;
 
@@ -297,13 +301,20 @@ private static renderSourceSelector(
     });
     
     // Icono del widget
-	if (widget.icon) {
-	  const iconSpan = btn.createEl('span', {
-		cls: 'fl-widget-selector-icon'
-	  });
+// Icono del widget
+if (widget.icon) {
+  const iconSpan = btn.createEl('span', {
+    cls: 'fl-widget-selector-icon'
+  });
 
-	  setIcon(iconSpan, widget.icon);
-	}
+applyWidgetIdentity(
+  iconSpan,
+  {
+    icon: widget.icon,
+    color: widget.color
+  }
+);
+}
 
     // el botón muestra el nombre
     btn.createEl('span', {
