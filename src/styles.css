@@ -415,108 +415,110 @@
 [data-indent="4"] { padding-left: 72px; }
 [data-indent="5"] { padding-left: 88px; }
 
-/* ================================================================
-   07 - ÁREA DE NOTAS (EXPLORER MODE)
-   ================================================================ */
+/* ---------------------------------------------------------------
+   SUPERFICIE DE APUNTES
+   --------------------------------------------------------------- */
 
 .folder-lab-notearea-wrapper {
   display: flex;
   flex-direction: column;
-  flex: 0 0 160px;
-  min-height: 80px;
+
+  flex: 0 0 90px;
+  height: 90px;
+  min-height: 90px;
+  max-height: 90px;
+
+  box-sizing: border-box;
+
   overflow: hidden;
-  border-top: 1px solid var(--background-modifier-border);
+
+  padding: 6px 10px;
+
+  border-top: none;
 }
 
 .folder-order-note-wrapper {
   display: flex;
-  flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
+
+  width: 100%;
+  min-width: 0;
   min-height: 0;
+
+  box-sizing: border-box;
+
   overflow: hidden;
-}
-
-.folder-order-note-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex: 0 0 auto;
-  padding: 8px 10px;
-  gap: 8px;
-  user-select: none;
-}
-
-.folder-order-note-badge {
-  font-size: var(--font-ui-small);
-  color: var(--text-muted);
-  opacity: 0.8;
-  font-weight: 400;
-}
-
-.folder-order-note-maximize {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  opacity: 0.5;
-  transition: opacity 0.15s, background 0.15s, transform 0.15s;
-}
-
-.folder-order-note-maximize:hover {
-  opacity: 1;
-  background: var(--background-modifier-hover);
-  transform: scale(1.08);
-}
-
-.folder-order-note-maximize:active {
-  transform: scale(0.95);
-}
-
-.folder-order-note-maximize.is-maximized {
-  color: var(--interactive-accent);
-  opacity: 0.9;
-}
-
-.folder-order-note-maximize svg {
-  width: 16px;
-  height: 16px;
 }
 
 .folder-order-note-textarea {
   display: block;
-  flex: 1;
+
+  font-size: 1em;
+
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
+
   width: 100%;
-  padding: 8px 10px;
+
   box-sizing: border-box;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: var(--background-secondary);
+
+  padding: 4px 2px;
+
+  border: none !important;
+  border-radius: 0;
+
+  background: transparent !important;
+  box-shadow: none !important;
+
   color: var(--text-normal);
+
   font: inherit;
+  font-size: 0.9em;
   line-height: 1.5;
+
   resize: none;
   outline: none;
-  overflow: auto;
-  transition: font-size 0.3s ease, opacity 0.3s ease;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  opacity: 0.6;
+
+  transition: opacity 0.2s ease;
 }
+/* ---------------------------------------------------------------
+   ESTADO NORMAL — APUNTE FUERA DE FOCO
+   --------------------------------------------------------------- */
 
 .folder-order-note-textarea:hover {
-  border-color: transparent;
+  opacity: 0.7;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
+
+
+/* ---------------------------------------------------------------
+   ESTADO EN FOCO — USUARIO ESCRIBIENDO
+   --------------------------------------------------------------- */
 
 .folder-order-note-textarea:focus {
   opacity: 1 !important;
-  border-color: var(--interactive-accent);
-  background: var(--background-secondary);
+
+  color: var(--text-normal);
+
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+
+  outline: none !important;
 }
+
+
+/* ---------------------------------------------------------------
+   SCROLLBAR — 
+   --------------------------------------------------------------- */
 
 .folder-order-note-textarea::-webkit-scrollbar {
   width: 4px;
@@ -535,43 +537,18 @@
   background: var(--text-muted);
 }
 
-.folder-order-note-wrapper:not(.note-maximized) .folder-order-note-textarea {
-  opacity: 0.6;
-  font-size: 0.9em;
+
+/* ---------------------------------------------------------------
+   PLACEHOLDER
+   --------------------------------------------------------------- */
+
+.folder-order-note-textarea::placeholder {
+  color: var(--text-normal);
+  font-size: 1em; 
+   opacity: 1 !important;
 }
 
-.folder-order-note-wrapper:not(.note-maximized) .folder-order-note-textarea:hover {
-  opacity: 0.8;
-}
 
-.folder-order-note-wrapper.note-maximized .folder-order-note-textarea {
-  opacity: 1;
-  font-size: 1.2em;
-}
-
-.folder-lab-explorer-mode.note-maximized .folder-lab-header {
-  display: none;
-}
-
-.folder-lab-explorer-mode.note-maximized .folder-lab-list-wrapper {
-  display: none;
-}
-
-.folder-lab-explorer-mode.note-maximized .folder-lab-notearea-wrapper {
-  flex: 1;
-  min-height: 0;
-  border-top: none;
-}
-
-.folder-lab-explorer-mode:not(.note-maximized) .folder-order-note-textarea {
-  font-size: 0.9em !important;
-  opacity: 0.6 !important;
-}
-
-.folder-lab-explorer-mode.note-maximized .folder-order-note-textarea {
-  font-size: 1.2em !important;
-  opacity: 1 !important;
-}
 
 /* ================================================================
    08 - ESTADO VACÍO
@@ -583,7 +560,7 @@
   padding: 30px 20px;
   font-style: italic;
   font-size: 0.9em;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 /* ================================================================
@@ -1225,44 +1202,89 @@
    19 - SPLITTER
    ================================================================ */
 
-.fl-splitter-wrapper {
+.focus-splitter-container {
   flex-shrink: 0;
-  height: 6px;
-  cursor: row-resize;
-  background: var(--background-secondary);
-  user-select: none;
+
+  height: 10px;
+
   position: relative;
-  z-index: 10;
+  z-index: 100;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s;
+
+  background: var(--background-secondary);
+
+  border-top: 1px solid var(--background-modifier-border);
+  border-bottom: 1px solid var(--background-modifier-border);
+
+  user-select: none;
 }
 
-.fl-splitter-wrapper:hover {
-  background: var(--background-modifier-hover);
+.focus-splitter {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: row-resize;
 }
 
-.fl-splitter-handle {
-  width: 40px;
-  height: 2px;
+.focus-splitter-handle {
+  width: 50px;
+  height: 5px;
+
   background: var(--text-faint);
-  border-radius: 1px;
-  opacity: 0.25;
-  transition: opacity 0.2s, transform 0.2s;
+
+  border-radius: 3px;
+
+  opacity: 0.45;
+
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+
   pointer-events: none;
 }
 
-.fl-splitter-wrapper:hover .fl-splitter-handle {
-  opacity: 0.5;
-  transform: scaleY(1.5);
+
+/* ---------------------------------------------------------------
+   HOVER
+   --------------------------------------------------------------- */
+
+.focus-splitter-container:hover {
+  background: var(--background-modifier-hover);
 }
 
-.fl-splitter-wrapper:active .fl-splitter-handle {
-  opacity: 0.8;
-  transform: scaleY(2);
+.focus-splitter-container:hover .focus-splitter-handle {
+  opacity: 0.75;
+  transform: scaleY(1.4);
 }
 
+
+/* ---------------------------------------------------------------
+   ARRASTRE
+   --------------------------------------------------------------- */
+
+.focus-splitter-container.is-dragging {
+  background: var(--background-modifier-hover);
+}
+
+.focus-splitter-container.is-dragging .focus-splitter-handle {
+  opacity: 1;
+  transform: scaleY(1.8);
+}
+
+
+/* Cursor global durante el arrastre */
+
+body.focus-splitter-dragging {
+  cursor: row-resize !important;
+  user-select: none !important;
+}
 /* ================================================================
    20 - BOTÓN CERRAR - FUERA DE LOS WIDGETS
    ================================================================ */
@@ -1599,9 +1621,21 @@
   font-size: var(--font-ui-small) !important;
   font-style: italic !important;
   font-weight: 400 !important;
-  opacity: 0.75 !important;
+  opacity: 0.9 !important;
   user-select: none;
 }
+
+.folder-lab-view .folder-order-note-textarea::placeholder {
+  color: var(--text-normal) !important;
+  font-family: var(--font-interface) !important;
+  font-size: 1em !important;
+  opacity: 0.4 !important;
+}
+
+/* ---------------------------------------------------------------
+   PLACEHOLDER — NOTA GENERAL
+   --------------------------------------------------------------- */
+
 
 /* ================================================================
    23 - TAREAS
@@ -2790,13 +2824,15 @@
 
 
 
-/*___________________________ PARCHES
+/*__________________ PARCHES
+ *
  * 
  * 
  * 
  * 
- * 
- * -------------------kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk-----*/
+ * ------------------------*/
+
+ 
  
  /* ============================================================
    PROPERTIES — NODOS ESTRUCTURALES EN TODAS LAS NOTAS
@@ -2817,53 +2853,6 @@
    EDITORIAL DROP CAP — SNIPS
    ============================================================ */
 
-.fl-snips-expandable-content {
-  --fl-dropcap-size: 30px;
-  --fl-dropcap-line-height: 30px;
-  --fl-dropcap-gap: 5px;
-
-  line-height: 16px;
-}
-
-.fl-snips-expandable-content .fl-dropcap {
-  float: left;
-
-  font-size: var(--fl-dropcap-size);
-  line-height: var(--fl-dropcap-line-height);
-  font-weight: 600;
-
-  margin-right: var(--fl-dropcap-gap);
-  margin-bottom: 0;
-}
-
-/*
- * Cuando el fragmento está contraído, la capitular sigue siendo
- * parte del flujo normal del texto.
- */
-.fl-snips-expandable.is-collapsed .fl-snips-expandable-content {
-  overflow: hidden;
-}
-
-
-.fl-snips-expandable-content {
-  line-height: 18px;
-}
-
-.fl-snips-expandable-content .fl-dropcap {
-  float: left;
-  font-size: 20px;
-  line-height: 18px;
-  font-weight: 600;
-  margin-right: 5px;
-}
-
-.fl-tasks-expandable-content .fl-dropcap {
-  float: left;
-  font-size: 20px;
-  line-height: 18px;
-  font-weight: 600;
-  margin-right: 5px;
-}
 
 .fl-notes-expandable-content .fl-dropcap {
   float: left;
@@ -3130,17 +3119,9 @@
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
+/* ============================================================
+   library-browser
+   ============================================================ */
 
 .fl-library-browser {
   width: min(900px, 90vw);
@@ -3531,7 +3512,6 @@
   margin: 0;
   min-width: auto;
 }
-
 
 
 /* ============================================================
