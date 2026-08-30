@@ -27,13 +27,9 @@ import { ResourcesWidgetFactory } from "./focus/widgets/ResourcesWidget";
 import { MemoryWidgetFactory } from "./focus/widgets/MemoryWidget";
 import { createCapabilityRegistry, CapabilityRegistry } from './ai/capabilities';
 import { AIService } from './ai/AIService';
-import { SnipsWidgetFactory } from './focus/widgets/SnipsWidget';
-import { SnipsController } from './focus/controllers/SnipsController';
-import { TasksController } from './focus/controllers/TasksController';
 
 import { WidgetManager } from "./focus/WidgetManager";
 import { NoteRepository } from './storage/NoteRepository';
-import { SnipsInstanceService } from './focus/services/SnipsInstanceService';
 import type { WidgetDefinition } from './focus/WidgetDefinition';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
@@ -126,13 +122,11 @@ export default class FolderLabPlugin extends Plugin {
   repository: FolderRepository;
   aiService: AIService | null = null;
   capabilityRegistry: CapabilityRegistry | null = null;
-  snipsController: SnipsController | null = null;
-  tasksController: TasksController | null = null;
+
   private viewInstance: FolderLabView | null = null;
   private widgetRegistry: FocusWidgetRegistry | null = null;
   private widgetManager: WidgetManager | null = null;
-  private snipsInstanceService:
-    SnipsInstanceService | null = null;
+  private widgetController: WidgetController;
 
 
   async onload() {
@@ -156,12 +150,6 @@ export default class FolderLabPlugin extends Plugin {
     this.capabilityRegistry = createCapabilityRegistry();
 
     // ============================================================
-    // Inicializar Widgets Controller
-    // ============================================================
-    this.snipsController = new SnipsController(this);
-    this.tasksController = new TasksController(this);
-
-    // ============================================================
     // CREAR REPOSITORY
     // ============================================================
     this.repository = new FolderRepository(this.app);
@@ -170,12 +158,12 @@ export default class FolderLabPlugin extends Plugin {
     // INICIALIZAR REGISTRO DE WIDGETS (UNA SOLA VEZ)
     // ============================================================
 
-    const widgetController =
+    this.widgetController =
       new WidgetController(this);
 
     this.widgetRegistry =
       new FocusWidgetRegistry(
-        widgetController,
+        this.widgetController,
         this.app
       );
 
@@ -247,12 +235,31 @@ export default class FolderLabPlugin extends Plugin {
     );
 
 
+
+    // ============================================================
+    // INICIALIZAR GESTOR DE INSTANCIAS
+    // ============================================================
+
+    const noteRepository =
+      new NoteRepository(this.app);
+
+    this.widgetManager =
+      new WidgetManager(
+        this.widgetRegistry!,
+        noteRepository
+      );
+
+    // ============================================================
+    // REGISTRAR VISTA
+    // ============================================================
+
     this.widgetRegistry.register(
       new MemoryWidgetFactory(
         this.app,
         this.aiService!,
         this.capabilityRegistry!,
-        this.tasksController!,
+        this.widgetController,
+        this.widgetManager!
       ),
       {
         id: 'memory',
@@ -268,383 +275,6 @@ export default class FolderLabPlugin extends Plugin {
       }
     );
 
-
-    this.widgetRegistry.register(
-      new SnipsWidgetFactory(
-        this.app,
-        this.snipsController
-      ),
-      {
-        id: 'snips',
-
-        identity: {
-          label: 'Snips',
-          icon: 'scissors',
-          description:
-            'Captura y conserva fragmentos de información provenientes de fuentes externas o de la propia nota. Es un repositorio de capturas rápidas para consultar y procesar posteriormente.'
-        },
-
-        cardinality: 'multiple'
-      }
-    );
-
-    // ============================================================
-    // INICIALIZAR GESTOR DE INSTANCIAS
-    // ============================================================
-
-    const noteRepository =
-      new NoteRepository(this.app);
-
-    this.widgetManager =
-      new WidgetManager(
-        this.widgetRegistry!,
-        noteRepository
-      );
-
-    this.snipsInstanceService =
-      new SnipsInstanceService(
-        this.widgetManager,
-        noteRepository
-      );
-
-
-    // ============================================================
-    // PRE-CARGAR INSTANCIAS SNIPS DE LA NOTA ACTIVA
-    // ============================================================
-    const activeFile =
-      this.app.workspace.getActiveFile();
-
-    if (activeFile) {
-      void this.snipsInstanceService.loadForNote(
-        activeFile.path
-      );
-    }
-
-    this.registerEvent(
-      this.app.workspace.on(
-        'active-leaf-change',
-        (leaf) => {
-
-          const file =
-            this.app.workspace.getActiveFile();
-
-          if (!file) {
-            return;
-          }
-
-          void this.snipsInstanceService?.loadForNote(
-            file.path
-          );
-        }
-      )
-    );
-
-    // ============================================================
-    // EDITOR MENU — Snips por instancia
-    // ============================================================
-    this.registerEvent(
-      this.app.workspace.on(
-        'editor-menu',
-        (menu, editor, view) => {
-          const selection =
-            editor.getSelection();
-
-          if (!selection) {
-            return;
-          }
-
-          const file =
-            view.file;
-
-          if (!file) {
-            return;
-          }
-
-
-          const snipsInstances =
-            this.snipsInstanceService
-              ?.getInstances() ?? [];
-          menu.addSeparator();
-
-          menu.addItem(item => {
-
-            item
-              .setTitle(
-                'Folder Lab: Guardar en'
-              )
-              .setIcon('scissors');
-
-            const menuItem =
-              item as any;
-
-            if (
-              typeof menuItem.setSubmenu !==
-              'function'
-            ) {
-
-              const firstInstance =
-                snipsInstances[0];
-
-              item.onClick(async () => {
-
-                const controller =
-                  this.snipsController;
-
-                if (!controller) {
-                  new Notice(
-                    'Snips no está inicializado'
-                  );
-                  return;
-                }
-
-                await controller.addFragment(
-                  file.path,
-                  firstInstance.instanceId,
-                  file.basename,
-                  selection
-                );
-
-                new Notice(
-                  `Fragmento guardado en ${firstInstance.name}`
-                );
-              });
-
-              return;
-            }
-
-            const submenu =
-              menuItem.setSubmenu();
-
-            if (!submenu) {
-              return;
-            }
-
-            for (
-              const instance of snipsInstances
-            ) {
-
-              submenu.addItem(
-                (subItem: any) => {
-
-                  subItem
-                    .setTitle(
-                      instance.name
-                    )
-                    .setIcon('scissors')
-                    .onClick(async () => {
-
-                      const controller =
-                        this.snipsController;
-
-                      if (!controller) {
-                        new Notice(
-                          'Snips no está inicializado'
-                        );
-                        return;
-                      }
-
-                      await controller.addFragment(
-                        file.path,
-                        instance.instanceId,
-                        file.basename,
-                        selection
-                      );
-
-                      new Notice(
-                        `Fragmento guardado en ${instance.name}`
-                      );
-                    });
-                }
-              );
-            }
-          });
-        }
-      )
-    );
-
-
-    // ============================================================
-    // READING VIEW MENU — Snips por instancia
-    // ============================================================
-    this.registerDomEvent(
-      this.app.workspace.containerEl,
-      'contextmenu',
-      (event: MouseEvent) => {
-
-        // --------------------------------------------------------
-        // Comprobar que el clic pertenece a Reading View
-        // --------------------------------------------------------
-        const path =
-          event.composedPath();
-
-        const isReadingView =
-          path.some(element => {
-
-            if (
-              !(element instanceof HTMLElement)
-            ) {
-              return false;
-            }
-
-            return (
-              element.classList.contains(
-                'markdown-preview-view'
-              ) ||
-              element.classList.contains(
-                'markdown-reading-view'
-              )
-            );
-          });
-
-        if (!isReadingView) {
-          return;
-        }
-
-        // --------------------------------------------------------
-        // Obtener selección
-        // --------------------------------------------------------
-        const selection =
-          window.getSelection();
-
-        const selectedText =
-          selection
-            ?.toString()
-            .trim() || '';
-
-        if (!selectedText) {
-          return;
-        }
-
-        // --------------------------------------------------------
-        // Nota activa
-        // --------------------------------------------------------
-        const activeFile =
-          this.app.workspace.getActiveFile();
-
-        if (!activeFile) {
-          return;
-        }
-
-
-        // --------------------------------------------------------
-        // Instancias Snips
-        // --------------------------------------------------------
-        const snipsInstances =
-          this.snipsInstanceService
-            ?.getInstances() ?? [];
-
-        // --------------------------------------------------------
-        // Crear menú
-        // --------------------------------------------------------
-        const menu =
-          new Menu();
-
-        menu.addItem(item => {
-
-          item
-            .setTitle(
-              'Folder Lab: Guardar en'
-            )
-            .setIcon('scissors');
-
-          const menuItem =
-            item as any;
-
-          if (
-            typeof menuItem.setSubmenu !==
-            'function'
-          ) {
-
-            const firstInstance =
-              snipsInstances[0];
-
-            item.onClick(async () => {
-
-              const controller =
-                this.snipsController;
-
-              if (!controller) {
-                new Notice(
-                  'Snips no está inicializado'
-                );
-                return;
-              }
-
-              await controller.addFragment(
-                activeFile.path,
-                firstInstance.instanceId,
-                activeFile.basename,
-                selectedText
-              );
-
-              new Notice(
-                `Fragmento guardado en ${firstInstance.name}`
-              );
-            });
-
-            return;
-          }
-
-          const submenu =
-            menuItem.setSubmenu();
-
-          if (!submenu) {
-            return;
-          }
-
-          for (
-            const instance of snipsInstances
-          ) {
-
-            submenu.addItem(
-              (subItem: any) => {
-
-                subItem
-                  .setTitle(
-                    instance.name
-                  )
-                  .setIcon('scissors')
-                  .onClick(async () => {
-
-                    const controller =
-                      this.snipsController;
-
-                    if (!controller) {
-                      new Notice(
-                        'Snips no está inicializado'
-                      );
-                      return;
-                    }
-
-                    await controller.addFragment(
-                      activeFile.path,
-                      instance.instanceId,
-                      activeFile.basename,
-                      selectedText
-                    );
-
-                    new Notice(
-                      `Fragmento guardado en ${instance.name}`
-                    );
-                  });
-              }
-            );
-          }
-        });
-
-        event.preventDefault();
-
-        menu.showAtPosition({
-          x: event.clientX,
-          y: event.clientY
-        });
-      },
-      true
-    );
-
-    // ============================================================
-    // REGISTRAR VISTA
-    // ============================================================
     this.registerView(
       VIEW_TYPE_FOLDER_ORDER,
       (leaf) => {
@@ -654,7 +284,6 @@ export default class FolderLabPlugin extends Plugin {
           this.repository,
           this.widgetRegistry!,
           this.widgetManager!,
-          this.snipsController
         );
         this.viewInstance = view;
         return view;
@@ -699,7 +328,13 @@ export default class FolderLabPlugin extends Plugin {
 
         const content = await this.app.vault.read(activeFile);
         const { ContextResolver } = await import('./ai/context/ContextResolver');
-        const resolver = new ContextResolver(this.app, this);
+        const resolver =
+          new ContextResolver(
+            this.app,
+            this,
+            this.widgetController,
+            this.widgetManager!
+          );
 
         const context = await resolver.resolveAll({
           note: activeFile,
@@ -869,40 +504,6 @@ export default class FolderLabPlugin extends Plugin {
   // ============================================================
   getWidgetRegistry(): FocusWidgetRegistry {
     return this.widgetRegistry!;
-  }
-
-
-  // ============================================================
-  // MÉTODO: Añadir a Snips
-  // ============================================================
-  private async addToSnips(
-    notePath: string,
-    noteName: string,
-    text: string
-  ): Promise<void> {
-
-    if (!this.snipsController) {
-      new Notice('Snips no inicializado');
-      return;
-    }
-
-    try {
-      await this.snipsController.addFragment(
-        notePath,
-        'global',
-        noteName,
-        text
-      );
-    } catch (error) {
-      console.error(
-        'Error al añadir a Snips:',
-        error
-      );
-
-      new Notice(
-        'Error al añadir fragmento'
-      );
-    }
   }
 
   // ============================================================

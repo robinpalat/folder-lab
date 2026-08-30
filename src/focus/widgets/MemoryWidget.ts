@@ -3,13 +3,15 @@ import { MarkdownRenderer, Notice } from 'obsidian';
 import { WidgetControls } from './tools/WidgetControls';
 import { WidgetControlsRenderer } from './tools/WidgetControlsRenderer';
 
+import { WidgetController } from '../controllers/WidgetController';
+import { WidgetManager } from '../WidgetManager';
+
 import { AIService } from '../../ai/AIService';
 import { CapabilityRegistry, CapabilityExecutor } from '../../ai/capabilities';
 import { ContextResolver } from '../../ai/context/ContextResolver';
 import { UserRequest } from '../../ai/types';
 import { FocusWidget, FocusWidgetFactory, WidgetCallbacks } from "../FocusWidget";
 import { FocusContext } from "../FocusContext";
-import { TasksController } from '../controllers/TasksController';
 import { FocusListItem } from '../FocusListItem';
 import { CapabilityBrowser } from '../../ai/capabilities/browser';
 import {
@@ -46,7 +48,6 @@ export class MemoryWidget implements FocusWidget {
   private selectedDomain: string = 'Memoria';
   private selectedCapability: string = '';
   private instructions: string = '';
-  private tasksController: TasksController;
 
   // Propiedades de resultado
   private resultContainer: HTMLElement | null = null;
@@ -62,22 +63,24 @@ export class MemoryWidget implements FocusWidget {
   private resultElements =
     new Map<string, HTMLElement>();
 
-  constructor(
-    app: any,
-    aiService: AIService,
-    registry: CapabilityRegistry,
-    tasksController: TasksController
-  ) {
+constructor(
+  app: any,
+  aiService: AIService,
+  registry: CapabilityRegistry,
+  widgetController: WidgetController,
+  widgetManager: WidgetManager
+) {
     this.app = app;
     this.plugin = app.plugins.plugins['folder-lab'];
     this.aiService = aiService;
     this.registry = registry;
     this.executor = new CapabilityExecutor(registry);
-    this.contextResolver = new ContextResolver(
-      app,
-      this.plugin,
-      tasksController
-    );
+this.contextResolver = new ContextResolver(
+  app,
+  this.plugin,
+  widgetController,
+  widgetManager
+);
     this.loadState();
   }
 
@@ -1005,26 +1008,30 @@ export class MemoryWidgetFactory implements FocusWidgetFactory {
   private app: any;
   private aiService: AIService;
   private registry: CapabilityRegistry;
-  private tasksController: TasksController;
+  private widgetController: WidgetController;
+private widgetManager: WidgetManager;
 
-  constructor(
-    app: any,
-    aiService: AIService,
-    registry: CapabilityRegistry,
-    tasksController: TasksController
-  ) {
-    this.app = app;
-    this.aiService = aiService;
-    this.registry = registry;
-    this.tasksController = tasksController;
-  }
+constructor(
+  app: any,
+  aiService: AIService,
+  registry: CapabilityRegistry,
+  widgetController: WidgetController,
+  widgetManager: WidgetManager
+) {
+  this.app = app;
+  this.aiService = aiService;
+  this.registry = registry;
+  this.widgetController = widgetController;
+  this.widgetManager = widgetManager;
+}
 
   create(): FocusWidget {
-    return new MemoryWidget(
-      this.app,
-      this.aiService,
-      this.registry,
-      this.tasksController
-    );
+return new MemoryWidget(
+  this.app,
+  this.aiService,
+  this.registry,
+  this.widgetController,
+  this.widgetManager
+);
   }
 }

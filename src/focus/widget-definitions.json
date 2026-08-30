@@ -1,10 +1,99 @@
 {
   "widgets": {
+
+"snips": {
+  "id": "snips",
+
+  "identity": {
+    "label": "Snips",
+    "icon": "scissors",
+    "color": "#C47A3A",
+    "description": "Fragmentos de texto consolidados"
+  },
+
+  "cardinality": "multiple",
+
+  "storage": {
+    "scope": "note-instance"
+  },
+
+  "entity": {
+    "collection": "items",
+    "content": {
+      "fields": ["text"],
+      "renderer": "expandable-text",
+      "editable": false,
+      "expandable": true,
+      "previewLines": 3
+    }
+  },
+
+  "state": {
+    "field": "active",
+    "initial": true,
+    "toggleable": true
+  },
+
+  "ordering": {
+    "primary": {
+      "field": "createdAt",
+      "direction": "descending"
+    },
+    "priority": {
+      "field": "active",
+      "value": true
+    }
+  },
+
+  "controls": [
+    {
+      "type": "widget-selector"
+    },
+    {
+      "type": "status",
+      "id": "counter",
+      "metric": "total"
+    },
+    {
+      "type": "icon-action",
+      "id": "clear",
+      "icon": "trash-2"
+    }
+  ],
+
+  "itemActions": [
+    {
+      "id": "toggle",
+      "type": "toggle-state"
+    },
+    {
+      "id": "delete",
+      "type": "delete"
+    }
+  ],
+
+  "transfer": {
+    "inputs": ["text"],
+    "outputs": ["text"]
+  },
+
+  "metrics": {
+    "total": {
+      "type": "count"
+    }
+  },
+
+  "emptyState": {
+    "message": "Arrastra aquí un fragmento de texto"
+  }
+},
+
     "collections": {
       "id": "collections",
       "identity": {
         "label": "Colecciones",
         "icon": "library",
+        "color": "#5B7FA3",
         "description": "Colección de fragmentos de texto"
       },
       "cardinality": "multiple",
@@ -77,7 +166,7 @@
   }
 },
       "emptyState": {
-        "message": "Arrastra aquí un texto desde Apuntes"
+        "message": "Arrastra aquí un fragmento de texto"
       }
 
   },
@@ -88,6 +177,7 @@
   "identity": {
     "label": "Restricciones",
     "icon": "shield-alert",
+    "color": "#A64B4B",
     "description": "Colección de restricciones"
   },
 
@@ -174,7 +264,7 @@
 },
 
   "emptyState": {
-    "message": "Arrastra aquí un texto desde Apuntes"
+    "message": "Arrastra aquí un fragmento de texto"
   }
   
 },
@@ -184,6 +274,7 @@
   "identity": {
     "label": "Candidatos",
     "icon": "list-checks",
+    "color": "#6B8E5A",
     "description": "Candidatos seleccionables"
   },
   "cardinality": "multiple",
@@ -250,7 +341,7 @@
   }
 },
   "emptyState": {
-    "message": "Arrastra aquí un texto desde Apuntes"
+    "message": "Arrastra aquí un fragmento de texto"
   }
 },
 
@@ -259,6 +350,7 @@
   "identity": {
     "label": "Tareas",
     "icon": "check-square",
+    "color": "#7A6A9A",
     "description": "Lista de tareas"
   },
   "cardinality": "multiple",

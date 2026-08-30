@@ -1,8 +1,9 @@
 import { App } from 'obsidian';
 import { UserRequest, ExecutableContext } from '../types';
-import { SnipsController } from '../../focus/controllers/SnipsController';
-import { TasksController } from '../../focus/controllers/TasksController';
+import { WidgetController } from '../../focus/controllers/WidgetController';
+import { WidgetManager } from '../../focus/WidgetManager';
 import { NotesController } from '../../focus/controllers/NotesController';
+
 
 export interface WorkspaceContext {
   note: {
@@ -57,20 +58,22 @@ export type GenericContext = Record<string, any>;
 export class ContextResolver {
   private app: App;
   private plugin: any;
-  private snipsController: SnipsController | null;
-  private tasksController: TasksController | null;
+  private widgetManager: WidgetManager;
+  private widgetController: WidgetController;
   private notesController: NotesController;
 
-  constructor(app: App, plugin: any, tasksController?: TasksController) {
-    this.app = app;
-    this.plugin = plugin;
-
-    this.snipsController =
-      plugin?.snipsController || null;
-    this.tasksController =
-      tasksController || null;
-    this.notesController = new NotesController(plugin);
-  }
+constructor(
+  app: App,
+  plugin: any,
+  widgetController: WidgetController,
+  widgetManager: WidgetManager
+) {
+  this.app = app;
+  this.plugin = plugin;
+  this.widgetController = widgetController;
+  this.widgetManager = widgetManager;
+  this.notesController = new NotesController(plugin);
+}
 
   // ============================================================
   // MÉTODOS EXISTENTES (mantener)
@@ -218,15 +221,6 @@ export class ContextResolver {
   // resolve() - UserRequest → ExecutableContext
   // ============================================================
 
-  /**
-   * Transforma una solicitud del usuario en contexto ejecutable.
-   *
-   * Fuentes actuales:
-   * - note  → nota activa de Obsidian
-   * - notes → contenido del widget Apuntes
-   * - snips → fragmentos del SnipsController
-   * - tasks → reservado para la conexión con el proveedor real de Tareas
-   */
   async resolve(request: UserRequest): Promise<ExecutableContext> {
     // 1. Obtener la nota activa.
     let noteContent = '';
@@ -327,10 +321,21 @@ for (const source of sources) {
       // La nota ya está disponible en context.note.
       break;
 
-    case 'snips':
-      context.additional!.snips =
-        await this.resolveSnips(notePath);
-      break;
+case 'snips':
+  context.additional!.snips =
+    await this.resolveWidgetSource(
+      'snips',
+      notePath
+    );
+  break;
+
+case 'tasks':
+  context.additional!.tasks =
+    await this.resolveWidgetSource(
+      'tasks',
+      notePath
+    );
+  break;
 
     case 'notes':
       context.additional!.notes =
@@ -354,11 +359,48 @@ for (const source of sources) {
   /**
    * Resuelve los Snips activos asociados a la nota.
    */
-  private async resolveSnips(notePath: string): Promise<any[]> {
+private async resolveWidgetSource(
+  widgetId: string,
+  notePath: string
+): Promise<any[]> {
 
+  if (!notePath) {
     return [];
   }
 
+  const instances =
+    this.widgetManager
+      .getInstances()
+      .filter(
+        instance =>
+          instance.typeId === widgetId
+      );
+
+  const resolved: any[] = [];
+
+  for (const instance of instances) {
+
+    const data =
+      await this.widgetController.storage.get(
+        widgetId,
+        notePath,
+        instance.instanceId
+      );
+
+    const items =
+      Array.isArray(data.items)
+        ? data.items
+        : [];
+
+    resolved.push({
+      instanceId: instance.instanceId,
+      name: instance.name,
+      items
+    });
+  }
+
+  return resolved;
+}
 
 
   /**

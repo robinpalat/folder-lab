@@ -936,14 +936,16 @@
   height: 16px;
   flex: 0 0 16px;
 
-  color: var(--text-muted);
-  opacity: 0.8;
+  color: inherit;
+  opacity: 1;
 }
 
 .fl-widget-selector-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
 }
+
+
 
 /* ================================================================
    MEMORY — RESULTADOS

@@ -232,7 +232,8 @@ export class DeclarativeWidget
             id: this.id,
             label: this.label,
             icon: this.icon,
-            options: []
+            color: this.definition.identity.color,
+            options: [],
         });
 
         for (const control of controls) {
@@ -485,24 +486,16 @@ export class DeclarativeWidget
                     // CREAR ELEMENTO EN EL DESTINO
                     // ----------------------------------------------------------
 
-                    const item = {
-                        id:
-                            this.controller.generateId(
-                                this.id
-                            ),
+const item = {
+    text,
 
-                        text,
-
-                        createdAt:
-                            Date.now(),
-
-                        [
-                            this.definition.state?.field ??
-                            'active'
-                        ]:
-                            this.definition.state?.initial ??
-                            false
-                    };
+    [
+        this.definition.state?.field ??
+        'active'
+    ]:
+        this.definition.state?.initial ??
+        false
+};
 
                     await this.controller.storage.add(
                         this.getStorageKey(),
@@ -582,27 +575,19 @@ export class DeclarativeWidget
                 const stateField =
                     this.definition.state?.field;
 
-                const item: WidgetRecord = {
-                    id:
-                        this.controller.generateId(
-                            this.id
-                        ),
+const item: WidgetRecord = {
+    title: text,
 
-                    title: text,
+    text,
 
-                    text,
-
-                    createdAt:
-                        Date.now(),
-
-                    ...(stateField
-                        ? {
-                            [stateField]:
-                                this.definition.state?.initial ??
-                                false
-                        }
-                        : {})
-                };
+    ...(stateField
+        ? {
+            [stateField]:
+                this.definition.state?.initial ??
+                false
+        }
+        : {})
+};
 
                 await this.controller.storage.add(
                     this.getStorageKey(),

@@ -38,7 +38,6 @@ export class FocusWorkspace {
   private mainArea: HTMLElement | null = null;
   private widgetManager: WidgetManager;
   private closeContainer: HTMLElement | null = null;
-  private snipsController: any = null;
   private layoutObserver: ResizeObserver | null = null;
   private onBoard: (() => void) | null = null;
   private boardActive = false;
@@ -70,77 +69,6 @@ export class FocusWorkspace {
     this.onBoard = onBoard ?? null;
   }
 
-  // ============================================================
-  // SNIPS CONTROLLER (sin cambios)
-  // ============================================================
-
-  setSnipsController(controller: any): void {
-
-    this.snipsController = controller;
-
-    if (this.snipsController) {
-
-
-      this.snipsController.onChange(() => {
-
-        this.updateSnipsWidget();
-      });
-
-
-    } else {
-
-    }
-  }
-
-  private updateSnipsWidget(): void {
-
-
-    const snipsWidget = this.getSnipsWidget();
-
-    if (snipsWidget) {
-
-
-      if (typeof snipsWidget.reload === 'function') {
-
-        snipsWidget.reload();
-
-      } else {
-
-      }
-    } else {
-
-    }
-  }
-
-  private getSnipsWidget(): any {
-
-
-    if (this.topPane) {
-      const widget = this.topPane.getWidget();
-      if (widget && widget.id === 'snips') {
-
-        return widget;
-      }
-    }
-
-    if (this.bottomPane) {
-      const widget = this.bottomPane.getWidget();
-      if (widget && widget.id === 'snips') {
-
-        return widget;
-      }
-    }
-
-
-    return null;
-  }
-
-  private registerSnipsController(): void {
-    const snipsWidget = this.getSnipsWidget();
-    if (snipsWidget && this.snipsController) {
-
-    }
-  }
 
   // ============================================================
   // RENDER - VERSIÓN ACTUALIZADA
@@ -156,7 +84,6 @@ export class FocusWorkspace {
       await this.widgetManager.loadForNote(activeFile);
     }
 
-    this.registerSnipsController();
 
     // 1. Área principal
     this.mainArea = this.container.createEl('div', {

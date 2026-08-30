@@ -41,7 +41,6 @@ export class FolderLabView extends ItemView {
   private state: FolderLabState;
   private _isDisposed: boolean = false;
   private renderTimeout: number | null = null;
-  private snipsController: any = null;
 
   private recentActivityService: RecentActivityService;
   private mainContainer: HTMLElement;
@@ -92,14 +91,12 @@ export class FolderLabView extends ItemView {
     repository: FolderRepository,
     widgetRegistry: FocusWidgetRegistry,
     widgetManager: WidgetManager,
-    snipsController: any
   ) {
     super(leaf);
     this.plugin = plugin;
     this.repository = repository;
     this.widgetRegistry = widgetRegistry;
     this.widgetManager = widgetManager;
-    this.snipsController = snipsController;
 
     this.recentActivityService = new RecentActivityService(
       this.app,
@@ -611,10 +608,6 @@ export class FolderLabView extends ItemView {
           }
         );
 
-        if (this.snipsController) {
-          this.focusWorkspace.setSnipsController(this.snipsController);
-        } else {
-        }
 
         await this.focusWorkspace.render();
 

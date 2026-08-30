@@ -92,6 +92,7 @@ export class WidgetController {
       notePath: string,
       instanceId: string,
       item: WidgetRecord
+
     ): Promise<void> => {
 
       const data =
@@ -105,7 +106,13 @@ export class WidgetController {
         data.items = [];
       }
 
-      data.items.push(item);
+      const normalizedItem = {
+        ...item,
+        id: item.id ?? this.generateId(storageKey),
+        createdAt: item.createdAt ?? Date.now()
+      };
+
+      data.items.push(normalizedItem);
 
       await this.storage.save(
         storageKey,

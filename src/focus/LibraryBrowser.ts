@@ -5,6 +5,9 @@ import { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
 import type { Capability } from '../ai/capabilities/types';
 import { WidgetManager } from './WidgetManager';
 import type { WidgetInstance } from './WidgetDefinition';
+import {
+  applyWidgetIdentity
+} from './FocusWidgetsUtils';
 
 export interface CapabilitySelection {
   sourceIds: Array<'note' | 'notes' | 'snips' | 'tasks'>;
@@ -261,11 +264,19 @@ export class LibraryBrowser extends Modal {
       });
 
       if (definition.identity.icon) {
-        const iconEl = header.createEl('span', {
-          cls: 'fl-widget-manager-card-icon'
-        });
+const iconEl = header.createEl('span', {
+  cls: 'fl-widget-manager-card-icon'
+});
 
-        setIcon(iconEl, definition.identity.icon);
+applyWidgetIdentity(
+  iconEl,
+  definition.identity
+);
+
+if (definition.identity.color) {
+  iconEl.style.color =
+    definition.identity.color;
+}
       }
 
       header.createEl('span', {
@@ -391,6 +402,11 @@ export class LibraryBrowser extends Modal {
           });
 
           setIcon(iconEl, definition.identity.icon);
+
+if (definition.identity.color) {
+  iconEl.style.color =
+    definition.identity.color;
+}
         }
 
         // ─────────────────────────────────────────

@@ -41,11 +41,14 @@ export interface WidgetDefinition {
 
   id: string;
 
-  identity: {
-    label: string;
-    icon?: string;
-    description?: string;
-  };
+identity: {
+  label: string;
+  icon?: string;
+  color?: string;
+  description?: string;
+};
+
+  semantic?: string;
 
   cardinality: WidgetCardinality;
 

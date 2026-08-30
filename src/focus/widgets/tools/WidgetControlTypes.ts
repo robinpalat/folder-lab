@@ -11,6 +11,7 @@ export interface WidgetSelectorControl {
   id: string;
   label: string;
   icon?: string;
+  color?: string;
 
   options: WidgetControlOption[];
 

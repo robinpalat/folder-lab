@@ -4,6 +4,9 @@
  *
  * No modifica la colección original.
  */
+
+import {  setIcon } from 'obsidian';
+
 export function sortPriorityFirst<T>(
   items: T[],
   isPriority: (item: T) => boolean
@@ -816,3 +819,33 @@ export async function importDroppedFile(
 
 
 
+export interface WidgetIdentityVisual {
+  icon?: string;
+  color?: string;
+}
+
+export function applyWidgetIdentity(
+  element: HTMLElement,
+  identity: WidgetIdentityVisual
+): HTMLElement {
+  if (identity.icon) {
+    setIcon(element, identity.icon);
+  }
+
+  if (identity.color) {
+    element.addClass('fl-widget-identity-colored');
+    element.setAttribute(
+      'data-widget-color',
+      identity.color
+    );
+  } else {
+    element.removeClass(
+      'fl-widget-identity-colored'
+    );
+    element.removeAttribute(
+      'data-widget-color'
+    );
+  }
+
+  return element;
+}
