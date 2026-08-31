@@ -329,6 +329,32 @@ export class FolderLabController {
     return this.navigationService.getMasterPath();
   }
 
+  getVaultName(): string {
+  return this.app.vault.getName();
+}
+
+getMasterName(): string {
+  const masterPath = this.navigationService.getMasterPath();
+
+  if (masterPath) {
+    const folder =
+      this.app.vault.getAbstractFileByPath(masterPath);
+
+    if (folder instanceof TFolder) {
+      return folder.name;
+    }
+
+    const fallback =
+      masterPath.split('/').pop();
+
+    if (fallback) {
+      return fallback;
+    }
+  }
+
+  return this.app.vault.getName();
+}
+
   // ============================================================
   // NOTA GENERAL
   // ============================================================

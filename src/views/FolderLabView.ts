@@ -306,6 +306,33 @@ export class FolderLabView extends ItemView {
         allNotesBtn.setAttr('aria-label', 'Mostrar todas las notas');
       }
     }
+
+
+    const filterBtn = containerEl.querySelector(
+      '#folder-lab-filter-btn'
+    ) as HTMLElement;
+
+    if (filterBtn) {
+      const filterActive =
+        this.controller.getActiveFilter() !== null;
+
+      if (filterActive) {
+        filterBtn.addClass('is-active');
+        filterBtn.setAttr(
+          'aria-label',
+          'Filtro activo'
+        );
+      } else {
+        filterBtn.removeClass('is-active');
+        filterBtn.setAttr(
+          'aria-label',
+          'Filtrar notas'
+        );
+      }
+    }
+
+
+
   }
 
   private exitGlobalModes(): void {
@@ -464,7 +491,7 @@ export class FolderLabView extends ItemView {
         break;
 
       case 'filterChanged':
-
+        this.updateToolbarButtons();
 
         const navTypeFilter = this.navigationService?.getNavigationType() || 'folders';
 
@@ -953,11 +980,7 @@ export class FolderLabView extends ItemView {
       return;
     }
 
-    this.headerComponent.updateFolderName(
-      folderPath === ''
-        ? this.app.vault.getName()
-        : folder.name
-    );
+    this.headerComponent.updateTitle();
 
     await this.headerComponent.updateStats();
     this.headerComponent.updateBackButton();
@@ -1155,9 +1178,12 @@ export class FolderLabView extends ItemView {
     this.currentNavigationNode = contextNode;
 
     // Actualizar header
-    const title = contextNode.id === 'virtual:root' ? 'Navegación por propiedades' : contextNode.title;
-    this.headerComponent.updateFolderName(title);
+    const title = contextNode.id === 'virtual:root'
+      ? this.controller.getVaultName()
+      : contextNode.title;
 
+this.headerComponent.updateFolderName(title);
+this.headerComponent.updateWordCountVisibility();
 
     const propertyStats =
       await this.getPropertyStats(contextNode);
@@ -1370,7 +1396,7 @@ export class FolderLabView extends ItemView {
             isEmpty: false,
             status: status || undefined
           },
-          level: 1,
+          level: 0,
           number: localNumber++
         });
       }
@@ -1915,80 +1941,80 @@ export class FolderLabView extends ItemView {
   /**
    * Refresca la navegación desde Settings
    */
-async refreshNavigation(): Promise<void> {
-  if (!this.navigationService) return;
+  async refreshNavigation(): Promise<void> {
+    if (!this.navigationService) return;
 
-  // Limpiar estado de navegación anterior.
-  this.currentNavigationNode = null;
-  this.navigationHistory = [];
-  this.listContainer.empty();
+    // Limpiar estado de navegación anterior.
+    this.currentNavigationNode = null;
+    this.navigationHistory = [];
+    this.listContainer.empty();
 
-  // Al cambiar de modalidad, comenzar siempre
-  // en la Vista Normal.
-  this.state.exitGlobalModes();
-  this.updateToolbarButtons();
+    // Al cambiar de modalidad, comenzar siempre
+    // en la Vista Normal.
+    this.state.exitGlobalModes();
+    this.updateToolbarButtons();
 
-  const navType = this.navigationService.getNavigationType();
+    const navType = this.navigationService.getNavigationType();
 
-  // ============================================================
-  // PROPERTIES
-  // ============================================================
+    // ============================================================
+    // PROPERTIES
+    // ============================================================
 
-  if (navType === 'properties') {
-    // Reconstruir el árbol Properties y establecer
-    // explícitamente el nodo virtual:root como contexto actual.
-    const tree = await this.navigationService.build();
+    if (navType === 'properties') {
+      // Reconstruir el árbol Properties y establecer
+      // explícitamente el nodo virtual:root como contexto actual.
+      const tree = await this.navigationService.build();
 
-    this.currentNavigationNode =
-      tree.nodeMap.get('virtual:root') || null;
+      this.currentNavigationNode =
+        tree.nodeMap.get('virtual:root') || null;
 
-    if (!this.currentNavigationNode) {
-      console.error(
-        '[PROPERTIES] No se pudo establecer virtual:root'
-      );
+      if (!this.currentNavigationNode) {
+        console.error(
+          '[PROPERTIES] No se pudo establecer virtual:root'
+        );
+        return;
+      }
+
+      await this.renderPropertyNavigation();
       return;
     }
 
-    await this.renderPropertyNavigation();
-    return;
-  }
+    // ============================================================
+    // FILESYSTEM
+    // ============================================================
 
-  // ============================================================
-  // FILESYSTEM
-  // ============================================================
+    await this.navigationService.refresh();
 
-  await this.navigationService.refresh();
+    const masterPath = this.plugin.settings.bookRootPath;
 
-  const masterPath = this.plugin.settings.bookRootPath;
-
-  // El root del vault se representa mediante "".
-  if (masterPath === '') {
-    await this.controller.loadFolder('');
-    return;
-  }
-
-  // Master físico.
-  if (masterPath) {
-    const folder =
-      this.app.vault.getAbstractFileByPath(masterPath);
-
-    if (folder instanceof TFolder) {
-      await this.controller.loadFolder(masterPath);
+    // El root del vault se representa mediante "".
+    if (masterPath === '') {
+      await this.controller.loadFolder('');
       return;
     }
+
+    // Master físico.
+    if (masterPath) {
+      const folder =
+        this.app.vault.getAbstractFileByPath(masterPath);
+
+      if (folder instanceof TFolder) {
+        await this.controller.loadFolder(masterPath);
+        return;
+      }
+    }
+
+    // Fallback: conservar la carpeta física actual.
+    const currentPath = this.controller.getCurrentPath();
+
+    if (currentPath !== null) {
+      await this.loadFolder(currentPath);
+      return;
+    }
+
+    // Último fallback: comportamiento normal de inicialización.
+    await this.loadInitialFolder();
   }
-
-  // Fallback: conservar la carpeta física actual.
-  const currentPath = this.controller.getCurrentPath();
-
-  if (currentPath !== null) {
-    await this.loadFolder(currentPath);
-    return;
-  }
-
-  // Último fallback: comportamiento normal de inicialización.
-  await this.loadInitialFolder();
-}
   // ============================================================
   // RESALTADO DE NOTA ACTIVA
   // ============================================================

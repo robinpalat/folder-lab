@@ -115,7 +115,7 @@
       },
       "state": {
         "field": "active",
-        "initial": false,
+        "initial": true,
         "toggleable": true
       },
       "ordering": {

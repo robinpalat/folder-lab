@@ -34,6 +34,8 @@ export class HeaderComponent {
   private allNotesBtn: HTMLElement | null = null;
   private folderBtn: HTMLElement | null = null;
   private recentNotesBtn: HTMLElement | null = null;
+  private filterBtn: HTMLElement | null = null;
+  private wordCountBtn: HTMLElement | null = null;
 
   constructor(
     container: HTMLElement,
@@ -117,12 +119,16 @@ export class HeaderComponent {
     setIcon(compileBtn, 'book');
     compileBtn.onclick = () => this.controller.showExportMenu(compileBtn);
 
-    const wordBtn = this.leftGroup.createEl('button', {
-      cls: 'clickable-icon',
-      attr: { 'aria-label': 'Contar palabras' }
-    });
-    setIcon(wordBtn, 'file-spreadsheet');
-    wordBtn.onclick = () => this.controller.countWords();
+
+
+const wordBtn = this.leftGroup.createEl('button', {
+  cls: 'clickable-icon',
+  attr: { 'aria-label': 'Contar palabras' }
+});
+setIcon(wordBtn, 'file-spreadsheet');
+wordBtn.onclick = () => this.controller.countWords();
+
+this.wordCountBtn = wordBtn;
 
     this.rightGroup = this.toolbar.createEl('div', {
       cls: 'folder-lab-toolbar-group-right'
@@ -188,24 +194,29 @@ export class HeaderComponent {
     // ============================================================
     // BOTÓN FILTRAR
     // ============================================================
-    const filterBtn = this.rightGroup.createEl('button', {
-      cls: 'clickable-icon',
-      attr: { 'aria-label': 'Filtrar notas' }
+    this.filterBtn = this.rightGroup.createEl('button', {
+      cls: 'clickable-icon folder-lab-filter-btn',
+      attr: {
+        'aria-label': 'Filtrar notas',
+        'id': 'folder-lab-filter-btn'
+      }
     });
-    setIcon(filterBtn, 'filter');
-    filterBtn.onclick = (e) => {
+
+    setIcon(this.filterBtn, 'filter');
+
+    this.filterBtn.onclick = (e) => {
       if (this.filterMenu) {
         this.filterMenu.show(e.currentTarget as HTMLElement);
       } else {
         new Notice('🔍 Filtros (no disponible)');
       }
     };
-
     // ============================================================
     // INICIALIZAR ESTADOS
     // ============================================================
     this.updateRightControl();
     this.updateTitle();
+    this.updateWordCountVisibility();
     this.updateStatistics();
 
     //  Delegar actualización de botones al view
@@ -214,7 +225,54 @@ export class HeaderComponent {
     }
   }
 
+  public updateWordCountVisibility(): void {
+  if (!this.wordCountBtn) return;
 
+  this.wordCountBtn.style.display =
+    this.isMasterOrRoot() ? '' : 'none';
+}
+
+
+  // ============================================================
+  // VISIBILIDAD DEL CONTADOR DE PALABRAS
+  // ============================================================
+
+private isMasterOrRoot(): boolean {
+  const navigationType =
+    this.controller.navigationService.getNavigationType();
+
+  // ============================================================
+  // PROPERTIES
+  // ============================================================
+
+  if (navigationType === 'properties') {
+    const navigationNode =
+      this.view?.getCurrentNavigationNode();
+
+    return navigationNode?.id === 'virtual:root';
+  }
+
+  // ============================================================
+  // FOLDERS
+  // ============================================================
+
+  const masterPath =
+    this.controller.getMasterPath();
+
+  const currentPath =
+    this.controller.getCurrentPath();
+
+  // Master configurado como raíz física del vault.
+  if (masterPath === '') {
+    return true;
+  }
+
+  // Estamos exactamente en la carpeta Master.
+  return (
+    masterPath !== null &&
+    currentPath === masterPath
+  );
+}
 
   // ============================================================
   // ACTUALIZAR CONTROL DERECHO
@@ -250,19 +308,72 @@ export class HeaderComponent {
   public updateTitle(): void {
     if (!this.folderTitle) return;
 
-    const currentPath = this.controller.getCurrentPath();
-    this.folderTitle.textContent = currentPath
-      ? currentPath.split('/').pop() || 'Cargando...'
-      : 'Cargando...';
-  }
+    const capitalizeFirst = (text: string): string => {
+      if (!text) return text;
+      return text.charAt(0).toUpperCase() + text.slice(1);
+    };
 
-public async updateStatistics(
-  stats?: { totalNotes: number; percentage: number }
-): Promise<void> {
+    // ============================================================
+    // MASTER
+    // ============================================================
+
+    const masterName =
+      this.controller.getMasterName();
+
+    // ============================================================
+    // PROPERTIES
+    // ============================================================
+
+    const navigationNode =
+      this.view?.getCurrentNavigationNode();
+
+    if (navigationNode) {
+      if (navigationNode.id === 'virtual:root') {
+        this.folderTitle.textContent =
+          capitalizeFirst(masterName);
+      } else {
+        this.folderTitle.textContent =
+          capitalizeFirst(navigationNode.title);
+      }
+
+      return;
+    }
+
+    // ============================================================
+    // FILESYSTEM
+    // ============================================================
+
+    const currentPath =
+      this.controller.getCurrentPath();
+
+    // En el root físico, el título representa al Master.
+    if (currentPath === '') {
+      this.folderTitle.textContent =
+        capitalizeFirst(masterName);
+      return;
+    }
+
+    // Dentro de una carpeta, mostrar la carpeta actual.
+    if (currentPath) {
+      this.folderTitle.textContent =
+        capitalizeFirst(
+          currentPath.split('/').pop() ||
+          masterName
+        );
+      return;
+    }
+
+    // Fallback absoluto.
+    this.folderTitle.textContent =
+      capitalizeFirst(masterName);
+  }
+  public async updateStatistics(
+    stats?: { totalNotes: number; percentage: number }
+  ): Promise<void> {
     if (!this.statistics) return;
 
-const resolvedStats =
-  stats ?? await this.controller.getStats();
+    const resolvedStats =
+      stats ?? await this.controller.getStats();
 
 
     if (resolvedStats && resolvedStats.totalNotes > 0) {
@@ -279,6 +390,7 @@ const resolvedStats =
   async refresh(): Promise<void> {
     this.updateTitle();
     this.updateRightControl();
+    this.updateWordCountVisibility();
     await this.updateStatistics();
 
     //  Delegar actualización de botones al view
@@ -288,16 +400,22 @@ const resolvedStats =
   }
 
   updateFolderName(name: string): void {
-    if (this.folderTitle) {
-      this.folderTitle.textContent = name;
+    if (!this.folderTitle) return;
+
+    if (!name) {
+      this.folderTitle.textContent = '';
+      return;
     }
+
+    this.folderTitle.textContent =
+      name.charAt(0).toUpperCase() + name.slice(1);
   }
 
-async updateStats(
-  stats?: { totalNotes: number; percentage: number }
-): Promise<void> {
-  await this.updateStatistics(stats);
-}
+  async updateStats(
+    stats?: { totalNotes: number; percentage: number }
+  ): Promise<void> {
+    await this.updateStatistics(stats);
+  }
 
   public updateBackButton(): void {
     this.updateRightControl();

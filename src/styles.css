@@ -409,11 +409,11 @@
 }
 
 [data-indent="0"] { padding-left: 8px; }
-[data-indent="1"] { padding-left: 24px; }
-[data-indent="2"] { padding-left: 40px; }
-[data-indent="3"] { padding-left: 56px; }
-[data-indent="4"] { padding-left: 72px; }
-[data-indent="5"] { padding-left: 88px; }
+[data-indent="1"] { padding-left: 16px; }
+[data-indent="2"] { padding-left: 30px; }
+[data-indent="3"] { padding-left: 45px; }
+[data-indent="4"] { padding-left: 60px; }
+[data-indent="5"] { padding-left: 75px; }
 
 /* ---------------------------------------------------------------
    SUPERFICIE DE APUNTES
