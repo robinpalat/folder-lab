@@ -218,11 +218,17 @@ async renderNavigation(
 
   for (const node of directNotes) {
 
-    const file = node.filePath
-      ? this.app.vault.getFileByPath(node.filePath)
-      : null;
+const file = node.filePath
+  ? this.app.vault.getFileByPath(node.filePath)
+  : null;
 
-    if (!file) continue;
+if (!(file instanceof TFile)) continue;
+
+const isEmpty =
+  await this.noteService.isNoteEmpty(file);
+
+const status =
+  await this.noteService.getNoteStatusByFile(file);
 
     items.push({
       type: 'note',
@@ -232,8 +238,8 @@ async renderNavigation(
         isSpecial: false,
         isOwnPage: false,
         file: file,
-        isEmpty: false,
-        status: undefined
+        isEmpty,
+status: status || undefined
       },
       level: level,
 

@@ -276,6 +276,63 @@ export class NoteItemRenderer {
     return el;
   }
 
+public updateStatus(
+  element: HTMLElement,
+  status: string
+): void {
+  const statusContainer =
+    element.querySelector('.folder-lab-status');
+
+  if (!(statusContainer instanceof HTMLElement)) {
+    return;
+  }
+
+  const icon =
+    statusContainer.querySelector('.icon');
+
+  if (!(icon instanceof HTMLElement)) {
+    return;
+  }
+
+  statusContainer.removeClass(
+    'status-empty',
+    'status-has',
+    'status-menu'
+  );
+
+  icon.empty();
+
+  if (!status) {
+    setIcon(icon, 'more-vertical');
+    statusContainer.addClass('status-menu');
+    icon.setAttribute(
+      'title',
+      'Establecer estado'
+    );
+    return;
+  }
+
+  const iconName =
+    getStatusIcon(status);
+
+  setIcon(icon, iconName);
+
+  statusContainer.addClass(
+    'status-has'
+  );
+
+  const statusLabel =
+    STATUSES.find(
+      s => s.id === status
+    )?.label || status;
+
+  icon.setAttribute(
+    'title',
+    `${statusLabel} - Haz clic para cambiar estado`
+  );
+}
+
+
   // ============================================================
   // MENÚ DE ESTADO
   // ============================================================

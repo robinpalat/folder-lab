@@ -85,10 +85,19 @@ this.controller = controller;
       noteService,
       onNoteSelect,
       {
-        onStatusChange: async (file: TFile, status: string) => {
-          await noteService.setNoteStatusByFile(file, status);
-          this.refreshCurrentView();
-        },
+onStatusChange: async (file: TFile, status: string) => {
+  await noteService.setNoteStatusByFile(file, status);
+
+  const element =
+    this.noteElementsCache.get(file.path);
+
+  if (element) {
+    this.noteRenderer.updateStatus(
+      element,
+      status
+    );
+  }
+},
 
         onDelete: (file: TFile) => {
           const folderPath = this.controller.getCurrentPath() || '';
