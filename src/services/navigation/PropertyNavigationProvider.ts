@@ -2,6 +2,9 @@ import { App, TFile } from 'obsidian';
 import { NavigationProvider, NavigationTree, NavigationNode } from '../../models/Navigation';
 import { NavigationPropertyMapping, DEFAULT_JEKYLL_MAPPING } from '../../config/settings';
 
+const VIRTUAL_ROOT_ID = 'virtual:root';
+const VIRTUAL_ROOT_PATH = '';
+
 export class PropertyNavigationProvider implements NavigationProvider {
   readonly id = 'properties';
   readonly name = 'Propiedades de las notas';
@@ -263,14 +266,35 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
       }
     };
 
-	this.sortNodes(rootNodes);
+    this.sortNodes(rootNodes);
 
-	for (const root of rootNodes) {
-	  transformedRoots.push(transformToVirtualFolder(root));
-	}
+    for (const root of rootNodes) {
+      const transformed = transformToVirtualFolder(root);
+      transformed.parentPath = VIRTUAL_ROOT_ID;
+      transformedRoots.push(transformed);
+    }
 
     // ============================================================
-    // PASO 6: Construir mapa final
+    // PASO 6: Materializar el root virtual canónico
+    // ============================================================
+    const virtualRoot: NavigationNode = {
+      id: VIRTUAL_ROOT_ID,
+      path: VIRTUAL_ROOT_PATH,
+      title: 'Navegación por propiedades',
+      parentPath: null,
+      type: 'folder',
+      filePath: null,
+      children: transformedRoots,
+      metadata: {
+        isVirtualFolder: true,
+        isOwnPage: false,
+        isVirtualRoot: true
+      },
+      isVirtual: true
+    };
+
+    // ============================================================
+    // PASO 7: Construir mapa final incluyendo virtual:root
     // ============================================================
     const finalIdMap = new Map<string, NavigationNode>();
 
@@ -283,12 +307,10 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
       }
     };
 
-    for (const root of transformedRoots) {
-      collectNodes(root);
-    }
+    collectNodes(virtualRoot);
 
     const result: NavigationTree = {
-      root: transformedRoots,
+      root: [virtualRoot],
       nodeMap: finalIdMap,
       flatNodes: Array.from(finalIdMap.values())
     };
@@ -359,11 +381,11 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
 		return null;
 	  }
 
-	  if (node.id === 'virtual:root') {
+	  if (node.id === VIRTUAL_ROOT_ID) {
 		return null;
 	  }
 
-	  return node.parentPath || null;
+	  return node.parentPath ?? null;
 	}
 
 	/**

@@ -15,6 +15,7 @@ export class SubfolderView {
   private app: App;
   private listComponent: NoteListComponent;
   private container: HTMLElement;
+  private controller: FolderLabController;
 
   constructor(
     app: App,
@@ -28,6 +29,7 @@ export class SubfolderView {
     onReorder: (newOrder: string[]) => void
   ) {
     this.app = app;
+    this.controller = controller;
     this.container = container;
 
     this.listComponent = new NoteListComponent(
@@ -45,36 +47,78 @@ export class SubfolderView {
   }
 
   // Modo filesystem (comportamiento actual)
-  render(folderPath: string): void {
+  render(
+    folderPath: string
+  ): { totalFolders: number } {
     const folder = this.app.vault.getAbstractFileByPath(folderPath);
     if (!(folder instanceof TFolder)) {
       this.listComponent.render([]);
-      return;
+      return {
+        totalFolders: 0
+      };
     }
 
     const items: ListItem[] = [];
     this.walkTree(folder, 0, items);
 
     this.listComponent.render(items);
+    return {
+      totalFolders: items.filter(item => item.type === 'folder').length
+    };
   }
 
   //  Modo properties (NavigationNode como contexto - solo contenedores)
-  renderNavigationNode(node: NavigationNode): void {
+  renderNavigationNode(
+    node: NavigationNode
+  ): { totalFolders: number } {
     const items: ListItem[] = [];
-    
-    // Solo procesar hijos que sean contenedores (carpetas virtuales)
+
     if (node.children && node.children.length > 0) {
-      const containerChildren = node.children.filter(child => 
-        child.type === 'folder' || (child.children && child.children.length > 0)
-      );
-      
-      // Procesar estos contenedores con sus respectivos hijos
-      for (const child of containerChildren) {
-        this.walkNavigationContainer(child, items, 0);
+      let localNumber = 1;
+
+      for (const child of node.children) {
+
+        // ------------------------------------------------------------
+        // Contenedor
+        // ------------------------------------------------------------
+        if (
+          child.type === 'folder' ||
+          (child.children && child.children.length > 0)
+        ) {
+          this.walkNavigationContainer(child, items, 0);
+          continue;
+        }
+
+        // ------------------------------------------------------------
+        // Nota directa del contexto actual
+        // ------------------------------------------------------------
+        const file = child.filePath
+          ? this.app.vault.getFileByPath(child.filePath)
+          : null;
+
+        if (file) {
+          items.push({
+            type: 'note',
+            data: {
+              name: child.title + '.md',
+              path: child.path,
+              isSpecial: false,
+              file: file,
+              isEmpty: false,
+              status: undefined
+            },
+            level: 0,
+            number: localNumber++
+          });
+        }
       }
     }
 
     this.listComponent.render(items);
+
+    return {
+      totalFolders: items.filter(item => item.type === 'folder').length
+    };
   }
 
   //  Walk de contenedor (carpeta virtual con sus hijos)
@@ -99,7 +143,7 @@ export class SubfolderView {
       let localNumber = 1;
       for (const child of node.children) {
         const isContainer = child.type === 'folder' || (child.children && child.children.length > 0);
-        
+
         if (isContainer) {
           // Subcarpeta: recursivo
           this.walkNavigationContainer(child, items, level + 1);

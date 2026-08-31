@@ -534,12 +534,13 @@ export class FolderLabController {
   // ESTADÍSTICAS
   // ============================================================
 
-  async getStats(): Promise<{ totalNotes: number; percentage: number } | null> {
-    const currentPath = this.getCurrentPath();
-    if (!currentPath) return null;
-    const stats = await this.statsService.calculateStats(currentPath);
-    return { totalNotes: stats.totalNotes, percentage: stats.percentage };
-  }
+async getStats(): Promise<{ totalNotes: number; percentage: number } | null> {
+  const currentPath = this.getCurrentPath();
+  if (currentPath === null) return null;
+
+  const stats = await this.statsService.calculateStats(currentPath);
+  return { totalNotes: stats.totalNotes, percentage: stats.percentage };
+}
 
   // ============================================================
   // MODO ENFOQUE

@@ -64,7 +64,7 @@ export class NoteRepository {
   async loadNote(notePath: string): Promise<NoteContextData | null> {
     const folderPath = this.getParentFolderPath(notePath);
 
-    if (!folderPath) {
+    if (folderPath === null) {
       return null;
     }
 
@@ -82,7 +82,7 @@ export class NoteRepository {
   ): Promise<void> {
     const folderPath = this.getParentFolderPath(notePath);
 
-    if (!folderPath) {
+    if (folderPath === null) {
       throw new Error(
         `[NoteContextRepository] No se pudo determinar la carpeta padre de "${notePath}"`
       );
@@ -101,7 +101,7 @@ export class NoteRepository {
   async deleteNote(notePath: string): Promise<void> {
     const folderPath = this.getParentFolderPath(notePath);
 
-    if (!folderPath) {
+    if (folderPath === null) {
       return;
     }
 
@@ -129,7 +129,9 @@ export class NoteRepository {
     const separatorIndex = notePath.lastIndexOf('/');
 
     if (separatorIndex === -1) {
-      return null;
+      // Una nota directamente en el vault pertenece al root lógico.
+      // Su ruta física de almacenamiento es la cadena vacía.
+      return '';
     }
 
     return notePath.substring(0, separatorIndex);

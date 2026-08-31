@@ -208,14 +208,30 @@ export class FolderLabView extends ItemView {
     this.state.toggleRecentNotesMode();
     this.updateToolbarButtons();
 
+    // ============================================================
+    // ACTIVAR RECIENTES
+    // ============================================================
     if (this.state.isRecentNotesMode()) {
       void this.renderRecentNotesMode();
       return;
     }
 
+    // ============================================================
+    // SALIR DE RECIENTES
+    // Restaurar la vista correspondiente al contexto actual.
+    // ============================================================
+
+    const navType =
+      this.navigationService?.getNavigationType() || 'folders';
+
+    if (navType === 'properties') {
+      void this.renderPropertyNavigation();
+      return;
+    }
+
     const currentPath = this.controller.getCurrentPath();
 
-    if (currentPath) {
+    if (currentPath !== null) {
       void this.loadFolder(currentPath);
     }
   }
@@ -521,17 +537,26 @@ export class FolderLabView extends ItemView {
 
     if (navType === 'properties') {
       console.log('[PROPERTIES] Cargando navegación por propiedades...');
-      this.currentNavigationNode = null;
+
+      const tree = await this.navigationService?.build();
+
+      this.currentNavigationNode =
+        tree?.nodeMap.get('virtual:root') || null;
+
       this.navigationHistory = [];
-      await this.renderPropertyNavigation();
     } else {
       await this.loadInitialFolder();
     }
 
-
     this.state.exitGlobalModes();
     this.updateToolbarButtons();
     this.renderContent();
+
+    // Properties debe ser el último render inicial,
+    // porque también establece las estadísticas de la vista activa.
+    if (navType === 'properties') {
+      await this.renderPropertyNavigation();
+    }
 
     if (this.state.isFocusMode) {
       this.showFocusMode();
@@ -848,6 +873,17 @@ export class FolderLabView extends ItemView {
     const masterPath = this.plugin.settings.bookRootPath;
     const lastFolder = this.plugin.settings.lastFolderPath;
 
+    // ============================================================
+    // MASTER = ROOT DEL VAULT
+    // "" es una ubicación válida: representa la raíz física.
+    // ============================================================
+    if (masterPath === '') {
+      await this.controller.loadFolder('');
+      await this.restoreLastOpenedNote();
+      return;
+    }
+
+
     if (masterPath) {
       const folder = this.app.vault.getAbstractFileByPath(masterPath);
       if (folder instanceof TFolder) {
@@ -907,13 +943,22 @@ export class FolderLabView extends ItemView {
 
     const navType = this.navigationService?.getNavigationType() || 'folders';
 
-    const folder = this.app.vault.getAbstractFileByPath(folderPath);
+    const folder =
+      folderPath === ''
+        ? this.app.vault.getRoot()
+        : this.app.vault.getAbstractFileByPath(folderPath);
+
     if (!(folder instanceof TFolder)) {
       this.showEmptyState('Carpeta no encontrada');
       return;
     }
 
-    this.headerComponent.updateFolderName(folder.name);
+    this.headerComponent.updateFolderName(
+      folderPath === ''
+        ? this.app.vault.getName()
+        : folder.name
+    );
+
     await this.headerComponent.updateStats();
     this.headerComponent.updateBackButton();
 
@@ -1028,6 +1073,54 @@ export class FolderLabView extends ItemView {
     return children.filter(child => !this.isVirtualContainer(child));
   }
 
+
+  /**
+   * Calcula las estadísticas del contexto actual de Properties.
+   *
+   * A diferencia de Filesystem, Properties no utiliza currentPath.
+   * El contexto está representado por un NavigationNode.
+   */
+  private async getPropertyStats(
+    node: NavigationNode
+  ): Promise<{ totalNotes: number; percentage: number }> {
+
+    const files: TFile[] = [];
+
+    const collectNotes = (current: NavigationNode): void => {
+      if (current.filePath) {
+        const file = this.app.vault.getFileByPath(current.filePath);
+
+        if (file instanceof TFile) {
+          files.push(file);
+        }
+      }
+
+      if (current.children) {
+        for (const child of current.children) {
+          collectNotes(child);
+        }
+      }
+    };
+
+    // No contar el propio virtual root como archivo.
+    // Sus descendientes sí forman parte del contexto.
+    if (node.id === 'virtual:root') {
+      for (const child of node.children || []) {
+        collectNotes(child);
+      }
+    } else {
+      collectNotes(node);
+    }
+
+    const stats =
+      await this.controller.statsService.calculateNoteStats(files);
+
+    return {
+      totalNotes: stats.total,
+      percentage: stats.percentage
+    };
+  }
+
   // ============================================================
   // RENDERIZADO DE NAVEGACIÓN POR PROPIEDADES
   // ============================================================
@@ -1064,7 +1157,13 @@ export class FolderLabView extends ItemView {
     // Actualizar header
     const title = contextNode.id === 'virtual:root' ? 'Navegación por propiedades' : contextNode.title;
     this.headerComponent.updateFolderName(title);
-    await this.headerComponent.updateStats();
+
+
+    const propertyStats =
+      await this.getPropertyStats(contextNode);
+
+    await this.headerComponent.updateStats(propertyStats);
+
     this.headerComponent.updateBackButton();
 
     // Crear NoteListComponent si no existe
@@ -1216,6 +1315,7 @@ export class FolderLabView extends ItemView {
    */
   private async renderNormalModeProperties(contextNode: NavigationNode): Promise<void> {
     const items: ListItem[] = [];
+    const filesForStats: TFile[] = [];
     let localNumber = 0;
 
     // 1. OWN PAGE (si existe y no es virtual root)
@@ -1229,6 +1329,7 @@ export class FolderLabView extends ItemView {
         : '';
 
       if (file) {
+        filesForStats.push(file);
         items.push({
           type: 'note',
           data: {
@@ -1258,6 +1359,7 @@ export class FolderLabView extends ItemView {
         : '';
 
       if (file) {
+        filesForStats.push(file);
         items.push({
           type: 'note',
           data: {
@@ -1274,6 +1376,18 @@ export class FolderLabView extends ItemView {
       }
     }
 
+
+
+    const stats =
+      await this.controller.statsService.calculateNoteStats(
+        filesForStats
+      );
+
+    await this.headerComponent.updateStats({
+      totalNotes: stats.total,
+      percentage: stats.percentage
+    });
+
     if (items.length === 0) {
       this.showEmptyState('No hay elementos para mostrar');
       return;
@@ -1286,15 +1400,17 @@ export class FolderLabView extends ItemView {
   /**
    *  Modo Todas las notas: árbol completo desde el contexto
    */
-  private async renderAllNotesModeProperties(tree: NavigationTree, contextNode: NavigationNode): Promise<void> {
+  private async renderAllNotesModeProperties(
+    tree: NavigationTree,
+    contextNode: NavigationNode
+  ): Promise<void> {
 
-    if (contextNode.id === 'virtual:root') {
-      // Mostrar todo el árbol
-      await this.allNotesView!.renderNavigation(tree);
-    } else {
-      // Mostrar subárbol del contexto
-      await this.allNotesView!.renderNavigation(tree, contextNode);
-    }
+    const stats =
+      contextNode.id === 'virtual:root'
+        ? await this.allNotesView!.renderNavigation(tree)
+        : await this.allNotesView!.renderNavigation(tree, contextNode);
+
+    await this.headerComponent.updateStats(stats);
   }
 
   /**
@@ -1471,7 +1587,26 @@ export class FolderLabView extends ItemView {
       // ------------------------------------------------------------
 
       if (parentId === 'virtual:root') {
-        this.currentNavigationNode = null;
+        const tree = navigationService.getTree();
+
+        if (!tree) {
+          console.warn(
+            '[PROPERTY NAV] No existe NavigationTree para volver al root'
+          );
+          return;
+        }
+
+        const rootNode =
+          tree.nodeMap.get('virtual:root');
+
+        if (!rootNode) {
+          console.warn(
+            '[PROPERTY NAV] virtual:root no encontrado en NavigationTree'
+          );
+          return;
+        }
+
+        this.currentNavigationNode = rootNode;
 
         this.state.exitGlobalModes();
         this.updateToolbarButtons();
@@ -1547,6 +1682,11 @@ export class FolderLabView extends ItemView {
 
     this.state.exitGlobalModes();
     this.updateToolbarButtons();
+    console.log('[BACK TO PARENT]', {
+      currentPath,
+      parentPath
+    });
+
 
     await this.controller.loadFolder(parentPath);
   }

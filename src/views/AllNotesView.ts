@@ -14,9 +14,11 @@ import { isHiddenFolderName } from '../utils/folderUtils';
 export class AllNotesView {
   private app: App;
   private state: FolderLabState;
+  private controller: FolderLabController;
   private noteService: NoteService;
   private listComponent: NoteListComponent;
   private container: HTMLElement;
+
 
   constructor(
     app: App,
@@ -32,6 +34,7 @@ export class AllNotesView {
     this.app = app;
     this.state = state;
     this.noteService = noteService;
+    this.controller = controller;
     this.container = container;
 
     this.listComponent = new NoteListComponent(
@@ -48,22 +51,56 @@ export class AllNotesView {
     );
   }
 
+private async calculateStatsFromItems(
+  items: ListItem[]
+): Promise<{ totalNotes: number; percentage: number }> {
+
+  const files: TFile[] = [];
+
+  for (const item of items) {
+    if (item.type !== 'note') continue;
+
+    const data = item.data as FolderLabItem;
+
+    if (data.file instanceof TFile) {
+      files.push(data.file);
+    }
+  }
+
+  const stats =
+    await this.controller.statsService.calculateNoteStats(files);
+
+  return {
+    totalNotes: stats.total,
+    percentage: stats.percentage
+  };
+}
+
   // Modo filesystem (comportamiento actual)
-  async render(folderPath: string): Promise<void> {
+async render(
+  folderPath: string
+): Promise<{ totalNotes: number; percentage: number }> {
     const folder = this.app.vault.getAbstractFileByPath(folderPath);
     if (!(folder instanceof TFolder)) {
-      this.listComponent.render([]);
-      return;
+      await this.listComponent.render([]);
+return {
+  totalNotes: 0,
+  percentage: 0
+};
     }
 
     const items: ListItem[] = [];
     await this.walkTree(folder, 0, items);
 
     await this.listComponent.render(items);
+    return this.calculateStatsFromItems(items);
   }
 
   //  Modo properties (NavigationTree con contexto)
-  async renderNavigation(tree: NavigationTree, contextNode: NavigationNode | null = null): Promise<void> {
+async renderNavigation(
+  tree: NavigationTree,
+  contextNode: NavigationNode | null = null
+): Promise<{ totalNotes: number; percentage: number }> {
     const items: ListItem[] = [];
 
     // Si hay contexto, mostrar solo el contexto + descendientes
@@ -75,6 +112,8 @@ export class AllNotesView {
     }
 
     await this.listComponent.render(items);
+    return this.calculateStatsFromItems(items);
+    
   }
 
   // Filesystem walk (existente)
@@ -141,115 +180,123 @@ export class AllNotesView {
   }
 
   private async walkNavigationTree(
-    nodes: NavigationNode[],
-    level: number,
-    items: ListItem[]
-  ): Promise<void> {
+  nodes: NavigationNode[],
+  level: number,
+  items: ListItem[]
+): Promise<void> {
 
-    // Cada nivel mantiene su propia numeración.
-    // El renderer utiliza índices zero-based:
-    // 0 -> 1.
-    // 1 -> 2.
-    let localNumber = 0;
+  // ============================================================
+  // En cada nivel:
+  //
+  // 1. Primero todas las notas directas.
+  // 2. Después todos los contenedores y sus descendientes.
+  //
+  // Esto evita que las notas del ROOT queden intercaladas
+  // entre las jerarquías de sus subcarpetas.
+  // ============================================================
 
-    for (const node of nodes) {
+  let localNumber = 0;
 
-      // ============================================================
-      // NODO CON HIJOS
-      // ============================================================
+  const directNotes: NavigationNode[] = [];
+  const containers: NavigationNode[] = [];
 
-      if (node.children && node.children.length > 0) {
+  // ------------------------------------------------------------
+  // Separar notas directas de contenedores
+  // ------------------------------------------------------------
 
-        // Buscar la OWN PAGE del nodo.
-        const ownPage = node.children.find(
-          child => child.metadata?.isOwnPage === true
-        );
+  for (const node of nodes) {
+    if (node.children && node.children.length > 0) {
+      containers.push(node);
+    } else {
+      directNotes.push(node);
+    }
+  }
 
-        // ------------------------------------------------------------
-        // OWN PAGE = representación visible del nodo propietario
-        // ------------------------------------------------------------
-        //
-        // NO mostramos el virtual folder como elemento independiente.
-        //
-        // En su lugar mostramos directamente su OWN PAGE.
-        //
-        // Resultado:
-        //
-        // Plano 1 — Experiencia Familiar
-        //     1. Contexto humano
-        //     Cronologías
-        //
-        // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  // 1. NOTAS DIRECTAS
+  // ------------------------------------------------------------
 
-        if (ownPage && ownPage.filePath) {
+  for (const node of directNotes) {
 
-          const file = this.app.vault.getFileByPath(
-            ownPage.filePath
-          );
+    const file = node.filePath
+      ? this.app.vault.getFileByPath(node.filePath)
+      : null;
 
-          if (file) {
-            items.push({
-              type: 'note',
-              data: {
-                name: ownPage.title + '.md',
-                path: ownPage.filePath,
-                isSpecial: false,
-                isOwnPage: true,
-                file: file,
-                isEmpty: false,
-                status: status || undefined
-              },
-              level: level,
-              number: undefined
-            });
-          }
-        }
+    if (!file) continue;
 
-        // ------------------------------------------------------------
-        // Hijos estructurales
-        // ------------------------------------------------------------
+    items.push({
+      type: 'note',
+      data: {
+        name: node.title + '.md',
+        path: node.path,
+        isSpecial: false,
+        isOwnPage: false,
+        file: file,
+        isEmpty: false,
+        status: undefined
+      },
+      level: level,
 
-        const structuralChildren = node.children.filter(
-          child => child.metadata?.isOwnPage !== true
-        );
+      // Numeración consecutiva dentro del nivel.
+      number: localNumber++
+    });
+  }
 
-        // Los hijos aparecen un nivel por debajo del nodo propietario.
-        await this.walkNavigationTree(
-          structuralChildren,
-          level + 1,
-          items
-        );
+  // ------------------------------------------------------------
+  // 2. CONTENEDORES
+  // ------------------------------------------------------------
 
-        continue;
-      }
+  for (const node of containers) {
 
-      // ============================================================
-      // NOTA NORMAL SIN HIJOS
-      // ============================================================
+    // Buscar la OWN PAGE del nodo.
+    const ownPage = node.children?.find(
+      child => child.metadata?.isOwnPage === true
+    );
 
-      const file = node.filePath
-        ? this.app.vault.getFileByPath(node.filePath)
-        : null;
+    // ----------------------------------------------------------
+    // OWN PAGE
+    // ----------------------------------------------------------
+
+    if (ownPage && ownPage.filePath) {
+
+      const file = this.app.vault.getFileByPath(
+        ownPage.filePath
+      );
 
       if (file) {
         items.push({
           type: 'note',
           data: {
-            name: node.title + '.md',
-            path: node.path,
+            name: ownPage.title + '.md',
+            path: ownPage.filePath,
             isSpecial: false,
-            isOwnPage: false,
+            isOwnPage: true,
             file: file,
             isEmpty: false,
-            status: status || undefined
+            status: undefined
           },
           level: level,
-
-          // Zero-based.
-          number: localNumber++
+          number: undefined
         });
       }
     }
+
+    // ----------------------------------------------------------
+    // Hijos estructurales
+    // ----------------------------------------------------------
+
+    const structuralChildren =
+      node.children?.filter(
+        child => child.metadata?.isOwnPage !== true
+      ) || [];
+
+    await this.walkNavigationTree(
+      structuralChildren,
+      level + 1,
+      items
+    );
+  }
+
   }
 
   // NavigationNode contexto (propia página + descendientes)

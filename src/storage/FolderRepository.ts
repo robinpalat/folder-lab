@@ -25,7 +25,7 @@ export class FolderRepository {
   private hiddenManager: HiddenFolderManager;
   private globalOrderData: GlobalOrderData | null = null;
   private parentIndex: Map<string, string> | null = null;
-  private masterPath: string = '';
+  private masterPath: string | null = null;
 
   constructor(app: App) {
     this.app = app;
@@ -64,10 +64,16 @@ export class FolderRepository {
     const existing = await this.loadGlobalOrder(masterPath);
     if (existing) return;
 
-    const masterFolder = this.app.vault.getAbstractFileByPath(masterPath);
-    if (!(masterFolder instanceof TFolder)) return;
+    let rootOrder: FolderOrderData;
 
-    const rootOrder = await this.buildOrderFromFolder(masterFolder);
+    if (masterPath === '') {
+      // El propio vault es un master válido.
+      rootOrder = await this.buildOrderFromFolder(this.app.vault.getRoot());
+    } else {
+      const masterFolder = this.app.vault.getAbstractFileByPath(masterPath);
+      if (!(masterFolder instanceof TFolder)) return;
+      rootOrder = await this.buildOrderFromFolder(masterFolder);
+    }
     this.globalOrderData = { root: rootOrder, version: 1 };
     await this.saveGlobalOrder(masterPath, this.globalOrderData);
   }
@@ -192,7 +198,7 @@ export class FolderRepository {
   // ============================================================
 
   getFolderData(folderPath: string): FolderOrderData | null {
-    if (!this.globalOrderData || !this.masterPath) return null;
+    if (!this.globalOrderData || this.masterPath === null) return null;
 
     if (folderPath === this.masterPath) {
       return this.globalOrderData.root;
@@ -265,7 +271,7 @@ export class FolderRepository {
 
   private buildParentIndex(): void {
     this.parentIndex = new Map();
-    if (!this.globalOrderData || !this.masterPath) return;
+    if (!this.globalOrderData || this.masterPath === null) return;
 
     this.buildParentIndexRecursive(
       this.globalOrderData.root,
@@ -285,9 +291,13 @@ export class FolderRepository {
       // Excluir carpetas ocultas del índice
       if (isHiddenFolderName(folderName)) continue;
 
-      const childPath = `${currentPath}/${folderName}`;
-      this.parentIndex!.set(childPath, parentPath);
-      this.buildParentIndexRecursive(childNode, childPath, currentPath);
+      const childPath = currentPath
+        ? `${currentPath}/${folderName}`
+        : folderName;
+
+      const actualParentPath = currentPath;
+      this.parentIndex!.set(childPath, actualParentPath);
+      this.buildParentIndexRecursive(childNode, childPath, actualParentPath);
     }
   }
 
@@ -298,7 +308,7 @@ export class FolderRepository {
   getParent(folderPath: string): string | null {
 
     if (!this.parentIndex) {
-      if (this.globalOrderData && this.masterPath) {
+      if (this.globalOrderData && this.masterPath !== null) {
         this.buildParentIndex();
       } else {
         return null;
@@ -306,7 +316,7 @@ export class FolderRepository {
     }
 
     if (folderPath === this.masterPath) return null;
-    return this.parentIndex?.get(folderPath) || null;
+    return this.parentIndex?.get(folderPath) ?? null;
   }
 
   exists(folderPath: string): boolean {
@@ -362,9 +372,9 @@ export class FolderRepository {
   // UTILIDADES
   // ============================================================
 
-  getMasterPath(): string {
-    return this.masterPath;
-  }
+getMasterPath(): string | null {
+  return this.masterPath;
+}
 
   getGlobalOrder(): GlobalOrderData | null {
     return this.globalOrderData;

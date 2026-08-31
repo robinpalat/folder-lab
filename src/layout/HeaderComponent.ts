@@ -256,12 +256,17 @@ export class HeaderComponent {
       : 'Cargando...';
   }
 
-  public async updateStatistics(): Promise<void> {
+public async updateStatistics(
+  stats?: { totalNotes: number; percentage: number }
+): Promise<void> {
     if (!this.statistics) return;
 
-    const stats = await this.controller.getStats();
-    if (stats && stats.totalNotes > 0) {
-      this.statistics.textContent = `${stats.totalNotes} notas · ${stats.percentage}% completado`;
+const resolvedStats =
+  stats ?? await this.controller.getStats();
+
+
+    if (resolvedStats && resolvedStats.totalNotes > 0) {
+      this.statistics.textContent = `${resolvedStats.totalNotes} notas · ${resolvedStats.percentage}% completado`;
     } else {
       this.statistics.textContent = '0 notas · 0 carpetas · 0% completado';
     }
@@ -288,9 +293,11 @@ export class HeaderComponent {
     }
   }
 
-  async updateStats(): Promise<void> {
-    await this.updateStatistics();
-  }
+async updateStats(
+  stats?: { totalNotes: number; percentage: number }
+): Promise<void> {
+  await this.updateStatistics(stats);
+}
 
   public updateBackButton(): void {
     this.updateRightControl();
