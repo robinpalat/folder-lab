@@ -1915,26 +1915,80 @@ export class FolderLabView extends ItemView {
   /**
    * Refresca la navegación desde Settings
    */
-  async refreshNavigation(): Promise<void> {
-    if (!this.navigationService) return;
+async refreshNavigation(): Promise<void> {
+  if (!this.navigationService) return;
 
-    //  Limpiar estado específico de properties
-    this.currentNavigationNode = null;
-    this.navigationHistory = [];
-    this.listContainer.empty();
+  // Limpiar estado de navegación anterior.
+  this.currentNavigationNode = null;
+  this.navigationHistory = [];
+  this.listContainer.empty();
 
-    const navType = this.navigationService.getNavigationType();
-    if (navType === 'properties') {
-      await this.renderPropertyNavigation();
-    } else {
-      await this.navigationService.refresh();
-      const currentPath = this.controller.getCurrentPath();
-      if (currentPath) {
-        await this.loadFolder(currentPath);
-      }
+  // Al cambiar de modalidad, comenzar siempre
+  // en la Vista Normal.
+  this.state.exitGlobalModes();
+  this.updateToolbarButtons();
+
+  const navType = this.navigationService.getNavigationType();
+
+  // ============================================================
+  // PROPERTIES
+  // ============================================================
+
+  if (navType === 'properties') {
+    // Reconstruir el árbol Properties y establecer
+    // explícitamente el nodo virtual:root como contexto actual.
+    const tree = await this.navigationService.build();
+
+    this.currentNavigationNode =
+      tree.nodeMap.get('virtual:root') || null;
+
+    if (!this.currentNavigationNode) {
+      console.error(
+        '[PROPERTIES] No se pudo establecer virtual:root'
+      );
+      return;
+    }
+
+    await this.renderPropertyNavigation();
+    return;
+  }
+
+  // ============================================================
+  // FILESYSTEM
+  // ============================================================
+
+  await this.navigationService.refresh();
+
+  const masterPath = this.plugin.settings.bookRootPath;
+
+  // El root del vault se representa mediante "".
+  if (masterPath === '') {
+    await this.controller.loadFolder('');
+    return;
+  }
+
+  // Master físico.
+  if (masterPath) {
+    const folder =
+      this.app.vault.getAbstractFileByPath(masterPath);
+
+    if (folder instanceof TFolder) {
+      await this.controller.loadFolder(masterPath);
+      return;
     }
   }
 
+  // Fallback: conservar la carpeta física actual.
+  const currentPath = this.controller.getCurrentPath();
+
+  if (currentPath !== null) {
+    await this.loadFolder(currentPath);
+    return;
+  }
+
+  // Último fallback: comportamiento normal de inicialización.
+  await this.loadInitialFolder();
+}
   // ============================================================
   // RESALTADO DE NOTA ACTIVA
   // ============================================================
