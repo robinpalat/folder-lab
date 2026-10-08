@@ -419,6 +419,7 @@ private isMasterOrRoot(): boolean {
 
   public updateBackButton(): void {
     this.updateRightControl();
+    this.updateWordCountVisibility();
   }
 
   destroy(): void {
