@@ -3,6 +3,7 @@ import {
   FocusWidgetFactory,
   WidgetCallbacks
 } from "../FocusWidget";
+import { i18n } from '../../i18n/I18nService';
 
 import { FocusContext } from "../FocusContext";
 import { Notice, TFile } from "obsidian";
@@ -24,7 +25,9 @@ interface NoteBlock {
 
 export class NotesWidget implements FocusWidget {
   readonly id = "notes";
-  readonly label = "Apuntes";
+  get label(): string {
+    return i18n.t('widgets.registered.notes.label');
+  }
   readonly icon = "pencil";
 
   private container: HTMLElement | null = null;
@@ -192,12 +195,12 @@ export class NotesWidget implements FocusWidget {
 
     controls.select({
       id: "session",
-      label: "Sesión",
+      label: i18n.t('widgets.common.session'),
       value: "today",
       options: [
         {
           id: "today",
-          label: "Hoy"
+          label: i18n.t('widgets.common.sessionToday')
         }
       ]
     });
@@ -208,13 +211,13 @@ export class NotesWidget implements FocusWidget {
 
     controls.action({
       id: "save",
-      label: "Guardar"
+      label: i18n.t('widgets.notesWidget.action.save')
     });
 
     controls.iconAction({
       id: "copy",
       icon: "copy",
-      tooltip: "Copiar apuntes"
+      tooltip: i18n.t('widgets.notesWidget.action.copy')
     });
 
 
@@ -287,16 +290,15 @@ export class NotesWidget implements FocusWidget {
 
     const hasText = this.draftText.trim().length > 0;
 
-    // Buscar el botón por su texto o por cualquier identificador único
+    // Identificar el botón SOLO por su identificador estable
+    // (data-control-id). La comparación por texto visible se
+    // eliminó: se rompería con la traducción del label.
     const buttons = this.container.querySelectorAll("button");
 
     buttons.forEach((button) => {
-      // Buscar el botón que tiene "Guardar" como texto
-      // o que tiene el control-id en sus atributos
-      const buttonText = button.textContent?.trim();
       const controlId = button.getAttribute('data-control-id');
 
-      if (buttonText === "Guardar" || controlId === "save") {
+      if (controlId === "save") {
         button.style.display = hasText ? "" : "none";
       }
     });
@@ -361,7 +363,7 @@ export class NotesWidget implements FocusWidget {
     if (!this.currentFile) {
       contentWrapper.createEl("div", {
         cls: "fl-widget-content-empty",
-        text: "Abre una nota para escribir apuntes"
+        text: i18n.t('widgets.notesWidget.empty.noteRequired')
       });
       return;
     }
@@ -437,7 +439,7 @@ export class NotesWidget implements FocusWidget {
     draftProxyText.setText(
       draftText.length > 0
         ? draftText
-        : "Escribe tus apuntes..."
+        : i18n.t('widgets.notesWidget.placeholder.draft')
     );
 
     if (!draftText.length) {
@@ -479,7 +481,7 @@ export class NotesWidget implements FocusWidget {
     const captureEditor = capturePanel.createEl("textarea", {
       cls: "fl-widget-textarea fl-notes-draft-editor fl-notes-capture-editor",
       attr: {
-        placeholder: "Escribe tus apuntes..."
+        placeholder: i18n.t('widgets.notesWidget.placeholder.draft')
       }
     });
 
@@ -537,7 +539,7 @@ export class NotesWidget implements FocusWidget {
 
         await this.appendBlock(text);
         await this.refreshBlocks();
-        new Notice("Apunte creado");
+        new Notice(i18n.t('widgets.notesWidget.notice.created'));
       },
       (active) => {
         contentWrapper.toggleClass("fl-dnd-drop-active", active);
@@ -662,7 +664,7 @@ export class NotesWidget implements FocusWidget {
     // Actualizar inmediatamente la visibilidad de Guardar.
     this.updateSaveActionVisibility();
 
-    new Notice("Apunte guardado");
+    new Notice(i18n.t('widgets.notesWidget.notice.saved'));
 
     // Refrescar solamente la vista de Hoy si estamos allí.
     if (this.sessionView === "today") {
@@ -761,8 +763,8 @@ export class NotesWidget implements FocusWidget {
         primaryAction: {
           id: "toggle",
           label: block.active
-            ? "Desactivar apunte"
-            : "Activar apunte",
+            ? i18n.t('widgets.notesWidget.action.deactivate')
+            : i18n.t('widgets.notesWidget.action.activate'),
           onClick: async () => {
             const nextActive = !block.active;
 
@@ -817,7 +819,7 @@ export class NotesWidget implements FocusWidget {
 
         deleteAction: {
           id: "delete",
-          label: "Eliminar apunte",
+          label: i18n.t('widgets.notesWidget.action.delete'),
           onClick: async () => {
             await this.deleteBlock(index);
           }
@@ -833,15 +835,14 @@ export class NotesWidget implements FocusWidget {
         {
           initiallyExpanded: false,
           previewLines: 3,
-          collapsedLabel: "Expandir",
-          expandedLabel: "Contraer",
+          collapsedLabel: i18n.t('widgets.common.expand'),
+          expandedLabel: i18n.t('widgets.common.collapse'),
           editable: true,
           rootClass: "fl-notes-expandable",
           contentClass: "fl-notes-expandable-content",
           actionClass: "fl-notes-expandable-action",
               onExpandedChange: (expanded) => {
-      console.log('[NotesWidget] onExpandedChange', expanded, 'item=', item);
-      item.setExpanded(expanded);
+            item.setExpanded(expanded);
     }
         }
 

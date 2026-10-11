@@ -7,6 +7,7 @@
 import { FilterOption } from '../models/FilterOption';
 import { FolderLabItem } from '../models/FolderLabItem';
 import { STATUSES } from '../constants/statuses';
+import { i18n } from '../i18n/I18nService';
 
 export class FilterService {
   /**
@@ -14,14 +15,14 @@ export class FilterService {
    */
   getFilterOptions(): FilterOption[] {
     return [
-      { id: null, label: 'Todas las notas', icon: 'list' },
+      { id: null, label: i18n.t('filters.all'), icon: 'list' },
       ...STATUSES.map(s => ({ 
         id: s.id, 
         label: s.label, 
         icon: s.icon 
       })),
-      { id: '_empty', label: 'Notas vacías', icon: 'alert-circle' },
-      { id: '_no-status', label: 'Sin estado', icon: 'more-vertical' }
+      { id: '_empty', label: i18n.t('filters.empty'), icon: 'alert-circle' },
+      { id: '_no-status', label: i18n.t('filters.noStatus'), icon: 'more-vertical' }
     ];
   }
 
@@ -47,9 +48,9 @@ export class FilterService {
    * Obtiene la etiqueta de un filtro
    */
   getFilterLabel(filterId: string | null): string {
-    if (!filterId) return 'Todas las notas';
-    if (filterId === '_empty') return 'Notas vacías';
-    if (filterId === '_no-status') return 'Sin estado';
+    if (!filterId) return i18n.t('filters.all');
+    if (filterId === '_empty') return i18n.t('filters.empty');
+    if (filterId === '_no-status') return i18n.t('filters.noStatus');
     
     const found = STATUSES.find(s => s.id === filterId);
     return found?.label || filterId;

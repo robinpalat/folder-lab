@@ -1,6 +1,6 @@
 
 import { setIcon } from 'obsidian';
-
+import { i18n } from '../i18n/I18nService';
 export class FocusTitle {
   private element: HTMLElement | null = null;
   private container: HTMLElement;
@@ -28,7 +28,7 @@ export class FocusTitle {
     if (!activeFile) {
       const title = leftContainer.createEl('span', {
         cls: 'focus-title-text focus-title-empty',
-        text: 'Sin nota activa'
+        text: i18n.t('focus.title.noActiveNote')
       });
     } else {
       const title = leftContainer.createEl('span', {
@@ -45,7 +45,7 @@ export class FocusTitle {
     const closeBtn = rightContainer.createEl('button', {
       cls: 'focus-title-close-btn',
       attr: {
-        'aria-label': 'Cerrar modo Focus'
+        'aria-label': i18n.t('focus.closeAria')
       }
     });
     setIcon(closeBtn, 'x');

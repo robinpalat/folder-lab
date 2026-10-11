@@ -3,17 +3,32 @@
 // ============================================================
 
 import { App, Modal } from 'obsidian';
+import { i18n } from '../i18n/I18nService';
 
 export class InputModal extends Modal {
   private prompt: string;
   private defaultValue: string;
   private onSubmit: (value: string) => void;
+  /**
+   * Guarda de envío único: da igual cuántos eventos lleguen
+   * (Enter repetido, Enter + clic, listeners duplicados): el
+   * callback se ejecuta UNA sola vez por apertura del modal.
+   */
+  private submitted: boolean = false;
 
   constructor(app: App, prompt: string, defaultValue: string, onSubmit: (value: string) => void) {
     super(app);
     this.prompt = prompt;
     this.defaultValue = defaultValue;
     this.onSubmit = onSubmit;
+  }
+
+  /** Envío único: cierra y entrega el valor. Idempotente. */
+  private submit(value: string): void {
+    if (this.submitted) return;
+    this.submitted = true;
+    this.close();
+    this.onSubmit(value);
   }
 
   onOpen() {
@@ -35,19 +50,17 @@ export class InputModal extends Modal {
     buttonContainer.style.gap = '8px';
     buttonContainer.style.justifyContent = 'flex-end';
 
-    const cancelBtn = buttonContainer.createEl('button', { text: 'Cancelar' });
+    const cancelBtn = buttonContainer.createEl('button', { text: i18n.t('common.cancel') });
     cancelBtn.onclick = () => {
-      this.close();
-      this.onSubmit('');
+      this.submit('');
     };
 
     const submitBtn = buttonContainer.createEl('button', {
-      text: 'Aceptar',
+      text: i18n.t('common.accept'),
       cls: 'mod-cta'
     });
     submitBtn.onclick = () => {
-      this.close();
-      this.onSubmit(input.value);
+      this.submit(input.value);
     };
 
     input.focus();
@@ -55,12 +68,14 @@ export class InputModal extends Modal {
 
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
-        this.close();
-        this.onSubmit(input.value);
+        // Sin default (no hay formulario, pero se bloquea por
+        // si acaso) y con guard: un Enter repetido no reenvía.
+        e.preventDefault();
+        this.submit(input.value);
       }
       if (e.key === 'Escape') {
-        this.close();
-        this.onSubmit('');
+        e.preventDefault();
+        this.submit('');
       }
     });
   }
@@ -93,14 +108,14 @@ export class ConfirmModal extends Modal {
     buttonContainer.style.justifyContent = 'flex-end';
     buttonContainer.style.marginTop = '12px';
 
-    const cancelBtn = buttonContainer.createEl('button', { text: 'Cancelar' });
+    const cancelBtn = buttonContainer.createEl('button', { text: i18n.t('common.cancel') });
     cancelBtn.onclick = () => {
       this.close();
       this.onConfirm(false);
     };
 
     const confirmBtn = buttonContainer.createEl('button', {
-      text: 'Confirmar',
+      text: i18n.t('common.confirm'),
       cls: 'mod-warning'
     });
     confirmBtn.onclick = () => {

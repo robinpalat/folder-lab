@@ -77,12 +77,6 @@ async record(
   if (event === "open") {
     const now = Date.now();
 
-    console.log(
-      '[Folder Lab][RecentActivity] open:',
-      file.path,
-      now
-    );
-
     if (
       this.lastOpenedPath === file.path &&
       now - this.lastOpenedAt < 2000

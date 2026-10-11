@@ -257,19 +257,10 @@ getParent(path: string): string | null {
 
   const node = this.tree.nodeMap.get(path);
 
-  console.log('[FOLDER NAV PARENT]', {
-    path,
-    found: !!node,
-    node,
-    parentPath: node?.parentPath
-  });
-
   return node?.parentPath ?? null;
 }
 
 canGoBack(path: string): boolean {
-  console.log('[FOLDER NAV BACK] comprobando:', path);
-
   if (!this.tree) {
     console.warn('[FOLDER NAV BACK] No hay tree');
     return false;
@@ -277,14 +268,10 @@ canGoBack(path: string): boolean {
 
   const node = this.tree.nodeMap.get(path);
 
-  console.log('[FOLDER NAV BACK] node:', node);
-
   if (!node) {
     console.warn('[FOLDER NAV BACK] Nodo NO encontrado:', path);
     return false;
   }
-
-  console.log('[FOLDER NAV BACK] parentPath:', node.parentPath);
 
   return node.parentPath !== null &&
          node.parentPath !== undefined;

@@ -7,7 +7,7 @@
 import { App, TFile, TFolder, Menu, Notice } from 'obsidian';
 import { FolderLabState } from './FolderLabState';
 import { FolderOrderSettings } from '../config/settings';
-import { FolderRepository } from '../storage/FolderRepository';
+import { FolderRepository, GlobalOrderData } from '../storage/FolderRepository';
 import { OrderService } from '../services/OrderService';
 import { NoteService } from '../services/NoteService';
 import { ExportService } from '../services/ExportService';
@@ -20,6 +20,10 @@ import { WordCountModal } from '../modals/WordCountModal';
 import { WordCountService, WordCountResult } from '../services/WordCountService';
 import { InputModal } from '../utils/ModalUtils';
 import { PropertyOrderService } from '../services/navigation/PropertyOrderService';
+import { SingleFlightCache } from '../utils/wordCountCache';
+import { isSameFolderPath, validateNewFolderName } from '../utils/folderUtils';
+import { HeaderStatsModel } from '../utils/headerStats';
+import { i18n } from '../i18n/I18nService';
 
 export type FolderLabEvent =
   | { type: 'folderChanged'; folderPath: string }
@@ -106,9 +110,7 @@ export class FolderLabController {
     const masterPath = this.settings.bookRootPath;
 
     if (!masterPath) {
-      new Notice(
-        '❌ No hay carpeta raíz configurada. Ve a Ajustes → Folder Lab'
-      );
+      new Notice(i18n.t('errors.noRootConfigured'));
       return;
     }
 
@@ -118,7 +120,24 @@ export class FolderLabController {
     // 1. Intentar cargar el JSON existente
     // ============================================================
 
-    let data = await this.repository.loadGlobalOrder(masterPath);
+    /*
+     * 3A: «ausente» y «ilegible» son casos distintos. Si el
+     * fichero existe pero no puede leerse (JSON corrupto, forma
+     * inválida, error del adapter), se aborta con aviso: la
+     * regeneración NUNCA sobrescribe datos no recuperables
+     * (orden manual y notas particulares).
+     */
+    let data: GlobalOrderData | null = null;
+    try {
+      data = await this.repository.loadGlobalOrder(masterPath);
+    } catch (error) {
+      console.error(
+        '[FolderLabController] _folder_order.json ilegible; inicialización abortada:',
+        error
+      );
+      new Notice(i18n.t('errors.folderOrderCorrupt'));
+      return;
+    }
 
 
 
@@ -127,11 +146,10 @@ export class FolderLabController {
     // ============================================================
 
     if (!data) {
-      console.log(
-        '📂 _folder_order.json no existe. Inicializando proyecto...'
+      await this.repository.initGlobalOrder(
+        masterPath,
+        this.settings.navigationPropertyMapping?.ignoredFolders ?? []
       );
-
-      await this.repository.initGlobalOrder(masterPath);
 
       // Volver a cargar para obtener el estado persistido
       data = await this.repository.loadGlobalOrder(masterPath);
@@ -143,9 +161,7 @@ export class FolderLabController {
     // ============================================================
 
     if (!data) {
-      new Notice(
-        '❌ No fue posible inicializar el proyecto Folder Lab.'
-      );
+      new Notice(i18n.t('errors.initFailed'));
       return;
     }
 
@@ -160,11 +176,14 @@ export class FolderLabController {
   async createNewNote(): Promise<void> {
     const currentPath = this.getCurrentPath();
     if (!currentPath) {
-      new Notice('No hay carpeta seleccionada');
+      new Notice(i18n.t('errors.noFolderSelected'));
       return;
     }
 
-    const name = await this.promptForInput('Nombre de la nueva nota:', 'Nueva nota');
+    const name = await this.promptForInput(
+      i18n.t('notes.create.prompt'),
+      i18n.t('notes.create.defaultName')
+    );
     if (!name) return;
 
     const file = await this.noteService.createNote(currentPath, name);
@@ -184,6 +203,65 @@ export class FolderLabController {
       const modal = new InputModal(this.app, prompt, defaultValue, resolve);
       modal.open();
     });
+  }
+
+  // ============================================================
+  // CREAR CARPETA
+  // ============================================================
+
+  /**
+   * Crea una carpeta dentro de la carpeta actual de navegación.
+   *
+   * Valida el nombre (sin segmentos de ruta), gestiona
+   * duplicados, aplica las reglas existentes de orden y
+   * exclusiones (OrderService.updateOrderOnFolderCreate) y
+   * refresca la vista en su sitio —sin cambiar de navegación—.
+   */
+  async createNewFolder(): Promise<void> {
+    const currentPath = this.getCurrentPath();
+    if (!currentPath) {
+      new Notice(i18n.t('errors.noFolderSelected'));
+      return;
+    }
+
+    const raw = await this.promptForInput(i18n.t('folders.create.prompt'), '');
+    const validation = validateNewFolderName(raw ?? '');
+
+    if (!validation.ok) {
+      // Cancelación o nombre vacío: sin acción (como createNote).
+      if (validation.reason === 'empty') return;
+
+      new Notice(i18n.t('errors.folder.invalidName'));
+      return;
+    }
+
+    const folderPath = `${currentPath}/${validation.name}`;
+
+    if (this.app.vault.getAbstractFileByPath(folderPath)) {
+      new Notice(i18n.t('errors.folder.alreadyExists', { name: validation.name }));
+      return;
+    }
+
+    try {
+      await this.app.vault.createFolder(folderPath);
+    } catch (error) {
+      console.error('Error al crear la carpeta:', error);
+      new Notice(i18n.t('errors.folder.createFailed'));
+      return;
+    }
+
+    // Reglas existentes de orden y persistencia: dedupe,
+    // carpetas ignoradas y orden global (misma ruta que el
+    // resto de creaciones de carpetas).
+    await this.orderService.updateOrderOnFolderCreate(folderPath);
+
+    new Notice(i18n.t('folders.created', { name: validation.name }));
+
+    // Refresco en su sitio: NO cambia la navegación activa.
+    const path = this.getCurrentPath();
+    if (path) {
+      await this.loadFolder(path);
+    }
   }
 
   // ============================================================
@@ -272,7 +350,7 @@ export class FolderLabController {
     const parentPath = currentPath ? this.navigationService.getParent(currentPath) : null;
 
     if (!parentPath) {
-      new Notice('Ya estás en la carpeta raíz');
+      new Notice(i18n.t('errors.alreadyAtRoot'));
       return;
     }
 
@@ -299,14 +377,14 @@ export class FolderLabController {
 
     const currentPath = this.getCurrentPath();
     if (!currentPath) {
-      new Notice('No hay carpeta actual');
+      new Notice(i18n.t('errors.noCurrentFolder'));
       return;
     }
 
     const parent = this.navigationService.getParent(currentPath);
 
     if (!parent) {
-      new Notice('Ya estás en la carpeta raíz');
+      new Notice(i18n.t('errors.alreadyAtRoot'));
       return;
     }
 
@@ -386,18 +464,55 @@ getMasterName(): string {
   // CONTEO DE PALABRAS
   // ============================================================
 
+  /**
+   * Último resultado válido del conteo del libro, en memoria.
+   * El encabezado SOLO lee de aquí; el recorrido completo se
+   * ejecuta en tres momentos: la inicialización automática de
+   * sesión (si hay meta), la primera apertura del diálogo y el
+   * botón «Actualizar estadísticas». Nunca por navegación,
+   * edición o renderizado.
+   */
+  private wordCountCache = new SingleFlightCache<WordCountResult>();
+
+  /**
+   * Resultado del conteo en memoria (nunca calcula).
+   */
+  getCachedWordCountResult(): WordCountResult | null {
+    return this.wordCountCache.get();
+  }
+
+  /**
+   * Obtiene el resultado del conteo.
+   *
+   * Sin `force` reutiliza el resultado en memoria si existe y
+   * solo calcula cuando aún no hay ninguno (inicialización del
+   * diálogo). Con `force` fuerza un recorrido nuevo. Las
+   * peticiones simultáneas comparten el mismo vuelo: nunca hay
+   * dos recorridos duplicados en paralelo.
+   */
+  async getWordCountResult(options?: {
+    force?: boolean;
+  }): Promise<WordCountResult | null> {
+    return this.wordCountCache.request(
+      () => this.wordCountService.countWordsInBook(),
+      options?.force === true
+    );
+  }
+
   async countWords(): Promise<void> {
     const rootPath = this.settings.bookRootPath;
 
     if (!rootPath) {
-      new Notice('❌ Configura la carpeta raíz en Ajustes → Folder Lab');
+      new Notice(i18n.t('errors.wordCount.noRootConfigured'));
       return;
     }
 
-    const result = await this.wordCountService.countWordsInBook();
+    // Inicialización mínima: solo calcula si aún no existe
+    // resultado en memoria; al reabrir se reutiliza.
+    const result = await this.getWordCountResult();
 
     if (!result) {
-      new Notice('❌ Error al contar palabras');
+      new Notice(i18n.t('errors.wordCount.failed'));
       return;
     }
 
@@ -487,13 +602,13 @@ getMasterName(): string {
 
   async deleteNote(file: TFile): Promise<void> {
     if (!file) {
-      new Notice('❌ Archivo no válido');
+      new Notice(i18n.t('errors.note.invalidFile'));
       return;
     }
 
     const currentPath = this.getCurrentPath();
     if (!currentPath) {
-      new Notice('❌ No hay carpeta seleccionada');
+      new Notice(i18n.t('errors.noFolderSelectedMarked'));
       return;
     }
 
@@ -505,12 +620,12 @@ getMasterName(): string {
       }
 
       await this.app.vault.delete(file);
-      new Notice(`Nota eliminada: ${file.name}`);
+      new Notice(i18n.t('notes.deleted', { name: file.name }));
 
       await this.loadFolder(currentPath);
     } catch (error) {
       console.error('Error al eliminar nota:', error);
-      new Notice('❌ Error al eliminar la nota');
+      new Notice(i18n.t('errors.note.deleteFailed'));
     }
   }
 
@@ -525,7 +640,7 @@ getMasterName(): string {
     await this.orderService.updateFolderOrder(currentPath, newOrder);
     await this.loadFolder(currentPath);
     this.notify({ type: 'folderChanged', folderPath: currentPath });
-    new Notice('Orden actualizado');
+    new Notice(i18n.t('notices.orderUpdated'));
   }
 
   // ============================================================
@@ -535,7 +650,7 @@ getMasterName(): string {
   async exportAllNotes(): Promise<void> {
     const currentPath = this.getCurrentPath();
     if (!currentPath) {
-      new Notice('❌ No hay carpeta seleccionada');
+      new Notice(i18n.t('errors.noFolderSelectedMarked'));
       return;
     }
     await this.exportService.exportAllNotes(currentPath);
@@ -544,16 +659,53 @@ getMasterName(): string {
   async showExportMenu(button: HTMLElement): Promise<void> {
     const currentPath = this.getCurrentPath();
     if (!currentPath) {
-      new Notice('❌ No hay carpeta seleccionada');
+      new Notice(i18n.t('errors.noFolderSelectedMarked'));
       return;
     }
 
     const menu = new Menu();
-    menu.addItem((i) => i.setTitle('Copiar lista (TXT)')
+    menu.addItem((i) => i.setTitle(i18n.t('export.copyListTxt'))
       .onClick(() => this.exportService.exportOrderList(currentPath, 'txt', true)));
-    menu.addItem((i) => i.setTitle('Exportar todas las notas')
+    menu.addItem((i) => i.setTitle(i18n.t('export.exportAllNotes'))
       .onClick(() => this.exportAllNotes()));
     menu.showAtPosition({ x: button.getBoundingClientRect().right, y: button.getBoundingClientRect().top });
+  }
+
+  /**
+   * Menú contextual del botón «+»: crear nota o crear carpeta.
+   *
+   * Usa el menú nativo de Obsidian (Menu): se cierra al
+   * seleccionar una opción, al pulsar Escape o al hacer clic
+   * fuera, y se ancla a la derecha del botón sin salirse de la
+   * pantalla.
+   */
+  showCreateMenu(button: HTMLElement): void {
+    const rect = button.getBoundingClientRect();
+
+    const menu = new Menu();
+
+    menu.addItem((item) =>
+      item
+        .setTitle(i18n.t('notes.create.menuItem'))
+        .setIcon('file-plus')
+        .onClick(() => {
+          void this.createNewNote();
+        })
+    );
+
+    menu.addItem((item) =>
+      item
+        .setTitle(i18n.t('folders.create.menuItem'))
+        .setIcon('folder-plus')
+        .onClick(() => {
+          void this.createNewFolder();
+        })
+    );
+
+    menu.showAtPosition({
+      x: rect.right + 4,
+      y: rect.top
+    });
   }
 
   // ============================================================
@@ -568,6 +720,106 @@ async getStats(): Promise<{ totalNotes: number; percentage: number } | null> {
   return { totalNotes: stats.totalNotes, percentage: stats.percentage };
 }
 
+/**
+ * Meta de palabras del libro (carpeta master). 0 = sin meta.
+ * Persistida en ajustes (bookWordGoal) por quien la modifica.
+ */
+getBookGoal(): number {
+  const raw = this.settings.bookWordGoal;
+  const value = typeof raw === 'number' ? Math.floor(raw) : NaN;
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+setBookGoal(words: number | null): void {
+  this.settings.bookWordGoal =
+    words !== null && words > 0 && Number.isFinite(words)
+      ? Math.floor(words)
+      : 0;
+}
+
+/**
+ * Progreso de cumplimiento de la meta del libro usando el ÚLTIMO
+ * conteo válido en memoria. Devuelve null si no hay meta o si
+ * aún no existe ningún conteo.
+ *
+ * Este método NUNCA inicia un recorrido del libro: el encabezado
+ * no debe ejecutar conteos de palabras. El recuento se actualiza
+ * al usar «Actualizar estadísticas» del diálogo.
+ */
+getCachedBookGoalProgress(): { words: number; target: number } | null {
+  const target = this.getBookGoal();
+  if (target <= 0) return null;
+
+  const cached = this.wordCountCache.get();
+  if (!cached) return null;
+
+  return { words: cached.totalWords, target };
+}
+
+  /**
+   * true cuando la carpeta actual ES la raíz master, comparando
+   * rutas normalizadas (nunca el nombre visible). En la raíz
+   * master —y solo allí— la navegación normal puede mostrar el
+   * porcentaje de la meta del libro.
+   */
+  isAtMasterRoot(): boolean {
+    // La raíz master solo aplica al proveedor de carpetas.
+    if (this.navigationService.getNavigationType() !== 'folders') {
+      return false;
+    }
+
+    return isSameFolderPath(
+      this.navigationService.getCurrentPath(),
+      this.navigationService.getMasterPath()
+    );
+  }
+
+  /**
+   * Modelo de encabezado de la RAÍZ MASTER (contrato propio):
+   * notas directas · notas totales del libro · carpetas del
+   * libro · % de la meta (solo con conteo en memoria).
+   *
+   * Sincrónico y barato: recorridos de metadatos del árbol, sin
+   * leer contenidos ni contar palabras.
+   */
+  getMasterRootHeaderStats(): HeaderStatsModel {
+    const masterPath = this.navigationService.getMasterPath() ?? '';
+
+    const direct =
+      this.statsService.countDirectNotesAndSubfolders(masterPath);
+    const book =
+      this.statsService.countBookNotesAndFolders(masterPath);
+
+    return {
+      kind: 'master-root',
+      directNotes: direct.totalNotes,
+      totalNotes: book.totalNotes,
+      totalFolders: book.totalFolders,
+      goal: this.getCachedBookGoalProgress()
+    };
+  }
+
+  /**
+   * Modelo de encabezado de una SUBCARPETA: notas y subcarpetas
+   * directas (mismos filtros que las listas visibles). Sin total
+   * del libro ni porcentaje.
+   *
+   * Sincrónico y barato: no lee contenidos ni recorre el libro.
+   */
+  getFolderHeaderStats(): HeaderStatsModel {
+    const currentPath = this.getCurrentPath();
+
+    const counts = currentPath !== null
+      ? this.statsService.countDirectNotesAndSubfolders(currentPath)
+      : { totalNotes: 0, totalSubfolders: 0 };
+
+    return {
+      kind: 'folder',
+      notes: counts.totalNotes,
+      subfolders: counts.totalSubfolders
+    };
+  }
+
   // ============================================================
   // MODO ENFOQUE
   // ============================================================
@@ -575,6 +827,10 @@ async getStats(): Promise<{ totalNotes: number; percentage: number } | null> {
   async toggleFocusMode(): Promise<void> {
     this.state.isFocusMode = !this.state.isFocusMode;
     this.notify({ type: 'modeChanged' });
-    new Notice(`Modo enfoque ${this.state.isFocusMode ? 'activado' : 'desactivado'}`);
+    new Notice(i18n.t('notices.focusModeToggled', {
+      state: i18n.t(this.state.isFocusMode
+        ? 'notices.focusMode.enabled'
+        : 'notices.focusMode.disabled')
+    }));
   }
 }

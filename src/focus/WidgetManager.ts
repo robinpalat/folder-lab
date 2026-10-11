@@ -5,6 +5,8 @@ import {
   NoteRepository,
   NoteContextLayout
 } from '../storage/NoteRepository';
+import { i18n } from '../i18n/I18nService';
+import { getWidgetDefinitionLabel } from './widgets/definitionTexts';
 
 export class WidgetManager {
 
@@ -16,6 +18,13 @@ export class WidgetManager {
   };
   private readonly noteRepository: NoteRepository;
   private currentNotePath: string | null = null;
+  /**
+   * P2-B: token de generación de loadForNote. Dos cargas
+   * superpuestas (A y B) pueden resolver en orden inverso; el
+   * resultado obsoleto se descarta para no asignar instancias
+   * de A al contexto de B ni guardarlas bajo la clave de B.
+   */
+  private loadGeneration = 0;
 
   private readonly listeners =
     new Set<() => void>();
@@ -76,7 +85,7 @@ export class WidgetManager {
   const instance: WidgetInstance = {
     instanceId: this.createInstanceId(typeId),
     typeId,
-    name: name?.trim() || definition.identity.label
+    name: name?.trim() || getWidgetDefinitionLabel(definition)
   };
 
   this.instances.push(instance);
@@ -138,8 +147,8 @@ async createInstance(
       return;
     }
 
-    this.addInstance('memory', 'Asistente');
-    this.addInstance('notes', 'Apuntes');
+    this.addInstance('memory', i18n.t('widgets.managerDefaultName.assistant'));
+    this.addInstance('notes', i18n.t('widgets.managerDefaultName.notes'));
   }
 
   addInstance(typeId: string, name?: string): WidgetInstance | null {
@@ -162,7 +171,7 @@ async createInstance(
     const instance: WidgetInstance = {
       instanceId: this.createInstanceId(typeId),
       typeId,
-      name: name?.trim() || definition.identity.label
+      name: name?.trim() || getWidgetDefinitionLabel(definition)
     };
 
     this.instances.push(instance);
@@ -366,10 +375,19 @@ async applyInstances(
 
     async loadForNote(file: TFile): Promise<void> {
     const notePath = file.path;
+    const generation = ++this.loadGeneration;
 
     this.currentNotePath = notePath;
 
     const data = await this.noteRepository.loadNote(notePath);
+
+    // P2-B: si mientras cargaba ha llegado una carga más
+    // reciente, este resultado queda obsoleto y se descarta:
+    // el estado del manager debe corresponder siempre a la
+    // nota más reciente solicitada.
+    if (generation !== this.loadGeneration) {
+      return;
+    }
 
   if (data) {
     this.instances = [...data.widgets];
@@ -385,11 +403,10 @@ async applyInstances(
   }
 
     // Primera vez que esta nota utiliza Contexto.
-        // Primera vez que esta nota utiliza Contexto.
     this.instances = [];
 
-this.createInstanceInternal('memory', 'Asistente');
-this.createInstanceInternal('notes', 'Apuntes');
+this.createInstanceInternal('memory', i18n.t('widgets.managerDefaultName.assistant'));
+this.createInstanceInternal('notes', i18n.t('widgets.managerDefaultName.notes'));
 
 this.layout = {
   top: this.instances[1]?.instanceId ?? '',

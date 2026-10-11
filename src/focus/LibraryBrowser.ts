@@ -8,7 +8,16 @@ import type { WidgetInstance } from './WidgetDefinition';
 import {
   applyWidgetIdentity
 } from './FocusWidgetsUtils';
-
+import { i18n } from '../i18n/I18nService';
+import {
+  getWidgetDefinitionLabel,
+  getWidgetDefinitionDescription
+} from './widgets/definitionTexts';
+import {
+  getDomainLabel,
+  getCapabilityLabel,
+  getCapabilityDescription
+} from '../ai/capabilities/capabilityTexts';
 export interface CapabilitySelection {
   sourceIds: Array<'note' | 'notes' | 'snips' | 'tasks'>;
   groupId: string;
@@ -80,17 +89,17 @@ export class LibraryBrowser extends Modal {
 
     const widgetsTab = tabs.createEl('div', {
       cls: 'fl-capability-browser-tab',
-      text: 'WIDGETS'
+      text: i18n.t('library.tab.widgets')
     });
 
     const assistantTab = tabs.createEl('div', {
       cls: 'fl-capability-browser-tab',
-      text: 'ASISTENTE'
+      text: i18n.t('library.tab.assistant')
     });
 
     const recipesTab = tabs.createEl('div', {
       cls: 'fl-capability-browser-tab',
-      text: 'RECETAS'
+      text: i18n.t('library.tab.recipes')
     });
 
     assistantTab.addClass('is-selected');
@@ -128,7 +137,7 @@ export class LibraryBrowser extends Modal {
 
     this.recipesContent.createEl('div', {
       cls: 'fl-capability-browser-empty',
-      text: 'Recetas'
+      text: i18n.t('library.recipesEmpty')
     });
 
     // ========================================================
@@ -243,7 +252,7 @@ export class LibraryBrowser extends Modal {
 
     leftColumn.createEl('div', {
       cls: 'fl-widget-manager-column-title',
-      text: 'Widgets disponibles'
+      text: i18n.t('library.widgetsColumn.available')
     });
 
     const leftScroll = leftColumn.createEl('div', {
@@ -281,13 +290,13 @@ if (definition.identity.color) {
 
       header.createEl('span', {
         cls: 'fl-widget-manager-card-name',
-        text: definition.identity.label
+        text: getWidgetDefinitionLabel(definition)
       });
 
       if (definition.identity.description) {
         card.createEl('div', {
           cls: 'fl-widget-manager-card-description',
-          text: definition.identity.description
+          text: getWidgetDefinitionDescription(definition)
         });
       }
 
@@ -309,12 +318,12 @@ if (definition.identity.color) {
 
         addButton.setAttribute(
           'aria-label',
-          'Agregar widget'
+          i18n.t('library.widgetsAction.add')
         );
 
         addButton.setAttribute(
           'title',
-          'Agregar widget'
+          i18n.t('library.widgetsAction.add')
         );
 
         addButton.onclick = () => {
@@ -342,8 +351,10 @@ if (definition.identity.color) {
             typeId:
               definition.id,
 
+            // Nombre por defecto al CREAR la instancia (traducible).
+            // Los nombres persistidos nunca pasan por aquí.
             name:
-              definition.identity.label
+              getWidgetDefinitionLabel(definition)
           };
 
           this.draftInstances.push(
@@ -361,7 +372,7 @@ if (definition.identity.color) {
 
     rightColumn.createEl('div', {
       cls: 'fl-widget-manager-column-title',
-      text: 'En esta nota'
+      text: i18n.t('library.widgetsColumn.instances')
     });
 
     const rightScroll = rightColumn.createEl('div', {
@@ -372,7 +383,7 @@ if (definition.identity.color) {
 
       rightScroll.createEl('div', {
         cls: 'fl-widget-manager-empty',
-        text: 'No hay widgets configurados.'
+        text: i18n.t('library.widgetsEmpty')
       });
 
     } else {
@@ -420,7 +431,7 @@ if (definition.identity.color) {
 
         name.setAttribute(
           'title',
-          'Clic para renombrar'
+          i18n.t('library.instanceRenameTooltip')
         );
 
         name.onclick = () => {
@@ -484,12 +495,12 @@ if (definition.identity.color) {
 
         deleteButton.setAttribute(
           'aria-label',
-          'Eliminar widget'
+          i18n.t('library.widgetsAction.delete')
         );
 
         deleteButton.setAttribute(
           'title',
-          'Eliminar widget'
+          i18n.t('library.widgetsAction.delete')
         );
 
         deleteButton.onclick = (event) => {
@@ -524,7 +535,7 @@ if (definition.identity.color) {
     });
 
     const cancelButton = footer.createEl('button', {
-      text: 'Cancelar',
+      text: i18n.t('common.cancel'),
       cls: 'fl-widget-manager-cancel mod-secondary'
     });
 
@@ -533,7 +544,7 @@ if (definition.identity.color) {
     };
 
     const applyButton = footer.createEl('button', {
-      text: 'Aplicar',
+      text: i18n.t('common.apply'),
       cls: 'fl-widget-manager-apply mod-cta'
     });
 
@@ -583,7 +594,7 @@ if (definition.identity.color) {
         cls: 'fl-capability-browser-section-title'
       });
 
-    sourcesTitle.textContent = 'FUENTES';
+    sourcesTitle.textContent = i18n.t('library.section.sources');
 
     const sourcesContainer =
       sourcesPanel.createEl('div', {
@@ -597,22 +608,22 @@ if (definition.identity.color) {
     }> = [
         {
           id: 'note',
-          label: 'Nota',
+          label: i18n.t('focus.sources.note'),
           icon: 'file-text'
         },
         {
           id: 'notes',
-          label: 'Apuntes',
+          label: i18n.t('focus.sources.notes'),
           icon: 'pencil'
         },
         {
           id: 'snips',
-          label: 'Snips',
+          label: i18n.t('focus.sources.snips'),
           icon: 'scissors'
         },
         {
           id: 'tasks',
-          label: 'Tareas',
+          label: i18n.t('focus.sources.tasks'),
           icon: 'check-square'
         }
       ];
@@ -705,7 +716,7 @@ if (definition.identity.color) {
         cls: 'fl-capability-browser-section-title'
       });
 
-    groupsTitle.textContent = 'DOMINIOS';
+    groupsTitle.textContent = i18n.t('library.section.domains');
 
     this.groupsContainer =
       groupsPanel.createEl('div', {
@@ -724,7 +735,7 @@ if (definition.identity.color) {
           }
         );
 
-      groupEl.textContent = group.label;
+      groupEl.textContent = getDomainLabel(group.id, group.label);
 
       groupEl.setAttribute(
         'data-group-id',
@@ -791,8 +802,7 @@ if (definition.identity.color) {
         }
       );
 
-    capabilitiesTitle.textContent =
-      'CAPACIDADES';
+    capabilitiesTitle.textContent = i18n.t('library.section.capabilities');
 
     this.capabilitiesContainer =
       capabilitiesPanel.createEl(
@@ -820,7 +830,7 @@ if (definition.identity.color) {
 
     const cancelButton =
       footer.createEl('button', {
-        text: 'Cancelar',
+        text: i18n.t('common.cancel'),
         cls:
           'fl-capability-browser-cancel mod-secondary'
       });
@@ -831,7 +841,7 @@ if (definition.identity.color) {
 
     const selectButton =
       footer.createEl('button', {
-        text: 'Seleccionar',
+        text: i18n.t('common.select'),
         cls:
           'fl-capability-browser-select mod-cta'
       });
@@ -883,7 +893,7 @@ if (definition.identity.color) {
         );
 
       empty.textContent =
-        'No hay capacidades disponibles en este dominio.';
+        i18n.t('library.capabilitiesEmpty');
 
       return;
     }
@@ -961,8 +971,10 @@ if (definition.identity.color) {
           'fl-capability-browser-item-label'
       });
 
-    label.textContent =
-      capability.label;
+    label.textContent = getCapabilityLabel(
+        capability.id,
+        capability.label
+      )
 
     if (capability.description) {
       const description =
@@ -971,8 +983,10 @@ if (definition.identity.color) {
             'fl-capability-browser-item-description'
         });
 
-      description.textContent =
-        capability.description;
+      description.textContent = getCapabilityDescription(
+        capability.id,
+        capability.description
+      )
     }
 
     item.onclick = () => {

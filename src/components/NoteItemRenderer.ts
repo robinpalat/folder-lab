@@ -16,7 +16,7 @@ import { FolderLabController } from '../core/FolderLabController';
 import { getStatusIcon, STATUSES } from '../constants/statuses';
 import { VIEW_TYPE_FOLDER_ORDER } from '../constants/view-types';
 import { FolderLabView } from '../views/FolderLabView';
-
+import { i18n } from '../i18n/I18nService';
 export interface NoteRenderOptions {
   index: number;
   showNumber?: boolean;
@@ -136,7 +136,7 @@ export class NoteItemRenderer {
         cls: 'folder-lab-special-refresh'
       });
       setIcon(refreshBtn, 'refresh-cw');
-      refreshBtn.title = 'Regenerar compilado';
+      refreshBtn.title = i18n.t('actions.regenerateCompile');
 
       refreshBtn.onclick = (e) => {
         e.stopPropagation();
@@ -182,15 +182,15 @@ export class NoteItemRenderer {
       if (isEmpty) {
         setIcon(icon, 'alert-circle');
         statusContainer.addClass('status-empty');
-        icon.setAttribute('title', 'Nota vacía');
+        icon.setAttribute('title', i18n.t('notes.status.emptyTooltip'));
         statusContainer.style.cursor = 'default';
       } else if (hasStatus) {
         const iconName = getStatusIcon(item.status);
         setIcon(icon, iconName);
         statusContainer.addClass('status-has');
 
-        const statusLabel = STATUSES.find(s => s.id === item.status)?.label || item.status;
-        icon.setAttribute('title', `${statusLabel} - Haz clic para cambiar estado`);
+        const statusLabel = STATUSES.find(s => s.id === item.status)?.label || item.status || '';
+        icon.setAttribute('title', i18n.t('notes.status.tooltipWithLabel', { label: statusLabel }));
 
         // Verificar file antes de usar
         if (item.file) {
@@ -204,7 +204,7 @@ export class NoteItemRenderer {
       } else {
         setIcon(icon, 'more-vertical');
         statusContainer.addClass('status-menu');
-        icon.setAttribute('title', 'Establecer estado');
+        icon.setAttribute('title', i18n.t('notes.status.set'));
         //  Verificar file antes de usar
         if (item.file) {
           statusContainer.onclick = (e) => {
@@ -257,7 +257,7 @@ export class NoteItemRenderer {
       if (isSpecial) {
         const menu = new Menu();
         menu.addItem((itemMenu) => {
-          itemMenu.setTitle('Regenerar compilado')
+          itemMenu.setTitle(i18n.t('actions.regenerateCompile'))
             .setIcon('refresh-cw')
             .onClick(() => {
               const event = new CustomEvent('folder-lab-export', {
@@ -307,7 +307,7 @@ public updateStatus(
     statusContainer.addClass('status-menu');
     icon.setAttribute(
       'title',
-      'Establecer estado'
+      i18n.t('notes.status.set')
     );
     return;
   }
@@ -328,7 +328,7 @@ public updateStatus(
 
   icon.setAttribute(
     'title',
-    `${statusLabel} - Haz clic para cambiar estado`
+    i18n.t('notes.status.tooltipWithLabel', { label: statusLabel })
   );
 }
 
@@ -342,7 +342,7 @@ public updateStatus(
 
     menu.addItem((item) => {
       const isActive = currentStatus === '';
-      item.setTitle(isActive ? '✓ Sin estado' : '  Sin estado')
+      item.setTitle(`${isActive ? '✓' : ' '} ${i18n.t('notes.statusMenu.none')}`)
         .setIcon('more-vertical')
         .onClick(() => {
           if (this.onStatusChange) {
@@ -380,7 +380,7 @@ public updateStatus(
     //  Verificar file antes de usar
     if (!item.isSpecial && item.file) {
       menu.addItem((itemMenu) => {
-        itemMenu.setTitle('Abrir contexto de nota')
+        itemMenu.setTitle(i18n.t('actions.openNoteContext'))
           .setIcon('target')
           .onClick(() => {
             this.openInFocusMode(item.file!);
@@ -392,7 +392,7 @@ public updateStatus(
     if (!item.isSpecial && this.onDelete && item.file) {
       menu.addSeparator();
       menu.addItem((itemMenu) => {
-        itemMenu.setTitle('Eliminar')
+        itemMenu.setTitle(i18n.t('actions.delete'))
           .setIcon('trash-2')
           .onClick(() => {
             if (this.onDelete && item.file) {
@@ -416,7 +416,7 @@ public updateStatus(
     if (view) {
       view.toggleFocusMode();
     } else {
-      new Notice('Folder Lab no está abierto');
+      new Notice(i18n.t('errors.viewNotOpen'));
     }
   }
 

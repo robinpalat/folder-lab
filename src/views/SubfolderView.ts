@@ -62,6 +62,9 @@ export class SubfolderView {
     this.walkTree(folder, 0, items);
 
     this.listComponent.render(items);
+
+    // Conteo derivado del MISMO modelo que se acaba de
+    // renderizar: carpetas de la lista visible.
     return {
       totalFolders: items.filter(item => item.type === 'folder').length
     };

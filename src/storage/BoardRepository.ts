@@ -119,9 +119,137 @@ export interface BoardStore {
   [notePath: string]: BoardData;
 }
 
+/**
+ * Comprueba que un valor es un objeto simple (no array, no null).
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isObjectArray(value: unknown): value is Record<string, unknown>[] {
+  return Array.isArray(value) && value.every(isPlainObject);
+}
+
+const VIEW_MODE_VALUES: readonly BoardViewMode[] = [
+  'explore',
+  'architecture',
+  'document'
+];
+
+/**
+ * Valida una entrada de Board al CARGAR (P0-1).
+ *
+ * Tolerancia deliberada a datos antiguos: los campos opcionales
+ * pueden ausentarse (se rellenan con valores por defecto en
+ * `Board.load`). Lo que NO se tolera es un campo presente con
+ * forma incorrecta: eso es dato malformado y no debe descartarse
+ * silenciosamente ni utilizarse.
+ */
+function assertStoredBoardData(
+  value: unknown,
+  context: string
+): asserts value is BoardData {
+  if (!isPlainObject(value)) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: se esperaba un objeto`
+    );
+  }
+
+  if (value.blocks !== undefined && !isObjectArray(value.blocks)) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: "blocks" debe ser un array de objetos`
+    );
+  }
+
+  if (value.connections !== undefined && !isObjectArray(value.connections)) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: "connections" debe ser un array de objetos`
+    );
+  }
+
+  if (
+    value.viewMode !== undefined &&
+    !VIEW_MODE_VALUES.includes(value.viewMode as BoardViewMode)
+  ) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: "viewMode" no es un modo válido`
+    );
+  }
+
+  if (
+    value.architecture !== undefined &&
+    (!isPlainObject(value.architecture) ||
+      (value.architecture.nodes !== undefined &&
+        !isObjectArray(value.architecture.nodes)))
+  ) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: "architecture" debe ser un objeto con "nodes"`
+    );
+  }
+
+  if (
+    value.fragmentOverrides !== undefined &&
+    !isObjectArray(value.fragmentOverrides)
+  ) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: "fragmentOverrides" debe ser un array de objetos`
+    );
+  }
+
+  if (value.groups !== undefined && !isObjectArray(value.groups)) {
+    throw new Error(
+      `[BoardRepository] Entrada malformada en ${context}: "groups" debe ser un array de objetos`
+    );
+  }
+}
+
+/**
+ * Valida un BoardData antes de ESCRIBIRLO (P0-1).
+ *
+ * `blocks` y `connections` son requeridos por el contrato de
+ * escritura de `Board.save`; los campos opcionales, si viajan,
+ * deben tener forma correcta.
+ */
+function assertBoardDataForSave(
+  value: unknown,
+  context: string
+): asserts value is BoardData {
+  if (!isPlainObject(value)) {
+    throw new Error(
+      `[BoardRepository] Datos a guardar inválidos en ${context}: se esperaba un objeto`
+    );
+  }
+
+  if (!isObjectArray(value.blocks)) {
+    throw new Error(
+      `[BoardRepository] Datos a guardar inválidos en ${context}: "blocks" debe ser un array de objetos`
+    );
+  }
+
+  if (!isObjectArray(value.connections)) {
+    throw new Error(
+      `[BoardRepository] Datos a guardar inválidos en ${context}: "connections" debe ser un array de objetos`
+    );
+  }
+
+  assertStoredBoardData(value, context);
+}
+
 export class BoardRepository {
 
   private readonly hiddenManager: HiddenFolderManager;
+
+  /*
+   * P2-1: cola FIFO de operaciones sobre el almacén de la
+   * carpeta. Mismo mecanismo que PluginDataStore (tail +
+   * catch para que un fallo no bloquee la cola): cada
+   * lectura-modificación-escritura se ejecuta completa antes
+   * de que empiece la siguiente, de modo que dos escrituras no
+   * pueden terminar aplicándose en orden inverso y un RMW
+   * concurrente no pierde actualizaciones de otras notas.
+   * Instancia única por plugin (compartida por todos los Board).
+   */
+  private tail: Promise<void> = Promise.resolve();
 
   constructor(private readonly app: App) {
     this.hiddenManager = new HiddenFolderManager(
@@ -130,16 +258,40 @@ export class BoardRepository {
     );
   }
 
-  async loadFolder(folderPath: string): Promise<BoardStore> {
+  private enqueue<T>(op: () => Promise<T>): Promise<T> {
+    const result = this.tail.then(op, op);
+
+    // La cadena continúa aunque la operación falle.
+    this.tail = result.then(() => {}, () => {});
+
+    return result;
+  }
+
+  /**
+   * Lee y valida el almacén SIN pasar por la cola (solo para uso
+   * INTERNO dentro de una operación ya encolada; usar los
+   * métodos públicos fuera de ese contexto).
+   */
+  private async readStoreRaw(folderPath: string): Promise<BoardStore> {
     const data = await this.hiddenManager.readJSON<BoardStore>(
       folderPath,
       BOARD_FILE
     );
 
-    return data ?? {};
+    if (data === null) {
+      return {};
+    }
+
+    if (!isPlainObject(data)) {
+      throw new Error(
+        `[BoardRepository] El almacén "${folderPath}/${BOARD_FILE}" no tiene la forma esperada`
+      );
+    }
+
+    return data;
   }
 
-  async saveFolder(
+  private async writeStoreRaw(
     folderPath: string,
     data: BoardStore
   ): Promise<void> {
@@ -150,35 +302,75 @@ export class BoardRepository {
     );
   }
 
-  async loadNote(notePath: string): Promise<BoardData | null> {
-    const folderPath = this.getParentFolderPath(notePath);
-
-    if (folderPath === null) {
-      return null;
-    }
-
-    const store = await this.loadFolder(folderPath);
-
-    return store[notePath] ?? null;
+  /**
+   * Carga el almacén de una carpeta.
+   *
+   * P0-1: un archivo ausente produce un almacén vacío (caso
+   * legítimo de primera escritura). Un error de lectura o JSON
+   * inválido PROPAGA: jamás se devuelve `{}` en su lugar, porque
+   * el siguiente `saveNote` reescribiría el archivo con una única
+   * entrada y borraría los boards de las demás notas.
+   */
+  loadFolder(folderPath: string): Promise<BoardStore> {
+    return this.enqueue(() => this.readStoreRaw(folderPath));
   }
 
-  async saveNote(
+  saveFolder(
+    folderPath: string,
+    data: BoardStore
+  ): Promise<void> {
+    return this.enqueue(() => this.writeStoreRaw(folderPath, data));
+  }
+
+  loadNote(notePath: string): Promise<BoardData | null> {
+    return this.enqueue(async () => {
+      const folderPath = this.getParentFolderPath(notePath);
+
+      if (folderPath === null) {
+        return null;
+      }
+
+      const store = await this.readStoreRaw(folderPath);
+
+      const entry = store[notePath];
+
+      if (entry === undefined) {
+        return null;
+      }
+
+      // Entrada propia malformada: se rechaza en lugar de
+      // descartarla silenciosamente (la siguiente escritura la
+      // sobrescribiría con un estado inventado).
+      assertStoredBoardData(entry, `"${notePath}"`);
+
+      return entry;
+    });
+  }
+
+  saveNote(
     notePath: string,
     data: BoardData
   ): Promise<void> {
-    const folderPath = this.getParentFolderPath(notePath);
+    return this.enqueue(async () => {
+      const folderPath = this.getParentFolderPath(notePath);
 
-    if (folderPath === null) {
-      throw new Error(
-        `[BoardRepository] No se pudo determinar la carpeta padre de "${notePath}"`
-      );
-    }
+      if (folderPath === null) {
+        throw new Error(
+          `[BoardRepository] No se pudo determinar la carpeta padre de "${notePath}"`
+        );
+      }
 
-    const store = await this.loadFolder(folderPath);
+      assertBoardDataForSave(data, `"${notePath}"`);
 
-    store[notePath] = data;
+      // Si la lectura del almacén falla o el JSON está corrupto,
+      // readStoreRaw lanza y la escritura queda ABORTADA: los
+      // datos existentes en disco se conservan intactos.
+      const store = await this.readStoreRaw(folderPath);
 
-    await this.saveFolder(folderPath, store);
+      store[notePath] = data;
+
+      await this.writeStoreRaw(folderPath, store);
+    });
   }
 
   private getParentFolderPath(notePath: string): string | null {

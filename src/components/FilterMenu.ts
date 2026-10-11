@@ -7,6 +7,7 @@
 import { Menu } from 'obsidian';
 import { FolderLabController } from '../core/FolderLabController';
 import { FilterService } from '../services/FilterService';
+import { i18n } from '../i18n/I18nService';
 
 export class FilterMenu {
   private controller: FolderLabController;
@@ -46,7 +47,7 @@ export class FilterMenu {
     if (currentFilter !== null) {
       menu.addSeparator();
       menu.addItem((item) => {
-        item.setTitle('✕ Limpiar filtro')
+        item.setTitle(i18n.t('filters.clear'))
           .setIcon('x-circle')
           .onClick(() => {
             this.controller.clearFilter();

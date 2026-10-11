@@ -10,13 +10,16 @@ import {
   FolderLabDragDrop,
   importDroppedFile
 } from '../FocusWidgetsUtils';
+import { i18n } from '../../i18n/I18nService';
 
 import { WidgetControls } from "./tools/WidgetControls";
 import { WidgetControlsRenderer } from "./tools/WidgetControlsRenderer";
 
 export class ResourcesWidget implements FocusWidget {
   readonly id = "resources";
-  readonly label = "Recursos";
+  get label(): string {
+    return i18n.t('widgets.resourcesWidget.label');
+  }
   readonly icon = "package";
 
   private container: HTMLElement | null = null;
@@ -56,7 +59,7 @@ export class ResourcesWidget implements FocusWidget {
     this.container.addClass('fl-widget-resources');
 
     if (!this.currentFile) {
-      this.renderEmptyState('Abre una nota para ver sus recursos');
+      this.renderEmptyState(i18n.t('widgets.resourcesWidget.empty.noteRequired'));
       return;
     }
 
@@ -96,13 +99,13 @@ export class ResourcesWidget implements FocusWidget {
     controls.iconAction({
       id: "add-resource",
       icon: "plus",
-      tooltip: "Agregar recurso"
+      tooltip: i18n.t('widgets.resourcesWidget.action.addTooltip')
     });
 
     controls.iconAction({
       id: "open-resources-folder",
       icon: "folder",
-      tooltip: "Abrir carpeta de recursos"
+      tooltip: i18n.t('widgets.resourcesWidget.action.openFolderTooltip')
     });
 
     return controls;
@@ -166,7 +169,7 @@ export class ResourcesWidget implements FocusWidget {
       cls: 'fl-resources-empty'
     });
 
-    this.renderEmptyState('Sin recursos');
+    this.renderEmptyState(i18n.t('widgets.resourcesWidget.empty.noResources'));
 
     // ----------------------------------------------------------
     // DRAG & DROP DE ARCHIVOS
@@ -219,14 +222,14 @@ export class ResourcesWidget implements FocusWidget {
 
           await this.loadResources();
 
-          new Notice('Recurso agregado');
+          new Notice(i18n.t('resources.notice.added'));
         } catch (error) {
           console.error(
             '[ResourcesWidget] Error importando archivo:',
             error
           );
 
-          new Notice('No se pudo agregar el recurso');
+          new Notice(i18n.t('resources.notice.addFailed'));
         }
       },
       (active) => {
@@ -255,7 +258,7 @@ export class ResourcesWidget implements FocusWidget {
 
     this.emptyElement.createEl('div', {
       cls: 'fl-resources-empty-hint',
-      text: 'Agrega archivos o enlaces relacionados con esta nota'
+      text: i18n.t('widgets.resourcesWidget.empty.hint')
     });
   }
 
@@ -265,7 +268,7 @@ export class ResourcesWidget implements FocusWidget {
 
   private openResourcesFolder(): void {
     if (!this.currentFile) {
-      new Notice('No hay nota activa');
+      new Notice(i18n.t('notices.noActiveNote'));
       return;
     }
 
@@ -277,11 +280,11 @@ export class ResourcesWidget implements FocusWidget {
     const folder = this.app.vault.getAbstractFileByPath(resourcesPath);
 
     if (folder instanceof TFolder) {
-      new Notice('La carpeta de recursos ya está disponible en el vault');
+      new Notice(i18n.t('resources.notice.folderAlreadyExists'));
       return;
     }
 
-    new Notice('La carpeta de recursos no existe');
+    new Notice(i18n.t('resources.notice.folderMissing'));
   }
 
   private async loadResources(): Promise<void> {
@@ -327,8 +330,8 @@ export class ResourcesWidget implements FocusWidget {
       primaryAction: {
         id: 'toggle',
         label: isActive
-          ? 'Desactivar recurso'
-          : 'Activar recurso',
+          ? i18n.t('widgets.resourcesWidget.action.deactivate')
+          : i18n.t('widgets.resourcesWidget.action.activate'),
         onClick: async () => {
           await this.toggleResourceActive(resource);
         }
@@ -336,7 +339,7 @@ export class ResourcesWidget implements FocusWidget {
 
       deleteAction: {
         id: 'delete',
-        label: 'Eliminar recurso',
+        label: i18n.t('widgets.resourcesWidget.action.delete'),
         onClick: () => {
           this.deleteResource(resource);
         }
@@ -423,7 +426,7 @@ export class ResourcesWidget implements FocusWidget {
       if (file) {
         this.app.workspace.getLeaf().openFile(file);
       } else {
-        new Notice('Archivo no encontrado');
+        new Notice(i18n.t('resources.notice.fileNotFound'));
       }
     }
   }
@@ -433,7 +436,7 @@ export class ResourcesWidget implements FocusWidget {
 
     menu.addItem((item: any) => {
       item
-        .setTitle('Eliminar recurso')
+        .setTitle(i18n.t('widgets.resourcesWidget.action.delete'))
         .setIcon('trash-2')
         .onClick(() => {
           this.deleteResource(resource);
@@ -466,7 +469,7 @@ export class ResourcesWidget implements FocusWidget {
       await this.loadResources();
     } catch (error) {
       console.error('Error updating resource state:', error);
-      new Notice('Error al actualizar el estado del recurso');
+      new Notice(i18n.t('resources.notice.updateStateError'));
     }
   }
 
@@ -477,17 +480,17 @@ export class ResourcesWidget implements FocusWidget {
     const exists = metadata?.resources.some(r => r.id === resource.id);
 
     if (!exists) {
-      new Notice('Este recurso no está registrado en la metadata');
+      new Notice(i18n.t('resources.notice.notRegistered'));
       return;
     }
 
     if (resource.type === 'file') {
-      new Notice('Eliminado del registro (el archivo permanece en _resources)');
+      new Notice(i18n.t('resources.notice.removedFromRegistry'));
     }
 
     await this.resourceService.deleteResource(folderPath, resource.id);
     await this.loadResources();
-    new Notice('Recurso eliminado');
+    new Notice(i18n.t('resources.notice.deleted'));
   }
 
   // ============================================================
@@ -496,7 +499,7 @@ export class ResourcesWidget implements FocusWidget {
 
   private showAddModal(): void {
     if (!this.currentFile) {
-      new Notice('No hay nota activa');
+      new Notice(i18n.t('notices.noActiveNote'));
       return;
     }
 
@@ -520,11 +523,11 @@ export class ResourcesWidget implements FocusWidget {
         this.resourceService.addResource(folderPath, resource)
           .then(() => {
             this.loadResources();
-            new Notice('Recurso agregado');
+            new Notice(i18n.t('resources.notice.added'));
           })
           .catch((error) => {
             console.error('Error adding resource:', error);
-            new Notice('Error al agregar recurso');
+            new Notice(i18n.t('resources.notice.addError'));
           });
       }
     );

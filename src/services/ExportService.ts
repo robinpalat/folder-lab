@@ -13,6 +13,7 @@ import { NoteService } from './NoteService';
 import { FolderRepository } from '../storage/FolderRepository';
 import { FolderOrderSettings } from '../config/settings';
 import { getFileNameWithoutExtension } from '../utils/string-utils';
+import { i18n } from '../i18n/I18nService';
 
 export class ExportService {
   private app: App;
@@ -96,12 +97,12 @@ constructor(
     
     if (copyToClipboard) {
       await navigator.clipboard.writeText(content);
-      new Notice('Lista copiada al portapapeles');
+      new Notice(i18n.t('export.listCopiedToClipboard'));
     } else {
       const ext = format === 'txt' ? 'txt' : 'md';
       const fileName = `indice-${folderPath.replace(/\//g, '-')}.${ext}`;
       await this.app.vault.create(fileName, content);
-      new Notice(`${fileName} creado`);
+      new Notice(i18n.t('export.indexFileCreated', { fileName }));
     }
   }
 
@@ -114,16 +115,16 @@ constructor(
    */
   async exportAllNotes(folderPath: string): Promise<void> {
     if (!folderPath) {
-      new Notice('No hay carpeta seleccionada');
+      new Notice(i18n.t('errors.noFolderSelected'));
       return;
     }
 
     try {
-      new Notice('📚 Generando compilado...');
+      new Notice(i18n.t('export.generatingCompile'));
       
       const folder = this.app.vault.getAbstractFileByPath(folderPath);
       if (!(folder instanceof TFolder)) {
-        new Notice('Carpeta no encontrada');
+        new Notice(i18n.t('errors.folderNotFound'));
         return;
       }
 
@@ -141,7 +142,7 @@ constructor(
         
         content += `## ${title}\n\n`;
         if (isEmpty) {
-          content += '*[Contenido pendiente]*\n\n';
+          content += `${i18n.t('export.document.pendingContent')}\n\n`;
         } else {
           let clean = fileContent.trim();
           const lines = clean.split('\n');
@@ -151,7 +152,7 @@ constructor(
                    !t.startsWith('date:') && !t.startsWith('---') && 
                    !t.startsWith('#') && t !== '';
           });
-          clean = filtered.join('\n').trim() || '*[Contenido pendiente]*';
+          clean = filtered.join('\n').trim() || i18n.t('export.document.pendingContent');
           content += `${clean}\n\n`;
         }
         content += `---\n\n`;
@@ -159,7 +160,7 @@ constructor(
       }
 
       if (!hasContent) {
-        content += '*No hay notas para compilar*\n\n';
+        content += `${i18n.t('export.document.noNotes')}\n\n`;
       }
 
       const outputPath = `${folderPath}/${folder.name}.md`;
@@ -167,10 +168,10 @@ constructor(
       
       if (existing) {
         await this.app.vault.modify(existing, content);
-        new Notice(`Compilado actualizado: ${folder.name}.md`);
+        new Notice(i18n.t('export.compiledUpdated', { name: `${folder.name}.md` }));
       } else {
         await this.app.vault.create(outputPath, content);
-        new Notice(`Compilado creado: ${folder.name}.md`);
+        new Notice(i18n.t('export.compiledCreated', { name: `${folder.name}.md` }));
       }
 
       // Esperar y recargar
@@ -178,7 +179,9 @@ constructor(
       
     } catch (error: any) {
       console.error('Error al exportar:', error);
-      new Notice(`Error: ${error?.message || 'Error desconocido'}`);
+      new Notice(i18n.t('errors.withMessage', {
+        message: error?.message || i18n.t('common.unknownError')
+      }));
     }
   }
 

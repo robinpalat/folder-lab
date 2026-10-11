@@ -48,9 +48,6 @@ export class NavigationService {
     const navType = this.settings.navigationType || 'folders';
     this.provider = this.selectProvider(navType);
     
-    console.log('[NAVIGATION] type =', navType);
-    console.log('[NAVIGATION] provider =', this.provider?.constructor.name);
-    
     if (this.provider) {
       await this.build();
     }
@@ -76,8 +73,7 @@ export class NavigationService {
 
   private async handleOrderChanged(): Promise<void> {
     if (!this.isInitialized || !this.provider) {
-      console.log('[NAVIGATION] Ignorando order-changed: servicio no inicializado');
-      return;
+            return;
     }
     
     try {
@@ -184,8 +180,6 @@ export class NavigationService {
     this.settings.navigationType = type;
     this.provider = this.selectProvider(type);
     
-    console.log('[NAVIGATION] type cambiado a =', type);
-    console.log('[NAVIGATION] provider =', this.provider?.constructor.name);
-    await this.build();
+            await this.build();
   }
 }

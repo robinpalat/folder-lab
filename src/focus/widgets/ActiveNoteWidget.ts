@@ -1,4 +1,5 @@
-import { App, TFile } from "obsidian";
+import { App, EventRef, Notice, TFile } from "obsidian";
+import { i18n } from '../../i18n/I18nService';
 
 import {
   FocusWidget,
@@ -14,10 +15,23 @@ import { WidgetControlsRenderer } from "./tools/WidgetControlsRenderer";
  *
  * No intenta montar el editor interno de Obsidian: edita el mismo archivo
  * mediante el vault y guarda los cambios tras una pausa breve al escribir.
+ *
+ * Contrato de guardado (P0-2):
+ * - Solo escribe si ha habido cambios locales (`dirty`). Cerrar el
+ *   widget sin editar nunca toca la nota.
+ * - Antes de escribir compara el disco con el contenido base del
+ *   buffer. Si difiere (cambio externo), NO sobrescribe de forma
+ *   silenciosa: avisa una vez y retiene el buffer local.
+ * - La versión del widget solo se impone tras una edición local
+ *   POSTERIOR al aviso (el usuario confirma que quiere su versión).
+ *   Sin esa edición posterior, el contenido del disco se conserva.
+ * - Con el buffer limpio, un cambio externo recarga el buffer.
  */
 export class ActiveNoteWidget implements FocusWidget {
   readonly id = "active-note";
-  readonly label = "Nota";
+  get label(): string {
+    return i18n.t('widgets.activeNote.label');
+  }
   readonly icon = "file-pen-line";
 
   private container: HTMLElement | null = null;
@@ -26,6 +40,18 @@ export class ActiveNoteWidget implements FocusWidget {
   private saveTimer: number | null = null;
   private callbacks: WidgetCallbacks = {};
   private position: "top" | "bottom" = "top";
+
+  /** Contenido con el que el buffer quedó sincronizado (disco o guardado). */
+  private baseContent = "";
+  /** Ha habido input local desde la última sincronización. */
+  private dirty = false;
+  /** El disco cambió desde `baseContent` (evento externo o comparación en save). */
+  private externalModified = false;
+  /** El usuario siguió editando DESPUÉS de detectar el cambio externo. */
+  private localEditAfterExternal = false;
+  /** El aviso de conflicto ya se mostró (una sola vez por conflicto). */
+  private conflictWarned = false;
+  private modifyRef: EventRef | null = null;
 
   constructor(private app: App) {}
 
@@ -38,6 +64,8 @@ export class ActiveNoteWidget implements FocusWidget {
   }
 
   render(container: HTMLElement, context: FocusContext): void {
+    this.clearModifyListener();
+
     this.container = container;
     this.currentFile = context.activeFile;
     this.container.empty();
@@ -62,6 +90,7 @@ export class ActiveNoteWidget implements FocusWidget {
       this.renderControls();
     }
 
+    this.registerModifyListener();
     void this.loadFile();
   }
 
@@ -75,11 +104,15 @@ export class ActiveNoteWidget implements FocusWidget {
   }
 
   destroy(): void {
+    this.clearModifyListener();
+
     if (this.saveTimer !== null) {
       window.clearTimeout(this.saveTimer);
       this.saveTimer = null;
     }
 
+    // save() es un guard condicional (dirty + política de
+    // conflicto): cerrar el panel no sobrescribe la nota.
     void this.save();
     this.container?.empty();
     this.container = null;
@@ -113,19 +146,74 @@ export class ActiveNoteWidget implements FocusWidget {
     this.editor = content.createEl("textarea", {
       cls: "fl-active-note-editor",
       attr: {
-        "aria-label": `Editar ${this.currentFile.basename}`,
+        "aria-label": i18n.t('widgets.activeNote.editorAria', { name: this.currentFile.basename }),
         spellcheck: "true"
       }
     });
-    this.editor.placeholder = "Escribe en la nota activa…";
-    this.editor.addEventListener("input", () => this.scheduleSave());
+    this.editor.placeholder = i18n.t('widgets.activeNote.placeholder');
+    this.editor.addEventListener("input", () => {
+      this.dirty = true;
+      if (this.externalModified) {
+        // Edición local tras el cambio externo: confirma la
+        // intención de imponer la versión del widget.
+        this.localEditAfterExternal = true;
+      }
+      this.scheduleSave();
+    });
   }
 
   private renderEmpty(): void {
     this.container?.createEl("div", {
       cls: "fl-widget-content-empty",
-      text: "Abre una nota Markdown para editarla aquí"
+      text: i18n.t('widgets.activeNote.empty.noteRequired')
     });
+  }
+
+  /**
+   * Observa cambios EXTERNOS de la nota actual. Con el buffer
+   * limpio se recarga desde disco; con el buffer sucio solo se
+   * marca la detección: la decisión de escribir (y el aviso)
+   * ocurre en save().
+   */
+  private registerModifyListener(): void {
+    const file = this.currentFile;
+    if (!file) return;
+
+    this.modifyRef = this.app.vault.on("modify", (modified) => {
+      if (!modified || (modified as { path?: string }).path !== file.path) {
+        return;
+      }
+      if (!this.dirty) {
+        void this.reloadFromDisk();
+      } else {
+        this.externalModified = true;
+      }
+    });
+  }
+
+  private clearModifyListener(): void {
+    if (this.modifyRef !== null) {
+      this.app.vault.offref(this.modifyRef);
+      this.modifyRef = null;
+    }
+  }
+
+  /** Sincroniza el buffer con el disco cuando no hay cambios locales. */
+  private async reloadFromDisk(): Promise<void> {
+    const file = this.currentFile;
+    const editor = this.editor;
+    if (!file || !editor) return;
+
+    try {
+      const content = await this.app.vault.read(file);
+      if (this.currentFile === file && this.editor === editor && !this.dirty) {
+        editor.value = content;
+        this.baseContent = content;
+        this.resetConflictState();
+      }
+    } catch (error) {
+      console.error("[ActiveNoteWidget] No se pudo recargar la nota:", error);
+    }
   }
 
   private async loadFile(): Promise<void> {
@@ -137,10 +225,19 @@ export class ActiveNoteWidget implements FocusWidget {
       const content = await this.app.vault.read(file);
       if (this.currentFile === file && this.editor === editor) {
         editor.value = content;
+        this.baseContent = content;
+        this.dirty = false;
+        this.resetConflictState();
       }
     } catch (error) {
       console.error("[ActiveNoteWidget] No se pudo leer la nota:", error);
     }
+  }
+
+  private resetConflictState(): void {
+    this.externalModified = false;
+    this.localEditAfterExternal = false;
+    this.conflictWarned = false;
   }
 
   private scheduleSave(): void {
@@ -159,8 +256,34 @@ export class ActiveNoteWidget implements FocusWidget {
     const editor = this.editor;
     if (!file || !editor || file.extension !== "md") return;
 
+    // P0-2: sin cambios locales no se escribe nada. Cerrar el
+    // widget sin editar nunca sobrescribe la nota.
+    if (!this.dirty) return;
+
     try {
+      const diskContent = await this.app.vault.read(file);
+
+      if (diskContent !== this.baseContent) {
+        this.externalModified = true;
+
+        if (!this.conflictWarned) {
+          this.conflictWarned = true;
+          new Notice(i18n.t("widgets.activeNote.externalConflictNotice"));
+        }
+
+        if (!this.localEditAfterExternal) {
+          // Sin edición local posterior al cambio externo se
+          // conserva el contenido del disco; el buffer local se
+          // retiene en memoria y el guardado queda bloqueado.
+          return;
+        }
+        // Edición local tras el aviso: gana la versión del widget.
+      }
+
       await this.app.vault.modify(file, editor.value);
+      this.baseContent = editor.value;
+      this.dirty = false;
+      this.resetConflictState();
     } catch (error) {
       console.error("[ActiveNoteWidget] No se pudo guardar la nota:", error);
     }

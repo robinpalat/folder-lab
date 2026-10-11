@@ -74,18 +74,20 @@ export class HiddenFolderManager {
   // ============================================================
 
   /**
-   * Lee un archivo de la carpeta oculta
-   * Usa Vault.adapter para evitar TFile
+   * Lee un archivo de la carpeta oculta.
+   * Usa Vault.adapter para evitar TFile.
+   *
+   * Contrato (P0-1): `null` significa EXCLUSIVAMENTE «el archivo
+   * no existe». Un fallo de lectura propaga el error: convertirlo
+   * en `null` hacía que los repositorios trataran el error como
+   * «almacén vacío» y el siguiente guardado sobrescribiera el
+   * archivo completo, perdiendo las entradas de otras notas.
    */
   async readFile(folderPath: string, fileName: string): Promise<string | null> {
     const filePath = this.getFilePath(folderPath, fileName);
-    try {
-      const exists = await this.app.vault.adapter.exists(filePath);
-      if (!exists) return null;
-      return await this.app.vault.adapter.read(filePath);
-    } catch {
-      return null;
-    }
+    const exists = await this.app.vault.adapter.exists(filePath);
+    if (!exists) return null;
+    return await this.app.vault.adapter.read(filePath);
   }
 
   /**
@@ -126,15 +128,21 @@ export class HiddenFolderManager {
   // ============================================================
 
   /**
-   * Lee un archivo JSON de la carpeta oculta
+   * Lee un archivo JSON de la carpeta oculta.
+   *
+   * Contrato (P0-1): `null` solo cuando el archivo no existe.
+   * JSON inválido o ilegible lanza error: un parse fallido no
+   * equivale a un almacén vacío.
    */
   async readJSON<T>(folderPath: string, fileName: string): Promise<T | null> {
     const content = await this.readFile(folderPath, fileName);
-    if (!content) return null;
+    if (content === null) return null;
     try {
-      return JSON.parse(content);
+      return JSON.parse(content) as T;
     } catch {
-      return null;
+      throw new Error(
+        `[HiddenFolderManager] JSON inválido en "${this.getFilePath(folderPath, fileName)}"`
+      );
     }
   }
 

@@ -5,6 +5,7 @@ import {
   BoardBlock,
   BoardFragmentOverride
 } from '../storage/BoardRepository';
+import { i18n } from '../i18n/I18nService';
 
 /**
  * Contrato que Board implementa para la instancia Documento.
@@ -61,12 +62,12 @@ export class BoardDocumentView {
 
       empty.createEl('div', {
         cls: 'fl-doc-empty-title',
-        text: 'El documento aún no tiene contenido'
+        text: i18n.t('board.document.empty.title')
       });
 
       empty.createEl('div', {
         cls: 'fl-doc-empty-hint',
-        text: 'Define la estructura en Arquitectura y asigna ahí el material activo de Explorar. El orden editorial de Arquitectura determina el orden de este texto.'
+        text: i18n.t('board.document.empty.hint')
       });
 
       return;
@@ -83,7 +84,7 @@ export class BoardDocumentView {
     node: BoardArchNode,
     blockById: Map<string, BoardBlock>
   ): void {
-    const title = node.title.trim() || 'Sin título';
+    const title = node.title.trim() || i18n.t('board.document.heading.untitled');
 
     if (node.level === 0) {
       container.createEl('h1', {
@@ -187,11 +188,11 @@ export class BoardDocumentView {
   ): void {
     const polishButton = controls.createEl('button', {
       cls: 'fl-doc-polish-button',
-      attr: { type: 'button', 'aria-label': 'Pulir fragmento', title: 'Pulir fragmento' }
+      attr: { type: 'button', 'aria-label': i18n.t('modal.polish.title'), title: i18n.t('modal.polish.title') }
     });
 
     setIcon(polishButton, 'wand-2');
-    polishButton.createSpan({ text: 'Pulir' });
+    polishButton.createSpan({ text: i18n.t('modal.polish.buttonShort') });
 
     polishButton.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -201,7 +202,7 @@ export class BoardDocumentView {
     if (!override) {
       controls.createEl('span', {
         cls: 'fl-doc-version-badge is-original',
-        text: 'Original'
+        text: i18n.t('board.document.badge.original')
       });
       return;
     }
@@ -210,8 +211,8 @@ export class BoardDocumentView {
       cls: 'fl-doc-version-toggle',
       attr: {
         type: 'button',
-        'aria-label': 'Alternar versión del fragmento',
-        title: 'Alternar entre original y versión personal'
+        'aria-label': i18n.t('board.document.action.toggleVersion'),
+        title: i18n.t('board.document.action.toggleVersionTooltip')
       }
     });
 
@@ -219,7 +220,7 @@ export class BoardDocumentView {
 
     toggle.createSpan({
       cls: 'fl-doc-version-label',
-      text: showOverride ? 'Personal' : 'Original'
+      text: showOverride ? i18n.t('board.document.version.personal') : i18n.t('board.document.version.original')
     });
 
     setIcon(toggle, showOverride ? 'sparkles' : 'file-text');

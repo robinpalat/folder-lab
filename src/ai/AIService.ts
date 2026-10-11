@@ -2,6 +2,7 @@
 import { AISettings, AIRequest, AIResponse } from './types';
 import { LLMProvider } from './providers/LLMProvider';
 import { LLMProviderFactory } from './providers/LLMProviderFactory';
+import { i18n } from '../i18n/I18nService';
 
 export class AIService {
   private provider: LLMProvider | null = null;
@@ -23,7 +24,7 @@ export class AIService {
 
   async chat(request: AIRequest): Promise<AIResponse> {
     if (!this.provider) {
-      return { content: "", error: "API Key no configurada" };
+      return { content: "", error: i18n.t('ai.connection.apiKeyNotConfigured') };
     }
 
     try {
@@ -31,14 +32,14 @@ export class AIService {
     } catch (error) {
       return {
         content: "",
-        error: error instanceof Error ? error.message : "Error desconocido"
+        error: error instanceof Error ? error.message : i18n.t('common.unknownError')
       };
     }
   }
 
   async testConnection(): Promise<{ success: boolean; message: string }> {
     if (!this.provider) {
-      return { success: false, message: "API Key no configurada" };
+      return { success: false, message: i18n.t('ai.connection.apiKeyNotConfigured') };
     }
 
     try {
@@ -47,14 +48,17 @@ export class AIService {
         const name = LLMProviderFactory.getProviderName(this.settings.provider);
         return { 
           success: true, 
-          message: `${name} conectado correctamente\nModelo: ${this.settings.model || LLMProviderFactory.getDefaultModel(this.settings.provider)}`
+          message: i18n.t('ai.connection.connected', {
+            name,
+            model: this.settings.model || LLMProviderFactory.getDefaultModel(this.settings.provider)
+          })
         };
       }
-      return { success: false, message: "Error de conexión. Verifica tu API Key" };
+      return { success: false, message: i18n.t('ai.connection.failed') };
     } catch (error) {
       return { 
         success: false, 
-        message: error instanceof Error ? error.message : "Error desconocido" 
+        message: error instanceof Error ? error.message : i18n.t('common.unknownError') 
       };
     }
   }

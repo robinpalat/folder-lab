@@ -13,6 +13,17 @@ export class PropertyOrderService {
   constructor(private app: App) {}
 
   /**
+   * Número de operaciones reorder en curso. La vista lo consulta
+   * para agrupar las recargas intermedias de vault:modify sin
+   * ignorar modificaciones externas: fuera de un reorder vale 0.
+   */
+  private pendingWrites = 0;
+
+  isReordering(): boolean {
+    return this.pendingWrites > 0;
+  }
+
+  /**
    * Persiste un nuevo orden para un conjunto de notas hermanas.
    *
    * El índice de la posición se convierte directamente
@@ -37,6 +48,9 @@ async reorder(
     );
   }
 
+  this.pendingWrites++;
+
+  try {
   // 1. Persistir el nuevo orden en el frontmatter
   const valoresAnteriores: Array<{ archivo: string; anterior: unknown }> =
     [];
@@ -62,17 +76,6 @@ async reorder(
     );
   }
 
-  console.log('[FOLDERLAB-DROP-TRACE]', {
-    punto: 'persistencia solicitada (solo nombres de archivo y órdenes)',
-    propiedad: orderProperty,
-    valores: files.map((file, index) => ({
-      archivo: file.name,
-      anterior:
-        valoresAnteriores[index]?.anterior ?? '(desconocido)',
-      solicitado: index + 1
-    }))
-  });
-
   // 2. Esperar a que metadataCache refleje los nuevos valores.
   //
   // processFrontMatter() actualiza el archivo inmediatamente,
@@ -95,22 +98,12 @@ async reorder(
       if (Number(cachedOrder) !== expectedOrder) {
         cacheIsUpdated = false;
 
-        console.log('[PROPERTY ORDER] Esperando metadataCache...', {
-          file: file.name,
-          expected: expectedOrder,
-          cached: cachedOrder,
-          attempt: attempt + 1
-        });
-
         break;
       }
     }
 
     if (cacheIsUpdated) {
-      console.log(
-        '[PROPERTY ORDER] metadataCache sincronizado correctamente'
-      );
-      break;
+            break;
     }
 
     await new Promise(resolve =>
@@ -129,19 +122,13 @@ async reorder(
     };
   });
 
-  console.log('[FOLDERLAB-DROP-TRACE]', {
-    punto: 'persistencia confirmada en caché (solo nombres y órdenes)',
-    propiedad: orderProperty,
-    valores: valoresConfirmados
-  });
-
   // 3. Notificar SOLO después de que el cache esté sincronizado.
   (this.app.workspace as any).trigger(
     'folder-lab:order-changed'
   );
 
-  console.log(
-    '[PROPERTY ORDER] Evento order-changed emitido'
-  );
+    } finally {
+    this.pendingWrites--;
+  }
 }
 }

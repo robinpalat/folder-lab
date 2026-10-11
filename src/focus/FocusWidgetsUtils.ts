@@ -6,6 +6,7 @@
  */
 
 import {  setIcon } from 'obsidian';
+import { i18n } from '../i18n/I18nService';
 
 export function sortPriorityFirst<T>(
   items: T[],
@@ -165,7 +166,7 @@ export function createExpandableText(
   const previewLines =
     options.previewLines ?? FOLDER_LAB_COLLAPSE_PREVIEW_LINES;
 
-  const collapseLabel = options.expandedLabel ?? 'Contraer';
+  const collapseLabel = options.expandedLabel ?? i18n.t('widgets.common.collapse');
 
   const collapseAction = root.createEl('div', {
     cls: `${options.actionClass || 'fl-expandable-text-action'} fl-expandable-text-collapse-action`,
@@ -667,7 +668,7 @@ export class FolderLabDragDrop {
           error
         );
 
-        new Notice('No se pudo procesar el elemento soltado');
+        new Notice(i18n.t('focus.dragdrop.dropFailed'));
       }
     };
 

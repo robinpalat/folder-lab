@@ -7,10 +7,10 @@
 import { App, TFile, TFolder, Notice } from 'obsidian';
 import { FolderRepository } from '../storage/FolderRepository';
 import { FolderOrderSettings } from '../config/settings';
-import { InputModal, ConfirmModal } from '../utils/ModalUtils';
 import { INTERNAL_FOLDER } from '../constants/view-types';
 import { isNoteEmpty as isNoteEmptyUtil } from '../utils/string-utils';
 import { HiddenFolderManager } from '../storage/HiddenFolderManager';
+import { i18n } from '../i18n/I18nService';
 
 export class NoteService {
   private app: App;
@@ -32,12 +32,12 @@ export class NoteService {
    */
   async createNote(folderPath: string, name: string): Promise<TFile | null> {
     if (!folderPath) {
-      new Notice('No hay carpeta seleccionada');
+      new Notice(i18n.t('errors.noFolderSelected'));
       return null;
     }
 
     if (!name || name.trim() === '') {
-      new Notice('El nombre no puede estar vacío');
+      new Notice(i18n.t('errors.note.emptyName'));
       return null;
     }
 
@@ -45,25 +45,24 @@ export class NoteService {
     const filePath = `${folderPath}/${fileName}`;
 
     if (this.app.vault.getFileByPath(filePath)) {
-      new Notice(`Ya existe una nota con el nombre "${fileName}"`);
+      new Notice(i18n.t('errors.note.duplicateName', { name: fileName }));
       return null;
     }
 
     const content = `# ${name.trim()}\n\n`;
     const file = await this.app.vault.create(filePath, content);
-    
-    const masterPath = this.settings.bookRootPath;
-    if (masterPath) {
-      const currentOrder = await this.repository.getFolderOrder(folderPath, masterPath);
-      if (currentOrder) {
-        const newOrder = [...currentOrder, fileName];
-        await this.repository.updateFolderOrder(folderPath, masterPath, newOrder);
-      } else {
-        await this.repository.updateFolderOrder(folderPath, masterPath, [fileName]);
-      }
-    }
 
-    new Notice(`Nota creada: ${fileName}`);
+    /*
+     * El registro en el orden lo realiza EXCLUSIVAMENTE el
+     * evento vault:create → OrderService.updateOrderOnCreate
+     * (que ya aplica dedupe, exclusiones de carpetas ocultas y
+     * la nota compilada). Anexar aquí el nombre —como se hacía—
+     * escribía la entrada DOS veces en el orden manual (carrera
+     * entre este método y el handler del evento) y la nota
+     * aparecía duplicada en la lista.
+     */
+
+    new Notice(i18n.t('notes.created', { name: fileName }));
     return file;
   }
 
@@ -116,7 +115,11 @@ export class NoteService {
   }
 
   /**
-   * Guarda la nota particular de un archivo
+   * Guarda la nota particular de un archivo.
+   *
+   * 3A: RMW completo vía transactFolderLab (lectura fresca +
+   * cola compartida con el orden global): no puede pisar datos
+   * del mismo fichero escritos por otra ruta.
    */
   async saveNoteContent(
     folderPath: string,
@@ -124,26 +127,25 @@ export class NoteService {
     content: string,
     status?: string
   ): Promise<void> {
-    const orderData = await this.repository.loadFolderLab(folderPath) || { order: [], notes: {} };
-    
-    if (!orderData.notes) orderData.notes = {};
-    
-    let noteData = '';
-    if (status) {
-      noteData = `|STATUS|${status}|${content}`;
-    } else {
-      const currentData = orderData.notes[fileName] || '';
-      if (currentData.startsWith('|STATUS|')) {
-        const parts = currentData.split('|');
-        const oldStatus = parts.length > 2 ? parts[2] : '';
-        noteData = `|STATUS|${oldStatus}|${content}`;
+    await this.repository.transactFolderLab(folderPath, (orderData) => {
+      if (!orderData.notes) orderData.notes = {};
+
+      let noteData = '';
+      if (status) {
+        noteData = `|STATUS|${status}|${content}`;
       } else {
-        noteData = content;
+        const currentData = orderData.notes[fileName] || '';
+        if (currentData.startsWith('|STATUS|')) {
+          const parts = currentData.split('|');
+          const oldStatus = parts.length > 2 ? parts[2] : '';
+          noteData = `|STATUS|${oldStatus}|${content}`;
+        } else {
+          noteData = content;
+        }
       }
-    }
-    
-    orderData.notes[fileName] = noteData;
-    await this.repository.saveFolderLab(folderPath, orderData);
+
+      orderData.notes[fileName] = noteData;
+    });
   }
 
   // ============================================================
@@ -192,32 +194,30 @@ export class NoteService {
 }
 
   /**
-   * Guarda el estado de una nota
+   * Guarda el estado de una nota (RMW serializado, 3A).
    */
   async setNoteStatus(folderPath: string, fileName: string, status: string): Promise<void> {
-    const orderData = await this.repository.loadFolderLab(folderPath) || { order: [], notes: {} };
-    
-    if (!orderData.notes) orderData.notes = {};
-    
-    const currentData = orderData.notes[fileName] || '';
-    let content = '';
-    
-    if (currentData.startsWith('|STATUS|')) {
-      const parts = currentData.split('|');
-      if (parts.length > 3) {
-        content = parts.slice(3).join('|');
+    await this.repository.transactFolderLab(folderPath, (orderData) => {
+      if (!orderData.notes) orderData.notes = {};
+
+      const currentData = orderData.notes[fileName] || '';
+      let content = '';
+
+      if (currentData.startsWith('|STATUS|')) {
+        const parts = currentData.split('|');
+        if (parts.length > 3) {
+          content = parts.slice(3).join('|');
+        }
+      } else {
+        content = currentData;
       }
-    } else {
-      content = currentData;
-    }
-    
-    if (status) {
-      orderData.notes[fileName] = `|STATUS|${status}|${content}`;
-    } else {
-      orderData.notes[fileName] = content;
-    }
-    
-    await this.repository.saveFolderLab(folderPath, orderData);
+
+      if (status) {
+        orderData.notes[fileName] = `|STATUS|${status}|${content}`;
+      } else {
+        orderData.notes[fileName] = content;
+      }
+    });
   }
 
   // ============================================================
@@ -241,18 +241,22 @@ export class NoteService {
    */
   async deleteNote(folderPath: string, file: TFile): Promise<boolean> {
     if (!folderPath || !file) {
-      new Notice('No hay carpeta o archivo seleccionado');
+      new Notice(i18n.t('errors.noFolderOrFileSelected'));
       return false;
     }
 
-    const orderData = await this.repository.loadFolderLab(folderPath);
-    if (orderData?.order) {
+    // RMW serializado (3A): solo se escribe si hay orden que
+    // actualizar en el formato de la carpeta.
+    await this.repository.transactFolderLab(folderPath, (orderData) => {
+      if (!Array.isArray(orderData.order)) {
+        return false;
+      }
       orderData.order = orderData.order.filter((name: string) => name !== file.name);
-      await this.repository.saveFolderLab(folderPath, orderData);
-    }
+      return true;
+    });
 
     await this.app.vault.delete(file);
-    new Notice(`Nota eliminada: ${file.name}`);
+    new Notice(i18n.t('notes.deleted', { name: file.name }));
     return true;
   }
 }

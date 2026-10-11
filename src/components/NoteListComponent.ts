@@ -15,7 +15,7 @@ import { FolderLabItem } from '../models/FolderLabItem';
 import { NoteItemRenderer } from './NoteItemRenderer';
 import { FolderLabController } from '../core/FolderLabController';
 import { PropertyOrderService } from '../services/navigation/PropertyOrderService';
-
+import { i18n } from '../i18n/I18nService';
 export interface ListItem {
   type: 'note' | 'folder';
   data: FolderLabItem | FolderHeaderData;
@@ -132,7 +132,7 @@ onStatusChange: async (file: TFile, status: string) => {
     });
 
     if (!items || items.length === 0) {
-      this.showEmptyState('No hay elementos para mostrar');
+      this.showEmptyState(i18n.t('empty.noElements'));
       return;
     }
 
@@ -182,7 +182,7 @@ onStatusChange: async (file: TFile, status: string) => {
         filteredNotes.length === 0
       ) {
         this.showEmptyState(
-          'No hay notas que coincidan con el filtro'
+          i18n.t('empty.noFilterMatch')
         );
         return;
       }
@@ -333,12 +333,6 @@ onStatusChange: async (file: TFile, status: string) => {
       this.element.querySelectorAll(
         '.folder-lab-item:not([data-special="true"]):not([data-own-page="true"])'
       );
-
-    console.log(
-      '📂 Configurando drag & drop para',
-      allItems.length,
-      'items'
-    );
 
     allItems.forEach((el, index) => {
       if (el instanceof HTMLElement) {
@@ -637,15 +631,6 @@ onStatusChange: async (file: TFile, status: string) => {
       }
     }
 
-    console.log('[FOLDERLAB-DROP-TRACE]', {
-      punto: 'handleDrop(rama properties)',
-      navigationType,
-      fromIndex,
-      targetIndex,
-      movedPath,
-      targetPath: targetPathBefore
-    });
-
     try {
       const diagTree =
         this.controller.navigationService?.getTree?.() ?? null;
@@ -665,16 +650,8 @@ onStatusChange: async (file: TFile, status: string) => {
         };
       });
 
-      console.log('[FOLDERLAB-DROP-TRACE]', {
-        punto: 'estado previo (lista visual completa)',
-        elementos: estadoPrevio
-      });
-    } catch (diagError) {
-      console.log('[FOLDERLAB-DROP-TRACE]', {
-        punto: 'estado previo NO disponible',
-        motivo: String(diagError)
-      });
-    }
+          } catch (diagError) {
+          }
 
     if (
       navigationType ===
@@ -716,17 +693,6 @@ onStatusChange: async (file: TFile, status: string) => {
           targetPath &&
           scopeOf(targetPath) !== movedScope
         ) {
-          console.log(
-            '[FOLDERLAB-DROP-TRACE]',
-            {
-              punto: 'drop entre ámbitos DISTINTOS → operación ignorada',
-              movedPath,
-              movedScope,
-              targetPath,
-              ambitoDestino: scopeOf(targetPath)
-            }
-          );
-
           return;
         }
 
@@ -779,15 +745,6 @@ onStatusChange: async (file: TFile, status: string) => {
           }
         }
 
-        console.log('[FOLDERLAB-DROP-TRACE]', {
-          punto: 'antes de reorder',
-          ambito: movedScope,
-          secuencia: sequence,
-          contenedoras: containerPages,
-          archivos: files.map(f => f.path),
-          propiedad: this.controller.getPropertyOrderProperty()
-        });
-
         if (files.length > 0) {
           const orderProperty =
             this.controller
@@ -808,16 +765,8 @@ onStatusChange: async (file: TFile, status: string) => {
               orderProperty
             );
 
-          console.log('[FOLDERLAB-DROP-TRACE]', {
-            punto: 'reorder completado',
-            ambito: movedScope
-          });
-        } else {
-          console.log('[FOLDERLAB-DROP-TRACE]', {
-            punto: 'reorder OMITIDO (sin archivos)',
-            ambito: movedScope
-          });
-        }
+                  } else {
+                  }
 
         return;
       }
@@ -881,14 +830,6 @@ onStatusChange: async (file: TFile, status: string) => {
       }
     }
 
-    console.log('[FOLDERLAB-DROP-TRACE]', {
-      punto: 'handleDrop(rama folders)',
-      fromIndex,
-      targetIndex,
-      ambitoCarpeta: scopePath,
-      secuenciaCalculada: scopeOrder
-    });
-
     if (
       scopeOrder.length > 0
     ) {
@@ -930,21 +871,11 @@ onStatusChange: async (file: TFile, status: string) => {
           );
       }
 
-      console.log('[FOLDERLAB-DROP-TRACE]', {
-        punto: 'updateFolderOrder completado (_folder_order.json)',
-        ambitoCarpeta: scopePath,
-        total: mergedOrder.length,
-        sinCambios: unchanged
-      });
-
       this.onReorder(
         mergedOrder
       );
 
-      console.log('[FOLDERLAB-DROP-TRACE]', {
-        punto: 'onReorder invocado (rama folders)'
-      });
-    }
+          }
   }
 
   // ============================================================
@@ -992,7 +923,7 @@ onStatusChange: async (file: TFile, status: string) => {
             (menuItem) => {
               menuItem
                 .setTitle(
-                  '🔄 Regenerar compilado'
+                  `🔄 ${i18n.t('actions.regenerateCompile')}`
                 )
                 .setIcon(
                   'refresh-cw'
@@ -1024,7 +955,7 @@ onStatusChange: async (file: TFile, status: string) => {
             (menuItem) => {
               menuItem
                 .setTitle(
-                  'Eliminar'
+                  i18n.t('actions.delete')
                 )
                 .setIcon(
                   'trash-2'

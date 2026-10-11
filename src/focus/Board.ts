@@ -1,4 +1,4 @@
-import { App, setIcon } from 'obsidian';
+import { App, Notice, setIcon } from 'obsidian';
 
 import {
   BoardRepository,
@@ -31,7 +31,7 @@ import {
 } from './BoardDocumentView';
 
 import { BoardPolishModal } from '../modals/BoardPolishModal';
-
+import { i18n } from '../i18n/I18nService';
 export interface BoardDependencies {
   app: App;
   widgetManager: WidgetManager;
@@ -55,9 +55,9 @@ const VIEW_MODES: Array<{
   label: string;
   icon: string;
 }> = [
-  { id: 'explore', label: 'Explorar', icon: 'compass' },
-  { id: 'architecture', label: 'Arquitectura', icon: 'list-tree' },
-  { id: 'document', label: 'Documento', icon: 'file-text' }
+  { id: 'explore', get label() { return i18n.t('board.modes.explore'); }, icon: 'compass' },
+  { id: 'architecture', get label() { return i18n.t('board.modes.architecture'); }, icon: 'list-tree' },
+  { id: 'document', get label() { return i18n.t('board.modes.document'); }, icon: 'file-text' }
 ];
 
 export class Board
@@ -89,6 +89,18 @@ export class Board
   private documentView = new BoardDocumentView();
 
   private saveTimer: number | null = null;
+  /**
+   * P1-2A: hay mutaciones aún no persistidas con éxito. Lo marca
+   * scheduleSave y lo limpia save solo si ninguna mutación más
+   * reciente ha llegado durante el guardado (comparación por
+   * generación). flushSave lo usa para reintentar en el cierre.
+   */
+  private saveDirty = false;
+  private saveGeneration = 0;
+  /** Guardado en vuelo, si lo hay; el cierre lo espera. */
+  private saveInFlight: Promise<void> | null = null;
+  /** Generación del snapshot que contiene el guardado en vuelo. */
+  private saveInFlightGeneration = 0;
   private contextHeader: HTMLElement | null = null;
   private contextUnsubscribe: (() => void) | null = null;
   private instancesUnsubscribe: (() => void) | null = null;
@@ -171,14 +183,20 @@ export class Board
     this.renderModeContent();
   }
 
-  destroy(): void {
+  /**
+   * Destruye el Board esperando (await) que termine el guardado
+   * pendiente o en vuelo. Los errores de guardado ya se han
+   * hecho visibles dentro de save(); el cierre se completa
+   * igualmente para no bloquear el ciclo de vida de la vista.
+   */
+  async destroy(): Promise<void> {
     this.instancesUnsubscribe?.();
     this.instancesUnsubscribe = null;
 
     this.contextUnsubscribe?.();
     this.contextUnsubscribe = null;
 
-    this.flushSave();
+    await this.flushSave();
     this.destroyDom();
   }
 
@@ -289,6 +307,9 @@ export class Board
   // ============================================================
 
   private scheduleSave(): void {
+    this.saveDirty = true;
+    this.saveGeneration++;
+
     if (this.saveTimer !== null) {
       window.clearTimeout(this.saveTimer);
     }
@@ -299,17 +320,51 @@ export class Board
     }, 250);
   }
 
-  private flushSave(): void {
-    if (this.saveTimer === null) {
+  /**
+   * Escribe de inmediato cualquier guardado pendiente y ESPERA
+   * a que termine (incluido un guardado ya en vuelo o en cola:
+   * el repositorio serializa por FIFO, por lo que esperar la
+   * última promesa cubre también las escrituras anteriores).
+   * Devuelve la promesa para que el cierre de la vista pueda
+   * await-earla.
+   */
+  private async flushSave(): Promise<void> {
+    if (this.saveTimer !== null) {
+      window.clearTimeout(this.saveTimer);
+      this.saveTimer = null;
+    }
+
+    // El guardado en vuelo contiene ya el estado actual (ninguna
+    // mutación posterior): esperarlo basta, sin escribir de más.
+    if (
+      this.saveInFlight !== null &&
+      this.saveInFlightGeneration === this.saveGeneration
+    ) {
+      await this.saveInFlight;
       return;
     }
 
-    window.clearTimeout(this.saveTimer);
-    this.saveTimer = null;
-    void this.save();
+    if (this.saveDirty) {
+      await this.save();
+      return;
+    }
+
+    // Sin cambios pendientes puede quedar un guardado en vuelo
+    // (disparado por el debounce): el cierre lo espera igual.
+    if (this.saveInFlight) {
+      await this.saveInFlight;
+    }
   }
 
-  private async save(): Promise<void> {
+  /**
+   * P1-2A: los errores de guardado ya no quedan ocultos en
+   * promesas flotantes. Un fallo se registra en consola, se
+   * avisa con un Notice y MANTIENE saveDirty para que el
+   * siguiente flushSave (cierre) reintente. El estado en
+   * memoria no se toca: sigue siendo la fuente de la que
+   * partirá el reintento.
+   */
+  private save(): Promise<void> {
     const data: BoardData = {
       blocks: this.blocks.map(block => ({ ...block })),
       connections: this.connections.map(connection => ({
@@ -331,10 +386,44 @@ export class Board
       }))
     };
 
-    await this.deps.repository.saveNote(
+    const generation = this.saveGeneration;
+
+    const write = this.deps.repository.saveNote(
       this.deps.notePath,
       data
     );
+
+    // La promesa rastreada NUNCA rechaza: los errores quedan
+    // registrados/avisados abajo y el dirty se conserva, de modo
+    // que await-ear el cierre no propaga una excepción que ya se
+    // ha hecho visible por otra vía.
+    const tracked: Promise<void> = write
+      .then(() => {
+        // Solo se limpia el dirty si NO ha llegado una mutación
+        // más reciente durante este guardado (el snapshot de
+        // data no la contiene).
+        if (this.saveGeneration === generation) {
+          this.saveDirty = false;
+        }
+      })
+      .catch((error) => {
+        this.saveDirty = true;
+        console.error(
+          `[Board] Error guardando "${this.deps.notePath}":`,
+          error
+        );
+        new Notice(i18n.t('board.saveError'));
+      })
+      .finally(() => {
+        if (this.saveInFlight === tracked) {
+          this.saveInFlight = null;
+        }
+      });
+
+    this.saveInFlight = tracked;
+    this.saveInFlightGeneration = generation;
+
+    return tracked;
   }
 
   // ============================================================
@@ -374,7 +463,7 @@ export class Board
 
     this.emptyState = this.surface.createEl('div', {
       cls: 'fl-board-empty-state',
-      text: 'Arrastra aquí elementos del panel para crear bloques'
+      text: i18n.t('board.explore.emptyHint')
     });
 
     /*
@@ -578,8 +667,8 @@ export class Board
     };
   }
 
-  private plural(count: number, singular: string, many: string): string {
-    return `${count} ${count === 1 ? singular : many}`;
+  private plural(count: number, pluralKey: string): string {
+    return `${count} ${i18n.tn(pluralKey, count)}`;
   }
 
   /**
@@ -676,7 +765,7 @@ export class Board
 
     titleRow.createSpan({
       cls: 'fl-ctx-title',
-      text: 'Contexto'
+      text: i18n.t('board.context.title')
     });
 
     titleRow.createSpan({
@@ -733,7 +822,7 @@ export class Board
 
       group.createEl('div', {
         cls: 'fl-ctx-instances',
-        text: names.length > 0 ? names.join(' · ') : 'Sin listas'
+        text: names.length > 0 ? names.join(' · ') : i18n.t('board.context.noLists')
       });
 
       group.createEl('div', {
@@ -745,26 +834,26 @@ export class Board
     };
 
     renderGroup(
-      'Restricciones',
+      i18n.t('board.context.group.restrictions'),
       'restrictions',
-      this.plural(activeRestrictions, 'activa', 'activas')
+      this.plural(activeRestrictions, 'board.context.counts.activeFeminine')
     );
 
     addSeparator();
 
     renderGroup(
-      'Candidatos',
+      i18n.t('board.context.group.candidates'),
       'candidates',
-      this.plural(activeCandidates, 'activo', 'activos')
+      this.plural(activeCandidates, 'board.context.counts.activeMasculine')
     );
 
     addSeparator();
 
     renderGroup(
-      'Tareas',
+      i18n.t('board.context.group.tasks'),
       'tasks',
-      `${this.plural(pendingTasks, 'pendiente', 'pendientes')} · ` +
-        `${this.plural(completedTasks, 'completada', 'completadas')}`
+      `${this.plural(pendingTasks, 'board.context.counts.pending')} · ` +
+        `${this.plural(completedTasks, 'board.context.counts.completed')}`
     );
   }
 
@@ -792,7 +881,7 @@ export class Board
       return definition.identity.label;
     }
 
-    return 'Texto';
+    return i18n.t('board.card.fallbackTitle');
   }
 
   /**
@@ -1086,8 +1175,8 @@ export class Board
      */
     const labelBtn = header.createEl('button', {
       cls: 'fl-board-group-label',
-      text: group.label || 'Nombrar grupo',
-      attr: { type: 'button', title: 'Arrastrar grupo · Clic: editar nombre' }
+      text: group.label || i18n.t('board.group.placeholderName'),
+      attr: { type: 'button', title: i18n.t('board.group.tooltip') }
     });
 
     labelBtn.toggleClass('is-placeholder', !group.label);
@@ -1099,7 +1188,7 @@ export class Board
 
     const removeBtn = header.createEl('button', {
       cls: 'fl-board-group-remove',
-      attr: { type: 'button', 'aria-label': 'Eliminar contenedor' }
+      attr: { type: 'button', 'aria-label': i18n.t('board.group.action.remove') }
     });
     setIcon(removeBtn, 'x');
 
@@ -1135,8 +1224,8 @@ export class Board
       cls: 'fl-board-group-dot',
       attr: {
         type: 'button',
-        'aria-label': 'Conectar este grupo',
-        title: 'Conectar'
+        'aria-label': i18n.t('board.group.connect.aria'),
+        title: i18n.t('board.connectTooltip')
       }
     });
 
@@ -1240,7 +1329,7 @@ export class Board
 
     const input = header.createEl('input', {
       cls: 'fl-board-group-input',
-      attr: { type: 'text', placeholder: 'Nombre del grupo' }
+      attr: { type: 'text', placeholder: i18n.t('board.group.renameInput') }
     });
 
     input.value = group.label;
@@ -1374,9 +1463,28 @@ export class Board
       group.blockIds = group.blockIds.filter(id => id !== blockId);
     }
 
+    /*
+     * 3A-final (P2-3): los grupos vacíos se retiran CON sus
+     * conexiones (misma regla que removeGroup): no deben quedar
+     * extremos de grupo huérfanos persistidos en el JSON.
+     */
+    const removedGroupIds = new Set(
+      this.groups
+        .filter(group => group.blockIds.length === 0)
+        .map(group => group.id)
+    );
+
     this.groups = this.groups.filter(
       group => group.blockIds.length > 0
     );
+
+    if (removedGroupIds.size > 0) {
+      this.connections = this.connections.filter(
+        connection =>
+          !removedGroupIds.has(connection.sourceGroupId ?? '') &&
+          !removedGroupIds.has(connection.targetGroupId ?? '')
+      );
+    }
 
     this.selectedBlockIds.delete(blockId);
 
@@ -1429,8 +1537,8 @@ export class Board
         indicatorButton.setAttr(
           'aria-label',
           block.active === false
-            ? 'Activar bloque'
-            : 'Desactivar bloque'
+            ? i18n.t('board.card.action.activate')
+            : i18n.t('board.card.action.deactivate')
         );
         indicatorButton.setAttr(
           'aria-pressed',
@@ -1516,8 +1624,8 @@ export class Board
       attr: {
         type: 'button',
         'aria-label': block.active === false
-          ? 'Activar bloque'
-          : 'Desactivar bloque',
+          ? i18n.t('board.card.action.activate')
+          : i18n.t('board.card.action.deactivate'),
         'aria-pressed': String(block.active !== false)
       }
     });
@@ -1556,7 +1664,7 @@ export class Board
 
     const expandToggle = actions.createEl('button', {
       cls: 'fl-board-text-card-toggle',
-      text: 'Ver más',
+      text: i18n.t('board.card.action.showMore'),
       attr: { type: 'button' }
     });
 
@@ -1565,7 +1673,7 @@ export class Board
       const expanded = !card.hasClass('is-expanded');
       card.toggleClass('is-expanded', expanded);
       content.toggleClass('is-compact', !expanded);
-      expandToggle.setText(expanded ? 'Ver menos' : 'Ver más');
+      expandToggle.setText(expanded ? i18n.t('board.card.action.showLess') : i18n.t('board.card.action.showMore'));
       requestAnimationFrame(() => {
         this.updateCanvasSize();
         this.renderConnections();
@@ -1583,8 +1691,8 @@ export class Board
       cls: 'fl-board-connect-dot',
       attr: {
         type: 'button',
-        'aria-label': 'Conectar este bloque',
-        title: 'Conectar'
+        'aria-label': i18n.t('board.card.connect.aria'),
+        title: i18n.t('board.connectTooltip')
       }
     });
 
@@ -1595,7 +1703,7 @@ export class Board
 
     const removeButton = actions.createEl('button', {
       cls: 'fl-board-block-remove fl-board-card-close',
-      attr: { type: 'button', 'aria-label': 'Eliminar bloque' }
+      attr: { type: 'button', 'aria-label': i18n.t('board.card.action.remove') }
     });
     setIcon(removeButton, 'x');
 
@@ -1881,8 +1989,8 @@ export class Board
       cls: 'fl-board-anchor-dot',
       attr: {
         type: 'button',
-        'aria-label': 'Punto de conexión',
-        title: 'Conectar'
+        'aria-label': i18n.t('board.connection.dot.aria'),
+        title: i18n.t('board.connectTooltip')
       }
     });
 

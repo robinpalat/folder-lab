@@ -142,8 +142,7 @@ export class FocusListItem {
   }
 
 setExpanded(expanded: boolean): void {
-  console.log('[FocusListItem] setExpanded llamado con', expanded, this.item);
-  this.item.classList.toggle('is-expanded', expanded);
+    this.item.classList.toggle('is-expanded', expanded);
   this.actions.classList.toggle('is-hidden', expanded);
 }
 }

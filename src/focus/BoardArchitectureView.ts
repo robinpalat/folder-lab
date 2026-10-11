@@ -4,7 +4,7 @@ import {
   BoardArchNode,
   BoardBlock
 } from '../storage/BoardRepository';
-
+import { i18n } from '../i18n/I18nService';
 /**
  * Contrato que Board implementa para la instancia Arquitectura.
  *
@@ -72,12 +72,12 @@ export class BoardArchitectureView {
 
     header.createEl('div', {
       cls: 'fl-arch-header-title',
-      text: 'Arquitectura del documento'
+      text: i18n.t('board.architecture.title')
     });
 
     header.createEl('div', {
       cls: 'fl-arch-header-hint',
-      text: 'Define la estructura editorial y asigna el material de Explorar. El orden de aquí determina el orden del Documento.'
+      text: i18n.t('board.architecture.hint')
     });
 
     if (nodes.length === 0) {
@@ -103,9 +103,9 @@ export class BoardArchitectureView {
     });
 
     const items: Array<{ label: string; level: number }> = [
-      { label: 'Define el título o tema principal', level: 0 },
-      { label: 'Añadir sección', level: 1 },
-      { label: 'Añadir apartado', level: 2 }
+      { label: i18n.t('board.architecture.invitation.mainTopic'), level: 0 },
+      { label: i18n.t('board.architecture.invitation.addSection'), level: 1 },
+      { label: i18n.t('board.architecture.invitation.addItem'), level: 2 }
     ];
 
     for (const item of items) {
@@ -167,7 +167,7 @@ export class BoardArchitectureView {
 
     const levelTag = main.createEl('span', {
       cls: 'fl-arch-node-level',
-      text: node.level === 0 ? 'Título' : `Nivel ${node.level}`
+      text: node.level === 0 ? i18n.t('board.architecture.level.title') : i18n.t('board.architecture.level.numbered', { level: node.level })
     });
     levelTag.setAttr('aria-hidden', 'true');
 
@@ -176,8 +176,8 @@ export class BoardArchitectureView {
       type: 'text',
       placeholder:
         node.level === 0
-          ? 'Título del documento'
-          : 'Título del elemento'
+          ? i18n.t('board.architecture.placeholder.documentTitle')
+          : i18n.t('board.architecture.placeholder.elementTitle')
     });
     titleInput.value = node.title;
 
@@ -197,29 +197,29 @@ export class BoardArchitectureView {
       cls: 'fl-arch-node-controls'
     });
 
-    this.iconButton(controls, 'arrow-up', 'Mover arriba', () => {
+    this.iconButton(controls, 'arrow-up', i18n.t('board.architecture.action.moveUp'), () => {
       host.moveArchNode(node.id, -1);
     }, index === 0);
 
-    this.iconButton(controls, 'arrow-down', 'Mover abajo', () => {
+    this.iconButton(controls, 'arrow-down', i18n.t('board.architecture.action.moveDown'), () => {
       host.moveArchNode(node.id, 1);
     }, index === total - 1);
 
-    this.iconButton(controls, 'arrow-left', 'Subir nivel', () => {
+    this.iconButton(controls, 'arrow-left', i18n.t('board.architecture.action.levelUp'), () => {
       if (node.level <= 0) return;
       host.updateArchNode(node.id, { level: node.level - 1 });
     }, node.level === 0);
 
-    this.iconButton(controls, 'arrow-right', 'Bajar nivel', () => {
+    this.iconButton(controls, 'arrow-right', i18n.t('board.architecture.action.levelDown'), () => {
       if (node.level >= 3) return;
       host.updateArchNode(node.id, { level: node.level + 1 });
     }, node.level === 3);
 
-    this.iconButton(controls, 'plus', 'Añadir subelemento', () => {
+    this.iconButton(controls, 'plus', i18n.t('board.architecture.action.addSubelement'), () => {
       host.addArchNode(index, Math.min(node.level + 1, 3));
     });
 
-    this.iconButton(controls, 'x', 'Eliminar elemento', () => {
+    this.iconButton(controls, 'x', i18n.t('board.architecture.action.deleteElement'), () => {
       host.removeArchNode(node.id);
     });
 
@@ -232,7 +232,7 @@ export class BoardArchitectureView {
     if (node.blockIds.length === 0) {
       assigned.createEl('div', {
         cls: 'fl-arch-assigned-empty',
-        text: 'Sin material asignado'
+        text: i18n.t('board.architecture.empty.noMaterial')
       });
     }
 
@@ -276,7 +276,7 @@ export class BoardArchitectureView {
     if (block.active === false) {
       item.createEl('span', {
         cls: 'fl-arch-inactive-badge',
-        text: 'Desactivada'
+        text: i18n.t('board.architecture.badge.inactive')
       });
     }
 
@@ -284,15 +284,15 @@ export class BoardArchitectureView {
       cls: 'fl-arch-block-controls'
     });
 
-    this.iconButton(controls, 'arrow-up', 'Subir en la sección', () => {
+    this.iconButton(controls, 'arrow-up', i18n.t('board.architecture.action.moveInSectionUp'), () => {
       host.moveAssignedBlock(node.id, block.id, -1);
     }, index === 0);
 
-    this.iconButton(controls, 'arrow-down', 'Bajar en la sección', () => {
+    this.iconButton(controls, 'arrow-down', i18n.t('board.architecture.action.moveInSectionDown'), () => {
       host.moveAssignedBlock(node.id, block.id, 1);
     }, index === total - 1);
 
-    this.iconButton(controls, 'x', 'Quitar de la sección', () => {
+    this.iconButton(controls, 'x', i18n.t('board.architecture.action.removeFromSection'), () => {
       host.unassignBlockFromNode(node.id, block.id);
     });
   }
@@ -325,7 +325,7 @@ export class BoardArchitectureView {
 
     tray.createEl('div', {
       cls: 'fl-arch-tray-title',
-      text: 'Material sin asignar'
+      text: i18n.t('board.architecture.tray.title')
     });
 
     for (const block of unassigned) {
@@ -345,11 +345,11 @@ export class BoardArchitectureView {
       if (block.active === false) {
         item.createEl('span', {
           cls: 'fl-arch-inactive-badge',
-          text: 'Desactivada'
+          text: i18n.t('board.architecture.badge.inactive')
         });
       }
 
-      this.iconButton(item, 'plus', 'Asignar a una sección', (event) => {
+      this.iconButton(item, 'plus', i18n.t('board.architecture.action.assignToSection'), (event) => {
         this.showAssignMenu(event, host, nodes, block);
       });
     }
@@ -364,7 +364,7 @@ export class BoardArchitectureView {
     const menu = new Menu();
 
     for (const node of nodes) {
-      const title = node.title.trim() || 'Sin título';
+      const title = node.title.trim() || i18n.t('board.architecture.menu.untitled');
 
       menu.addItem((item) => {
         item.setTitle(title);
@@ -392,10 +392,10 @@ export class BoardArchitectureView {
     });
 
     const levels: Array<{ label: string; level: number }> = [
-      { label: 'Añadir título', level: 0 },
-      { label: 'Añadir sección', level: 1 },
-      { label: 'Añadir subsección', level: 2 },
-      { label: 'Añadir apartado', level: 3 }
+      { label: i18n.t('board.architecture.add.title'), level: 0 },
+      { label: i18n.t('board.architecture.add.section'), level: 1 },
+      { label: i18n.t('board.architecture.add.subsection'), level: 2 },
+      { label: i18n.t('board.architecture.add.item'), level: 3 }
     ];
 
     for (const entry of levels) {

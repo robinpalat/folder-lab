@@ -8,7 +8,7 @@
 // ============================================================
 
 import { FolderLabController } from '../core/FolderLabController';
-
+import { i18n } from '../i18n/I18nService';
 export class NoteAreaComponent {
   private container: HTMLElement;
   private controller: FolderLabController;
@@ -40,7 +40,7 @@ export class NoteAreaComponent {
     this.textarea = this.element.createEl('textarea', {
       cls: 'folder-order-note-textarea',
       attr: {
-        placeholder: 'Escribe tus apuntes aquí…',
+        placeholder: i18n.t('notes.quickAreaPlaceholder'),
         spellcheck: 'false'
       }
     });

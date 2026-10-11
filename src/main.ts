@@ -17,6 +17,7 @@ import {
 import { VIEW_TYPE_FOLDER_ORDER } from './constants/view-types';
 import { FolderLabView } from './views/FolderLabView';
 import { FolderRepository } from './storage/FolderRepository';
+import { parseIgnoredFolders } from './utils/folderUtils';
 import { FolderOrderSettings, DEFAULT_SETTINGS, DEFAULT_JEKYLL_MAPPING, NavigationPropertyMapping } from './config/settings';
 
 import { FocusWorkspace } from "./focus/FocusWorkspace";
@@ -27,6 +28,8 @@ import { ResourcesWidgetFactory } from "./focus/widgets/ResourcesWidget";
 import { MemoryWidgetFactory } from "./focus/widgets/MemoryWidget";
 import { createCapabilityRegistry, CapabilityRegistry } from './ai/capabilities';
 import { AIService } from './ai/AIService';
+import { i18n } from './i18n/I18nService';
+import { applyObsidianLocale } from './i18n/obsidianLocale';
 
 import { WidgetManager } from "./focus/WidgetManager";
 import { NoteRepository } from './storage/NoteRepository';
@@ -67,13 +70,13 @@ class FolderSelectModal extends Modal {
     contentEl.empty();
     contentEl.addClass('folder-select-modal');
 
-    contentEl.createEl('h3', { text: 'Seleccionar carpeta raíz del libro' });
+    contentEl.createEl('h3', { text: i18n.t('modal.selectRoot.title') });
 
-    const p = contentEl.createEl('p', { text: 'Elige la carpeta principal que contiene todo el libro.' });
+    const p = contentEl.createEl('p', { text: i18n.t('modal.selectRoot.description') });
     p.style.cssText = 'color: var(--text-muted); font-size: 0.85em; margin-bottom: 12px;';
 
     if (this.folders.length === 0) {
-      contentEl.createEl('p', { text: 'No hay carpetas en la raíz del vault' });
+      contentEl.createEl('p', { text: i18n.t('empty.noRootFolders') });
       return;
     }
 
@@ -135,6 +138,14 @@ export default class FolderLabPlugin extends Plugin {
 
   async onload() {
     await this.loadSettings();
+
+    /*
+     * Idioma de Obsidian ANTES de registrar comandos, vistas o
+     * cualquier elemento que muestre textos: los names de
+     * addCommand se capturan en este momento. Idempotente; sin
+     * preferencia persistida en data.json.
+     */
+    applyObsidianLocale();
 
     // ============================================================
     // Inicializar AIService
@@ -201,10 +212,10 @@ export default class FolderLabPlugin extends Plugin {
         id: 'active-note',
 
         identity: {
-          label: 'Nota activa',
+          label: i18n.t('widgets.registered.activeNote.label'),
           icon: 'file-text',
           description:
-            'Muestra y permite trabajar directamente con la nota actualmente activa en Obsidian.'
+            i18n.t('widgets.registered.activeNote.description')
         },
 
         cardinality: 'singleton'
@@ -218,10 +229,10 @@ export default class FolderLabPlugin extends Plugin {
         id: 'notes',
 
         identity: {
-          label: 'Apuntes',
+          label: i18n.t('widgets.registered.notes.label'),
           icon: 'pencil',
           description:
-            'Captura y organiza apuntes espontáneos asociados al contexto. Es un punto de entrada para alimentar otros widgets con ideas, textos y observaciones.'
+            i18n.t('widgets.registered.notes.description')
         },
 
         cardinality: 'singleton'
@@ -235,10 +246,10 @@ export default class FolderLabPlugin extends Plugin {
         id: 'resources',
 
         identity: {
-          label: 'Archivos compartidos de la carpeta',
+          label: i18n.t('widgets.registered.resources.label'),
           icon: 'folder',
           description:
-            'Muestra los archivos y recursos compartidos por las notas de la carpeta actual.'
+            i18n.t('widgets.registered.resources.description')
         },
 
         cardinality: 'singleton'
@@ -279,10 +290,10 @@ export default class FolderLabPlugin extends Plugin {
         id: 'memory',
 
         identity: {
-          label: 'Asistente',
+          label: i18n.t('widgets.registered.memory.label'),
           icon: 'cpu',
           description:
-            'Utiliza inteligencia artificial para analizar el contexto de la nota y ejecutar capacidades sobre sus fuentes y contenidos.'
+            i18n.t('widgets.registered.memory.description')
         },
 
         cardinality: 'singleton'
@@ -318,29 +329,29 @@ export default class FolderLabPlugin extends Plugin {
     // ============================================================
     this.addCommand({
       id: 'open-folder-lab',
-      name: 'Abrir panel de Folder Lab',
+      name: i18n.t('commands.openFolderLab'),
       callback: () => this.openFolderLabView()
     });
 
     this.addCommand({
       id: 'refresh-folder-lab',
-      name: 'Refrescar vista',
+      name: i18n.t('commands.refreshView'),
       callback: () => this.refreshView()
     });
 
     this.addCommand({
       id: 'toggle-focus-mode',
-      name: 'Alternar modo Focus',
+      name: i18n.t('commands.toggleFocusMode'),
       callback: () => this.toggleFocusMode()
     });
 
     this.addCommand({
       id: 'test-context-resolver',
-      name: 'Probar ContextResolver (nota actual)',
+      name: i18n.t('commands.testContextResolver'),
       callback: async () => {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
-          new Notice('❌ No hay nota activa');
+          new Notice(i18n.t('notices.noActiveNoteMarked'));
           return;
         }
 
@@ -363,7 +374,10 @@ export default class FolderLabPlugin extends Plugin {
           }
         });
 
-        new Notice(`✅ Contexto: ${context.workspace.note.name} (${context.workspace.note.content.length} caracteres)`);
+        new Notice(i18n.t('notices.contextTestResult', {
+            name: context.workspace.note.name,
+            length: context.workspace.note.content.length
+          }));
       }
     });
 
@@ -372,7 +386,7 @@ export default class FolderLabPlugin extends Plugin {
     // ============================================================
     // RIBBON ICON
     // ============================================================
-    this.addRibbonIcon('folder', 'Folder Lab', () => {
+    this.addRibbonIcon('folder', i18n.t('common.appName'), () => {
       this.openFolderLabView();
     });
 
@@ -389,7 +403,7 @@ export default class FolderLabPlugin extends Plugin {
         if (file instanceof TFolder) {
           menu.addItem((item) => {
             item
-              .setTitle('Abrir en Folder Lab')
+              .setTitle(i18n.t('folders.contextMenu.openInFolderLab'))
               .setIcon('folder-sync')
               .onClick(() => {
                 this.openFolderLabForFolder(file);
@@ -410,11 +424,13 @@ export default class FolderLabPlugin extends Plugin {
 
     if (path) {
       try {
-        await this.repository.initGlobalOrder(path);
-        console.log('📂 Proyecto inicializado en:', path);
-      } catch (error) {
+        await this.repository.initGlobalOrder(
+          path,
+          this.settings.navigationPropertyMapping?.ignoredFolders ?? []
+        );
+              } catch (error) {
         console.error('❌ Error al inicializar proyecto:', error);
-        new Notice('❌ Error al inicializar el proyecto');
+        new Notice(i18n.t('errors.initProject'));
       }
     }
   }
@@ -461,7 +477,7 @@ export default class FolderLabPlugin extends Plugin {
 
     const leaf = this.app.workspace.getLeftLeaf(false);
     if (!leaf) {
-      new Notice('❌ No se pudo abrir el panel lateral');
+      new Notice(i18n.t('errors.openSidePanel'));
       return;
     }
 
@@ -486,7 +502,7 @@ export default class FolderLabPlugin extends Plugin {
       if (view) {
         view.loadFolderOrder(folder.path);
       } else {
-        new Notice('No se pudo cargar Folder Lab');
+        new Notice(i18n.t('errors.loadView'));
       }
     }, 150);
   }
@@ -495,7 +511,7 @@ export default class FolderLabPlugin extends Plugin {
     const view = this.getViewInstance();
     if (view) {
       view.refresh();
-      new Notice('Folder Lab actualizado');
+      new Notice(i18n.t('notices.viewRefreshed'));
     }
   }
 
@@ -529,7 +545,42 @@ export default class FolderLabPlugin extends Plugin {
   // ============================================================
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const loadedData = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
+
+    /*
+     * Migración no destructiva: los data.json anteriores no traen
+     * la lista (el merge es superficial). Se crea un objeto nuevo
+     * para no mutar el DEFAULT compartido.
+     */
+    const currentMapping = this.settings.navigationPropertyMapping;
+
+    this.settings.navigationPropertyMapping = {
+      ...((currentMapping && typeof currentMapping === 'object')
+        ? currentMapping
+        : DEFAULT_JEKYLL_MAPPING),
+      ignoredFolders: Array.isArray((currentMapping as any)?.ignoredFolders)
+        ? (currentMapping as any).ignoredFolders
+        : []
+    };
+
+    /*
+     * Migración de la meta de escritura: la configuración anterior
+     * guardaba metas por carpeta (folderWordGoals). La meta del
+     * libro es la de la carpeta master; si existía, se conserva.
+     */
+    if (!(this.settings.bookWordGoal > 0)) {
+      const legacyGoals = loadedData?.folderWordGoals;
+      const masterPath = this.settings.bookRootPath;
+      const legacyMasterGoal =
+        masterPath && legacyGoals
+          ? legacyGoals[masterPath]
+          : undefined;
+
+      if (typeof legacyMasterGoal === 'number' && legacyMasterGoal > 0) {
+        this.settings.bookWordGoal = Math.floor(legacyMasterGoal);
+      }
+    }
   }
 
   async saveSettings() {
@@ -581,8 +632,7 @@ export default class FolderLabPlugin extends Plugin {
 
   onunload() {
     this.viewInstance = null;
-    console.log('Folder Lab plugin descargado');
-  }
+      }
 }
 
 // ============================================================
@@ -601,30 +651,29 @@ class FolderLabSettingTab extends PluginSettingTab {
     containerEl.empty();
 
 
-    console.log('Settings actuales:', {
-      navigationType: this.plugin.settings.navigationType,
-      navigationPropertyMapping: this.plugin.settings.navigationPropertyMapping
-    });
-
-    containerEl.createEl('h2', { text: '📂 Configuración de Folder Lab' });
+    containerEl.createEl('h2', { text: i18n.t('settings.title') });
 
     // ===== ORDEN MANUAL =====
     new Setting(containerEl)
-      .setName('Usar orden manual')
-      .setDesc('Activa el orden manual en el explorador de archivos')
+      .setName(i18n.t('settings.manualOrder.name'))
+      .setDesc(i18n.t('settings.manualOrder.desc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.useManualOrder)
         .onChange(async (value) => {
           this.plugin.settings.useManualOrder = value;
           await this.plugin.saveSettings();
           this.app.workspace.trigger('layout-change');
-          new Notice(`Orden manual ${value ? 'activado' : 'desactivado'}`);
+          new Notice(i18n.t('notices.manualOrderToggled', {
+            state: i18n.t(value
+              ? 'notices.manualOrder.enabled'
+              : 'notices.manualOrder.disabled')
+          }));
         }));
 
     // ===== MOSTRAR NÚMEROS =====
     new Setting(containerEl)
-      .setName('Mostrar números')
-      .setDesc('Muestra números en el índice')
+      .setName(i18n.t('settings.showNumbers.name'))
+      .setDesc(i18n.t('settings.showNumbers.desc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.showNumbers)
         .onChange(async (value) => {
@@ -634,12 +683,12 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // ===== ESTILO DE NUMERACIÓN =====
     new Setting(containerEl)
-      .setName('Estilo de numeración')
-      .setDesc('Romanos (I, II, III) o arábigos (1, 2, 3)')
+      .setName(i18n.t('settings.numberingStyle.name'))
+      .setDesc(i18n.t('settings.numberingStyle.desc'))
       .addDropdown(dropdown => dropdown
-        .addOption('roman', 'Romanos (I, II, III)')
-        .addOption('arabic', 'Arábigos (1, 2, 3)')
-        .addOption('none', 'Sin números')
+        .addOption('roman', i18n.t('settings.numberingStyle.option.roman'))
+        .addOption('arabic', i18n.t('settings.numberingStyle.option.arabic'))
+        .addOption('none', i18n.t('settings.numberingStyle.option.none'))
         .setValue(this.plugin.settings.numberingStyle)
         .onChange(async (value: 'roman' | 'arabic' | 'none') => {
           this.plugin.settings.numberingStyle = value;
@@ -650,21 +699,26 @@ class FolderLabSettingTab extends PluginSettingTab {
     containerEl.createEl('hr');
 
     new Setting(containerEl)
-      .setName('📚 Carpeta raíz del libro')
+      .setName(i18n.t('settings.bookRoot.heading'))
       .setHeading();
 
+    let rootPathInput: HTMLInputElement | null = null;
+
     const rootSetting = new Setting(containerEl)
-      .setName('Carpeta raíz del libro')
-      .setDesc('Carpeta principal que contiene todo el libro. Al seleccionarla se inicializará el proyecto.')
-      .addText(text => text
-        .setPlaceholder('Ej: Libro/')
-        .setValue(this.plugin.settings.bookRootPath || '')
-        .onChange(async (value) => {
-          await this.plugin.setBookRootPath(value);
-        }));
+      .setName(i18n.t('settings.bookRoot.name'))
+      .setDesc(i18n.t('settings.bookRoot.desc'))
+      .addText(text => {
+        text
+          .setPlaceholder(i18n.t('settings.bookRoot.placeholder'))
+          .setValue(this.plugin.settings.bookRootPath || '')
+          .onChange(async (value) => {
+            await this.plugin.setBookRootPath(value);
+          });
+        rootPathInput = text.inputEl;
+      });
 
     rootSetting.addButton(button => button
-      .setButtonText('📁 Seleccionar')
+      .setButtonText(i18n.t('settings.bookRoot.selectButton'))
       .onClick(async () => {
         const folders: string[] = [];
         const root = this.app.vault.getRoot();
@@ -676,24 +730,23 @@ class FolderLabSettingTab extends PluginSettingTab {
         }
 
         if (folders.length === 0) {
-          new Notice('No hay carpetas en la raíz del vault');
+          new Notice(i18n.t('empty.noRootFolders'));
           return;
         }
 
         const modal = new FolderSelectModal(this.app, folders, async (selected: string) => {
           await this.plugin.setBookRootPath(selected);
 
-          const textInput = containerEl.querySelector('input[placeholder="Ej: Libro/"]') as HTMLInputElement;
-          if (textInput) textInput.value = selected;
+          if (rootPathInput) rootPathInput.value = selected;
 
-          new Notice(`✅ Carpeta raíz configurada: ${selected}`);
+          new Notice(i18n.t('settings.bookRoot.configuredNotice', { path: selected }));
         });
         modal.open();
       }));
 
     if (this.plugin.settings.bookRootPath) {
       const info = containerEl.createEl('p', {
-        text: `📂 Carpeta actual: ${this.plugin.settings.bookRootPath}`,
+        text: i18n.t('settings.bookRoot.currentFolderInfo', { path: this.plugin.settings.bookRootPath }),
         cls: 'folder-lab-info-text'
       });
     }
@@ -702,16 +755,16 @@ class FolderLabSettingTab extends PluginSettingTab {
     // SECCIÓN: NAVEGACIÓN
     // ============================================================
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: '🧭 Navegación' });
+    containerEl.createEl('h3', { text: i18n.t('settings.navigation.heading') });
 
     let propertySettingsContainer: HTMLElement | null = null;
 
     new Setting(containerEl)
-      .setName('Tipo de navegación')
-      .setDesc('Elige cómo se organiza la navegación en Folder Lab')
+      .setName(i18n.t('settings.navigation.type.name'))
+      .setDesc(i18n.t('settings.navigation.type.desc'))
       .addDropdown(dropdown => dropdown
-        .addOption('folders', 'Carpetas y archivos')
-        .addOption('properties', 'Propiedades de las notas')
+        .addOption('folders', i18n.t('settings.navigation.type.option.folders'))
+        .addOption('properties', i18n.t('settings.navigation.type.option.properties'))
         .setValue(this.plugin.settings.navigationType || 'folders')
         .onChange(async (value: 'folders' | 'properties') => {
           this.plugin.settings.navigationType = value;
@@ -728,7 +781,11 @@ class FolderLabSettingTab extends PluginSettingTab {
             await view.refreshNavigation();
           }
 
-          new Notice(`Navegación cambiada a: ${value === 'folders' ? 'Carpetas y archivos' : 'Propiedades de las notas'}`);
+          new Notice(i18n.t('notices.navTypeChanged', {
+            typeName: i18n.t(value === 'folders'
+              ? 'settings.navigation.type.option.folders'
+              : 'settings.navigation.type.option.properties')
+          }));
         })
       );
     // ============================================================
@@ -740,11 +797,11 @@ class FolderLabSettingTab extends PluginSettingTab {
     propertySettingsContainer.style.display = this.plugin.settings.navigationType === 'properties' ? 'block' : 'none';
 
     new Setting(propertySettingsContainer)
-      .setName('Preset de propiedades')
-      .setDesc('Selecciona un esquema predefinido para las propiedades')
+      .setName(i18n.t('settings.properties.preset.name'))
+      .setDesc(i18n.t('settings.properties.preset.desc'))
       .addDropdown(dropdown => dropdown
-        .addOption('jekyll', 'Jekyll / Just the Docs')
-        .addOption('custom', 'Personalizado')
+        .addOption('jekyll', i18n.t('settings.properties.preset.option.jekyll'))
+        .addOption('custom', i18n.t('settings.properties.preset.option.custom'))
         .setValue('jekyll')
         .onChange(async (value: string) => {
           if (value === 'jekyll') {
@@ -754,7 +811,7 @@ class FolderLabSettingTab extends PluginSettingTab {
             };
             await this.plugin.saveSettings();
             this.display();
-            new Notice('Preset Jekyll aplicado');
+            new Notice(i18n.t('settings.properties.preset.appliedNotice'));
           }
         })
       );
@@ -762,8 +819,8 @@ class FolderLabSettingTab extends PluginSettingTab {
     const mapping = this.plugin.settings.navigationPropertyMapping || DEFAULT_JEKYLL_MAPPING;
 
     new Setting(propertySettingsContainer)
-      .setName('Propiedad de título')
-      .setDesc('Nombre de la propiedad que contiene el título de la nota')
+      .setName(i18n.t('settings.properties.title.name'))
+      .setDesc(i18n.t('settings.properties.title.desc'))
       .addText(text => text
         .setPlaceholder('title')
         .setValue(mapping.title || 'title')
@@ -774,8 +831,8 @@ class FolderLabSettingTab extends PluginSettingTab {
       );
 
     new Setting(propertySettingsContainer)
-      .setName('Propiedad de padre')
-      .setDesc('Nombre de la propiedad que contiene el padre de la nota')
+      .setName(i18n.t('settings.properties.parent.name'))
+      .setDesc(i18n.t('settings.properties.parent.desc'))
       .addText(text => text
         .setPlaceholder('parent')
         .setValue(mapping.parent || 'parent')
@@ -786,8 +843,8 @@ class FolderLabSettingTab extends PluginSettingTab {
       );
 
     new Setting(propertySettingsContainer)
-      .setName('Propiedad de orden')
-      .setDesc('Nombre de la propiedad que contiene el orden de la nota')
+      .setName(i18n.t('settings.properties.order.name'))
+      .setDesc(i18n.t('settings.properties.order.desc'))
       .addText(text => text
         .setPlaceholder('nav_order')
         .setValue(mapping.order || 'nav_order')
@@ -798,8 +855,8 @@ class FolderLabSettingTab extends PluginSettingTab {
       );
 
     new Setting(propertySettingsContainer)
-      .setName('Propiedad de hijos')
-      .setDesc('Nombre de la propiedad que indica si tiene hijos')
+      .setName(i18n.t('settings.properties.hasChildren.name'))
+      .setDesc(i18n.t('settings.properties.hasChildren.desc'))
       .addText(text => text
         .setPlaceholder('has_children')
         .setValue(mapping.hasChildren || 'has_children')
@@ -810,8 +867,8 @@ class FolderLabSettingTab extends PluginSettingTab {
       );
 
     new Setting(propertySettingsContainer)
-      .setName('Propiedad de permalink')
-      .setDesc('Nombre de la propiedad que contiene el permalink')
+      .setName(i18n.t('settings.properties.permalink.name'))
+      .setDesc(i18n.t('settings.properties.permalink.desc'))
       .addText(text => text
         .setPlaceholder('permalink')
         .setValue(mapping.permalink || 'permalink')
@@ -821,32 +878,84 @@ class FolderLabSettingTab extends PluginSettingTab {
         })
       );
 
+    new Setting(propertySettingsContainer)
+      .setName(i18n.t('settings.ignoredFolders.name'))
+      .setDesc(i18n.t('settings.ignoredFolders.desc'))
+      .addTextArea(text => text
+        .setPlaceholder('assets')
+        .setValue((mapping.ignoredFolders ?? []).join(', '))
+        .onChange(async (value) => {
+          const previous =
+            this.plugin.settings.navigationPropertyMapping.ignoredFolders ?? [];
+          const next = parseIgnoredFolders(value);
+
+          // Sin cambio efectivo no se reconstruye nada.
+          const same =
+            previous.length === next.length &&
+            previous.every((name, index) => name === next[index]);
+
+          this.plugin.settings.navigationPropertyMapping.ignoredFolders =
+            next;
+          await this.plugin.saveSettings();
+
+          if (same) return;
+
+          // Aplicar al orden global existente: retira las ramas
+          // ignoradas conservando el orden manual superviviente.
+          const masterPath =
+            this.plugin.settings.bookRootPath;
+
+          if (masterPath) {
+            try {
+              await this.plugin.repository.reconcileGlobalOrder(
+                masterPath,
+                next
+              );
+
+              const view = this.plugin.getView();
+
+              if (view && view.refreshNavigation) {
+                await view.refreshNavigation();
+              }
+            } catch (error) {
+              console.error(
+                '❌ No se pudo aplicar carpetas ignoradas al orden global:',
+                error
+              );
+              new Notice(
+                i18n.t('errors.ignoredFoldersApplyFailed')
+              );
+            }
+          }
+        })
+      );
+
     // ===== BOTÓN REFRESCAR NAVEGACIÓN =====
     new Setting(containerEl)
-      .setName('Refrescar navegación')
-      .setDesc('Reconstruye el árbol de navegación desde las fuentes actuales')
+      .setName(i18n.t('settings.refreshNavigation.name'))
+      .setDesc(i18n.t('settings.refreshNavigation.desc'))
       .addButton(button => button
-        .setButtonText('🔄 Refrescar')
+        .setButtonText(i18n.t('settings.refreshNavigation.button'))
         .setCta()
         .onClick(async () => {
           const view = this.plugin.getView();
           if (view && view.refreshNavigation) {
             await view.refreshNavigation();
-            new Notice('✅ Navegación actualizada');
+            new Notice(i18n.t('notices.navigationUpdated'));
           } else {
-            new Notice('⚠️ Folder Lab no está abierto');
+            new Notice(i18n.t('errors.viewNotOpenMarked'));
           }
         })
       );
 
     // ===== SECCIÓN DE IA =====
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: '🤖 Configuración de IA' });
+    containerEl.createEl('h3', { text: i18n.t('settings.ai.heading') });
 
     // Proveedor
     new Setting(containerEl)
-      .setName('Proveedor de IA')
-      .setDesc('Selecciona el servicio de IA que quieres usar')
+      .setName(i18n.t('settings.ai.provider.name'))
+      .setDesc(i18n.t('settings.ai.provider.desc'))
       .addDropdown(dropdown => dropdown
         .addOption('openai', 'OpenAI')
         .addOption('gemini', 'Google Gemini')
@@ -871,11 +980,11 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // API Key
     new Setting(containerEl)
-      .setName('API Key')
-      .setDesc('Tu clave de API del servicio seleccionado')
+      .setName(i18n.t('settings.ai.apiKey.name'))
+      .setDesc(i18n.t('settings.ai.apiKey.desc'))
       .addText(text => {
         text
-          .setPlaceholder('Introduce tu API Key')
+          .setPlaceholder(i18n.t('settings.ai.apiKey.placeholder'))
           .setValue(this.plugin.settings.aiApiKey || '')
           .onChange(async (value) => {
             this.plugin.settings.aiApiKey = value;
@@ -886,8 +995,8 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // Usar modelo recomendado
     new Setting(containerEl)
-      .setName('Usar modelo recomendado')
-      .setDesc('El plugin seleccionará automáticamente el mejor modelo para tu proveedor')
+      .setName(i18n.t('settings.ai.recommendedModel.name'))
+      .setDesc(i18n.t('settings.ai.recommendedModel.desc'))
       .addToggle(toggle => toggle
         .setValue(this.plugin.settings.aiUseRecommendedModel ?? true)
         .onChange(async (value) => {
@@ -906,11 +1015,11 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // Modelo personalizado
     new Setting(containerEl)
-      .setName('Modelo personalizado')
-      .setDesc('Nombre del modelo (ej: gpt-4o, gemini-1.5-pro, claude-3-5-sonnet-20241022)')
+      .setName(i18n.t('settings.ai.customModel.name'))
+      .setDesc(i18n.t('settings.ai.customModel.desc'))
       .addText(text => {
         text
-          .setPlaceholder('Nombre del modelo')
+          .setPlaceholder(i18n.t('settings.ai.customModel.placeholder'))
           .setValue(this.plugin.settings.aiModel || '')
           .onChange(async (value) => {
             this.plugin.settings.aiModel = value;
@@ -923,8 +1032,8 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // Temperatura
     new Setting(containerEl)
-      .setName('Temperatura')
-      .setDesc('Creatividad de la IA (0 = preciso, 2 = creativo)')
+      .setName(i18n.t('settings.ai.temperature.name'))
+      .setDesc(i18n.t('settings.ai.temperature.desc'))
       .addSlider(slider => slider
         .setLimits(0, 2, 0.1)
         .setValue(this.plugin.settings.aiTemperature ?? 0.3)
@@ -936,8 +1045,8 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // Máximo de tokens
     new Setting(containerEl)
-      .setName('Máximo de tokens')
-      .setDesc('Longitud máxima de la respuesta')
+      .setName(i18n.t('settings.ai.maxTokens.name'))
+      .setDesc(i18n.t('settings.ai.maxTokens.desc'))
       .addSlider(slider => slider
         .setLimits(50, 2000, 10)
         .setValue(this.plugin.settings.aiMaxTokens ?? 500)
@@ -949,19 +1058,19 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // Botón probar conexión
     new Setting(containerEl)
-      .setName('🔌 Probar conexión')
-      .setDesc('Verifica que tu configuración sea correcta')
+      .setName(i18n.t('settings.ai.testConnection.name'))
+      .setDesc(i18n.t('settings.ai.testConnection.desc'))
       .addButton(button => {
         button
-          .setButtonText('Probar')
+          .setButtonText(i18n.t('settings.ai.testConnection.button'))
           .setCta()
           .onClick(async () => {
             if (!this.plugin.aiService) {
-              new Notice('❌ Servicio de IA no inicializado');
+              new Notice(i18n.t('errors.ai.notInitialized'));
               return;
             }
 
-            button.setButtonText('⏳ Probando...');
+            button.setButtonText(i18n.t('settings.ai.testConnection.testing'));
             button.setDisabled(true);
 
             const result = await this.plugin.aiService.testConnection();
@@ -969,19 +1078,19 @@ class FolderLabSettingTab extends PluginSettingTab {
             button.setDisabled(false);
             if (result.success) {
               new Notice(`✅ ${result.message}`);
-              button.setButtonText('✅ Conectado');
-              setTimeout(() => button.setButtonText('Probar'), 3000);
+              button.setButtonText(i18n.t('settings.ai.testConnection.connected'));
+              setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
             } else {
               new Notice(`❌ ${result.message}`);
-              button.setButtonText('❌ Error');
-              setTimeout(() => button.setButtonText('Probar'), 3000);
+              button.setButtonText(i18n.t('settings.ai.testConnection.error'));
+              setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
             }
           });
       });
 
     // Ayuda: cómo obtener API Key
     containerEl.createEl('hr');
-    containerEl.createEl('h4', { text: '📌 Cómo obtener tu API Key' });
+    containerEl.createEl('h4', { text: i18n.t('settings.ai.help.heading') });
 
     const helpDiv = containerEl.createEl('div');
     helpDiv.style.cssText = 'padding: 8px 12px; background: var(--background-primary-alt); border-radius: 6px; font-size: 0.85em; color: var(--text-muted);';
@@ -999,19 +1108,19 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // ===== INFORMACIÓN =====
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: 'ℹ️ Información' });
+    containerEl.createEl('h3', { text: i18n.t('settings.info.heading') });
 
     containerEl.createEl('p', {
-      text: 'El orden se guarda en un archivo _folder_order.json dentro de la carpeta .folder-order (oculta).'
+      text: i18n.t('settings.info.orderStorage')
     });
 
     const infoText = containerEl.createEl('p', {
-      text: 'Notas vacías: se detectan automáticamente (< 10 caracteres sin contar el título).'
+      text: i18n.t('settings.info.emptyNotes')
     });
     infoText.style.cssText = 'color: var(--text-muted); font-size: 0.8em;';
 
     const infoText2 = containerEl.createEl('p', {
-      text: 'El conteo de palabras excluye automáticamente archivos compilados y archivos dentro de .folder-order.'
+      text: i18n.t('settings.info.wordCountExclusions')
     });
     infoText2.style.cssText = 'color: var(--text-muted); font-size: 0.8em;';
   }

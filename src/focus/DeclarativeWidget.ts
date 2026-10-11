@@ -4,6 +4,12 @@ import {
     FocusWidgetFactory,
     WidgetCallbacks
 } from './FocusWidget';
+import { i18n } from '../i18n/I18nService';
+import {
+  getWidgetDefinitionLabel,
+  getWidgetDefinitionEmptyState,
+  getWidgetDefinitionPlaceholder
+} from './widgets/definitionTexts';
 
 import { WidgetDefinition } from './WidgetDefinition';
 import { WidgetController } from './controllers/WidgetController';
@@ -33,7 +39,7 @@ export class DeclarativeWidget
     get label(): string {
         return (
             this.instanceName ??
-            this.definition.identity.label
+            getWidgetDefinitionLabel(this.definition)
         );
     }
 
@@ -138,7 +144,7 @@ export class DeclarativeWidget
         if (!context.activeFile) {
 
             this.renderEmpty(
-                `Abre una nota para usar ${this.label}`
+                i18n.t('widgets.declarative.empty.noteRequired', { label: this.label })
             );
 
             return;
@@ -328,7 +334,7 @@ export class DeclarativeWidget
             await this.reload();
 
             new Notice(
-                `${this.label} vaciadas`
+                i18n.t('widgets.declarative.notice.cleared', { label: this.label })
             );
         }
 
@@ -355,7 +361,7 @@ export class DeclarativeWidget
             await this.reload();
 
             new Notice(
-                'Tareas completadas eliminadas'
+                i18n.t('widgets.declarative.notice.completedCleared')
             );
 
             return;
@@ -402,8 +408,7 @@ export class DeclarativeWidget
                     'fl-widget-result-placeholder',
 
                 text:
-                    this.definition.emptyState?.message ??
-                    ''
+                    getWidgetDefinitionEmptyState(this.definition)
             });
 
         this.configureDropTarget(
@@ -446,18 +451,6 @@ export class DeclarativeWidget
 
                     const source = payload.source;
 
-
-                    console.log(
-                        '[FolderLab MOVE] DROP',
-                        {
-                            destination: {
-                                widgetId: this.id,
-                                instanceId: this.getInstanceId()
-                            },
-                            payload,
-                            source
-                        }
-                    );
 
 
                     // ----------------------------------------------------------
@@ -522,8 +515,8 @@ const item = {
 
                     new Notice(
                         source
-                            ? `Elemento movido a ${this.label}`
-                            : `Elemento añadido a ${this.label}`
+                            ? i18n.t('widgets.declarative.notice.movedTo', { label: this.label })
+                            : i18n.t('widgets.declarative.notice.addedTo', { label: this.label })
                     );
                 },
 
@@ -551,8 +544,7 @@ const item = {
                 cls: 'fl-tasks-input',
                 type: 'text',
                 placeholder:
-                    this.definition.input?.text?.placeholder ??
-                    ''
+                    getWidgetDefinitionPlaceholder(this.definition)
             });
 
         input.addEventListener(
@@ -748,13 +740,13 @@ const item: WidgetRecord = {
                             selection?.mode === 'single'
                                 ? (
                                     isSelected
-                                        ? 'Candidato seleccionado'
-                                        : 'Seleccionar candidato'
+                                        ? i18n.t('widgets.declarative.action.candidateSelected')
+                                        : i18n.t('widgets.declarative.action.selectCandidate')
                                 )
                                 : (
                                     active
-                                        ? 'Desactivar elemento'
-                                        : 'Activar elemento'
+                                        ? i18n.t('widgets.declarative.action.deactivate')
+                                        : i18n.t('widgets.declarative.action.activate')
                                 ),
 
                         onClick: async () => {
@@ -793,7 +785,7 @@ const item: WidgetRecord = {
                         id: 'delete',
 
                         label:
-                            'Eliminar elemento',
+                            i18n.t('actions.deleteElement'),
 
                         onClick: async () => {
 
@@ -850,8 +842,8 @@ const item: WidgetRecord = {
                         entityContent?.previewLines ??
                         3,
 
-                    expandedLabel: 'Contraer',
-                    collapsedLabel: 'Expandir',
+                    expandedLabel: i18n.t('widgets.common.collapse'),
+                    collapsedLabel: i18n.t('widgets.common.expand'),
 
                     editable:
                         entityContent?.editable ??

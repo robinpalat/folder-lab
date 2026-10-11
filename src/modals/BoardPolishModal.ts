@@ -1,4 +1,5 @@
 import { Modal, App, ButtonComponent } from 'obsidian';
+import { i18n } from '../i18n/I18nService';
 
 export interface BoardPolishResult {
   text: string;
@@ -31,7 +32,7 @@ export class BoardPolishModal extends Modal {
     contentEl.empty();
     contentEl.addClass('fl-board-polish-modal');
 
-    contentEl.createEl('h2', { text: 'Pulir fragmento' });
+    contentEl.createEl('h2', { text: i18n.t('modal.polish.title') });
 
     const originalSection = contentEl.createEl('div', {
       cls: 'fl-polish-original-section'
@@ -39,7 +40,7 @@ export class BoardPolishModal extends Modal {
 
     originalSection.createEl('div', {
       cls: 'fl-polish-section-label',
-      text: 'Original (solo lectura)'
+      text: i18n.t('modal.polish.originalLabel')
     });
 
     originalSection.createEl('div', {
@@ -53,7 +54,7 @@ export class BoardPolishModal extends Modal {
 
     personalSection.createEl('div', {
       cls: 'fl-polish-section-label',
-      text: 'Versión personal'
+      text: i18n.t('modal.polish.personalLabel')
     });
 
     this.textarea = personalSection.createEl('textarea', {
@@ -75,12 +76,12 @@ export class BoardPolishModal extends Modal {
     });
 
     const cancelButton = new ButtonComponent(actions);
-    cancelButton.setButtonText('Cancelar');
+    cancelButton.setButtonText(i18n.t('common.cancel'));
     cancelButton.onClick(() => this.close());
 
     if (this.hasOverride && this.onDiscard) {
       const discardButton = new ButtonComponent(actions);
-      discardButton.setButtonText('Descartar versión personal');
+      discardButton.setButtonText(i18n.t('modal.polish.discard'));
       discardButton.setWarning();
       discardButton.onClick(() => {
         this.onDiscard?.();
@@ -89,7 +90,7 @@ export class BoardPolishModal extends Modal {
     }
 
     const saveButton = new ButtonComponent(actions);
-    saveButton.setButtonText('Guardar versión');
+    saveButton.setButtonText(i18n.t('modal.polish.save'));
     saveButton.setCta();
     saveButton.onClick(() => {
       const text = this.textarea?.value ?? '';

@@ -125,16 +125,7 @@ export class FolderLabState {
     nuevo: NavigationMode,
     motivo?: string
   ): void {
-    console.log('[FOLDERLAB-MODE-TRACE]', {
-      metodo: caller,
-      motivo: motivo ?? '',
-      anterior,
-      nuevo,
-      isAllNotesAntes: anterior === NavigationMode.ALL_NOTES,
-      isAllNotesDespues: nuevo === NavigationMode.ALL_NOTES,
-      pila: new Error().stack?.split('\n').slice(2, 7).join('\n')
-    });
-  }
+      }
 
   reset(): void {
     this.navigationMode = NavigationMode.NORMAL;

@@ -8,6 +8,11 @@ import { setIcon, Notice } from 'obsidian';
 import { FolderLabController } from '../core/FolderLabController';
 import { FolderLabView } from '../views/FolderLabView';
 import { FilterMenu } from '../components/FilterMenu';
+import {
+  HeaderStatsModel,
+  buildHeaderStatsDisplay
+} from '../utils/headerStats';
+import { i18n } from '../i18n/I18nService';
 
 export class HeaderComponent {
   private container: HTMLElement;
@@ -36,6 +41,15 @@ export class HeaderComponent {
   private recentNotesBtn: HTMLElement | null = null;
   private filterBtn: HTMLElement | null = null;
   private wordCountBtn: HTMLElement | null = null;
+
+  /**
+   * Versión de renderizado de estadísticas. Cada llamada a
+   * updateStatistics incrementa el contador; si tras un await una
+   * llamada observa que su versión quedó obsoleta, se retira sin
+   * tocar el DOM. Esto impide que llamadas concurrentes (p. ej. la
+   * inicialización) acumulen textos y engranajes duplicados.
+   */
+  private statsRenderVersion: number = 0;
 
   constructor(
     container: HTMLElement,
@@ -70,7 +84,7 @@ export class HeaderComponent {
     this.statistics = this.titleBlock.createEl('div', {
       cls: 'folder-lab-statistics'
     });
-    this.statistics.textContent = '0 notas · 0 carpetas · 0% completado';
+    this.statistics.textContent = i18n.t('stats.headerPlaceholder');
 
     this.rightControl = this.topSection.createEl('div', {
       cls: 'folder-lab-right-control'
@@ -84,7 +98,7 @@ export class HeaderComponent {
     this.backBtn = this.rightControl.createEl('button', {
       cls: 'folder-lab-back-btn',
       attr: {
-        'aria-label': 'Volver a carpeta anterior'
+        'aria-label': i18n.t('actions.back')
       }
     });
     setIcon(this.backBtn, 'x');
@@ -105,16 +119,19 @@ export class HeaderComponent {
 
     const newNoteBtn = this.leftGroup.createEl('button', {
       cls: 'clickable-icon',
-      attr: { 'aria-label': 'Nueva nota' }
+      attr: { 'aria-label': i18n.t('actions.createNoteOrFolder') }
     });
     setIcon(newNoteBtn, 'plus');
+    // Menú contextual (nativa Obsidian): «Nueva nota» o
+    // «Nueva carpeta». Se cierra con selección, Escape o clic
+    // fuera; anclado a la derecha del botón.
     newNoteBtn.onclick = () => {
-      this.controller.createNewNote();
+      this.controller.showCreateMenu(newNoteBtn);
     };
 
     const compileBtn = this.leftGroup.createEl('button', {
       cls: 'clickable-icon',
-      attr: { 'aria-label': 'Compilar' }
+      attr: { 'aria-label': i18n.t('actions.compile') }
     });
     setIcon(compileBtn, 'book');
     compileBtn.onclick = () => this.controller.showExportMenu(compileBtn);
@@ -123,7 +140,7 @@ export class HeaderComponent {
 
 const wordBtn = this.leftGroup.createEl('button', {
   cls: 'clickable-icon',
-  attr: { 'aria-label': 'Contar palabras' }
+  attr: { 'aria-label': i18n.t('actions.countWords') }
 });
 setIcon(wordBtn, 'file-spreadsheet');
 wordBtn.onclick = () => this.controller.countWords();
@@ -140,7 +157,7 @@ this.wordCountBtn = wordBtn;
     this.recentNotesBtn = this.rightGroup.createEl('button', {
       cls: 'clickable-icon folder-lab-recent-notes-btn',
       attr: {
-        'aria-label': 'Notas recientes',
+        'aria-label': i18n.t('actions.recentNotes'),
         'id': 'folder-lab-recent-notes-btn'
       }
     });
@@ -159,7 +176,7 @@ this.wordCountBtn = wordBtn;
     this.allNotesBtn = this.rightGroup.createEl('button', {
       cls: 'clickable-icon folder-lab-all-notes-btn',
       attr: {
-        'aria-label': 'Mostrar todas las notas',
+        'aria-label': i18n.t('actions.allNotes'),
         'id': 'folder-lab-all-notes-btn'
       }
     });
@@ -178,7 +195,7 @@ this.wordCountBtn = wordBtn;
     this.folderBtn = this.rightGroup.createEl('button', {
       cls: 'clickable-icon folder-lab-folder-btn',
       attr: {
-        'aria-label': 'Ver carpetas',
+        'aria-label': i18n.t('actions.showFolders'),
         'id': 'folder-lab-folder-btn'
       }
     });
@@ -197,7 +214,7 @@ this.wordCountBtn = wordBtn;
     this.filterBtn = this.rightGroup.createEl('button', {
       cls: 'clickable-icon folder-lab-filter-btn',
       attr: {
-        'aria-label': 'Filtrar notas',
+        'aria-label': i18n.t('actions.filterNotes'),
         'id': 'folder-lab-filter-btn'
       }
     });
@@ -208,16 +225,21 @@ this.wordCountBtn = wordBtn;
       if (this.filterMenu) {
         this.filterMenu.show(e.currentTarget as HTMLElement);
       } else {
-        new Notice('🔍 Filtros (no disponible)');
+        new Notice(i18n.t('errors.filtersUnavailable'));
       }
     };
     // ============================================================
     // INICIALIZAR ESTADOS
     // ============================================================
+    //
+    // Las estadísticas NO se resuelven aquí: el texto inicial es el
+    // placeholder y el primer renderizado de la vista (según el modo
+    // de navegación activo) las calcula una sola vez. Lanzar una
+    // resolución asíncrona en render() se solapaba con la del
+    // primer loadFolder y duplicaba textos y engranaje.
     this.updateRightControl();
     this.updateTitle();
     this.updateWordCountVisibility();
-    this.updateStatistics();
 
     //  Delegar actualización de botones al view
     if (this.view) {
@@ -285,20 +307,11 @@ private isMasterOrRoot(): boolean {
     // Usar canGoBack() de FolderLabView
     const canGoBack = this.view?.canGoBack() || false;
 
-    console.log('[HEADER BACK DEBUG]', {
-      canGoBack,
-      navigationType: this.view
-        ? this.view.getCurrentNavigationNode()
-        : null,
-      currentPath: this.controller.getCurrentPath(),
-      masterPath: this.controller.getMasterPath()
-    });
-
 
     if (canGoBack) {
       this.iconWrapper.style.display = 'none';
       this.backBtn.style.display = 'flex';
-      this.backBtn.setAttr('aria-label', 'Volver al padre');
+      this.backBtn.setAttr('aria-label', i18n.t('actions.back'));
     } else {
       this.iconWrapper.style.display = 'none';
       this.backBtn.style.display = 'none';
@@ -367,19 +380,39 @@ private isMasterOrRoot(): boolean {
     this.folderTitle.textContent =
       capitalizeFirst(masterName);
   }
-  public async updateStatistics(
-    stats?: { totalNotes: number; percentage: number }
-  ): Promise<void> {
+  /**
+   * Establece las estadísticas del encabezado a partir del modelo
+   * EXPLÍCITO que aporta la vista activa. Este método no deduce
+   * nada por su cuenta: el modo activo es la fuente de verdad.
+   *
+   * El contenido se dibuja en un único paso síncrono: no hay
+   * estado intermedio vacío que parpadee. El guard de versión
+   * descarta escrituras obsoletas de llamadas concurrentes.
+   */
+  public updateStatistics(model: HeaderStatsModel): void {
     if (!this.statistics) return;
 
-    const resolvedStats =
-      stats ?? await this.controller.getStats();
+    this.statsRenderVersion++;
 
+    const display = buildHeaderStatsDisplay(model);
 
-    if (resolvedStats && resolvedStats.totalNotes > 0) {
-      this.statistics.textContent = `${resolvedStats.totalNotes} notas · ${resolvedStats.percentage}% completado`;
-    } else {
-      this.statistics.textContent = '0 notas · 0 carpetas · 0% completado';
+    // ------------------------------------------------------------
+    // Escritura DOM en un solo paso síncrono.
+    // ------------------------------------------------------------
+    this.statistics.empty();
+
+    this.statistics.createSpan({
+      text: display.noteText
+    });
+
+    if (display.suffixText) {
+      const suffixSpan = this.statistics.createSpan({
+        text: display.suffixText
+      });
+
+      if (display.suffixTitle) {
+        suffixSpan.setAttr('title', display.suffixTitle);
+      }
     }
   }
 
@@ -391,9 +424,11 @@ private isMasterOrRoot(): boolean {
     this.updateTitle();
     this.updateRightControl();
     this.updateWordCountVisibility();
-    await this.updateStatistics();
 
-    //  Delegar actualización de botones al view
+    /*
+     * Sin updateStatistics(): las estadísticas las fija la vista
+     * activa con su modelo explícito (cada renderizador de modo).
+     */
     if (this.view) {
       this.view.updateToolbarButtons();
     }
@@ -411,10 +446,10 @@ private isMasterOrRoot(): boolean {
       name.charAt(0).toUpperCase() + name.slice(1);
   }
 
-  async updateStats(
-    stats?: { totalNotes: number; percentage: number }
-  ): Promise<void> {
-    await this.updateStatistics(stats);
+  updateStats(
+    model: HeaderStatsModel
+  ): void {
+    this.updateStatistics(model);
   }
 
   public updateBackButton(): void {

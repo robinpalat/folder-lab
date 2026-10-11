@@ -9,7 +9,7 @@ import { App, TFolder, TFile } from 'obsidian';
 import { INTERNAL_FOLDER, ORDER_FILE } from '../constants/view-types';
 import { FolderRepository, FolderOrderData, GlobalOrderData } from '../storage/FolderRepository';
 import { FolderOrderSettings } from '../config/settings';
-import { isHiddenFolderName } from '../utils/folderUtils';
+import { isHiddenFolderName, isIgnoredFolderName } from '../utils/folderUtils';
 
 export class OrderService {
   private app: App;
@@ -66,6 +66,15 @@ export class OrderService {
   // UTILIDADES PRIVADAS
   // ============================================================
 
+  /**
+   * Lista configurable de carpetas ignoradas (nombres exactos).
+   */
+  private ignoredFolders(): string[] {
+    return (
+      this.settings.navigationPropertyMapping?.ignoredFolders ?? []
+    );
+  }
+
   private async addToFolderOrder(folderPath: string, name: string): Promise<void> {
     const currentOrder = await this.getOrderForFolder(folderPath);
     if (!currentOrder.includes(name)) {
@@ -77,6 +86,13 @@ export class OrderService {
   private async addFolderToOrder(parentPath: string, folderName: string): Promise<void> {
     const masterPath = this.settings.bookRootPath;
     if (!masterPath) return;
+
+    // Las carpetas ignoradas nunca entran al orden (creación,
+    // renombrados entrantes). La eliminación de una clave ausente
+    // ya es un no-op seguro.
+    const ignoredFolders = this.ignoredFolders();
+
+    if (isIgnoredFolderName(folderName, ignoredFolders)) return;
 
     const currentOrder = await this.getOrderForFolder(parentPath);
     if (!currentOrder.includes(folderName)) {
@@ -251,6 +267,24 @@ export class OrderService {
     const currentOrder = await this.getOrderForFolder(oldParentPath);
     const index = currentOrder.indexOf(oldName);
     if (index === -1) return;
+
+    // Renombrar hacia un nombre ignorado: se retira sin reincorporar
+    // (ni en el orden ni en la estructura), igual que al eliminar.
+    if (isIgnoredFolderName(newName, this.ignoredFolders())) {
+      currentOrder.splice(index, 1);
+      await this.updateFolderOrder(oldParentPath, currentOrder);
+
+      const globalOrder = await this.repository.getGlobalOrder();
+      if (globalOrder) {
+        const parentData = this.repository.getFolderData(oldParentPath);
+        if (parentData?.folders) {
+          delete parentData.folders[oldName];
+          await this.repository.saveGlobalOrder(masterPath, globalOrder);
+        }
+      }
+      await this.notifyOrderChanged();
+      return;
+    }
 
     currentOrder[index] = newName;
     await this.updateFolderOrder(oldParentPath, currentOrder);

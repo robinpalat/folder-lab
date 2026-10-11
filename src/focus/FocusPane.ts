@@ -6,7 +6,7 @@ import { WidgetManager } from './WidgetManager';
 import {
   applyWidgetIdentity
 } from './FocusWidgetsUtils';
-
+import { i18n } from '../i18n/I18nService';
 export enum FocusPanePosition {
   Top = 'top',
   Bottom = 'bottom'
@@ -112,12 +112,7 @@ export class FocusPane {
       const widget =
         this.widgetContainer?.querySelector(".fl-widget-notes") as HTMLElement | null;
 
-      console.log("[FOCUS PANE GEOMETRY]", {
-        pane: measure(this.element),
-        frame: measure(this.widgetContainer),
-        widget: measure(widget)
-      });
-    });
+          });
   }
 
   private createAndRenderWidget(instanceId: string): void {
@@ -131,7 +126,7 @@ export class FocusPane {
 
     if (!instance) {
       this.showError(
-        `Instancia de widget "${instanceId}" no encontrada`
+        i18n.t('focus.pane.error.instanceNotFound', { instanceId })
       );
       return;
     }
@@ -140,7 +135,7 @@ export class FocusPane {
 
     if (!newWidget) {
       this.showError(
-        `Widget "${instance.typeId}" no encontrado`
+        i18n.t('focus.pane.error.widgetNotFound', { typeId: instance.typeId })
       );
       return;
     }
@@ -165,8 +160,7 @@ export class FocusPane {
           this.showWidgetMenu();
         },
         onSourceSelect: () => {
-          console.log('[FocusPane] Source select requested');
-        }
+                  }
       });
     }
 

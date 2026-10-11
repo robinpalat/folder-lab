@@ -1,0 +1,842 @@
+{
+  "common": {
+    "appName": "Folder Lab",
+    "cancel": "Cancelar",
+    "accept": "Aceptar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "select": "Seleccionar",
+    "apply": "Aplicar",
+    "add": "Agregar",
+    "delete": "Eliminar",
+    "error": "Error",
+    "unknownError": "Error desconocido",
+    "notApplicable": "N/A"
+  },
+  "actions": {
+    "createNoteOrFolder": "Crear nota o carpeta",
+    "compile": "Compilar",
+    "countWords": "Contar palabras",
+    "recentNotes": "Notas recientes",
+    "recentNotesActive": "Volver a notas de la carpeta",
+    "recentNotesInactive": "Mostrar notas recientes",
+    "allNotes": "Mostrar todas las notas",
+    "showFolders": "Ver carpetas",
+    "hideFolders": "Ocultar carpetas",
+    "filterNotes": "Filtrar notas",
+    "filterActive": "Filtro activo",
+    "back": "Volver al padre",
+    "regenerateCompile": "Regenerar compilado",
+    "openNoteContext": "Abrir contexto de nota",
+    "deleteElement": "Eliminar elemento"
+  },
+  "navigation": {
+    "propertiesRootTitle": "Navegación por propiedades",
+    "rootFallback": "Raíz",
+    "providerFolders": "Carpetas y archivos",
+    "providerProperties": "Propiedades de las notas"
+  },
+  "empty": {
+    "noElements": "No hay elementos para mostrar",
+    "noFilterMatch": "No hay notas que coincidan con el filtro",
+    "folderNotFound": "Carpeta no encontrada",
+    "noRecentNotes": "No hay notas recientes",
+    "noSubfolders": "No hay subcarpetas para mostrar",
+    "combinedModeSoon": "Modo combinado (próximamente)",
+    "noRootFolders": "No hay carpetas en la raíz del vault"
+  },
+  "stats": {
+    "headerPlaceholder": "0 notas · 0 subcarpetas",
+    "note": {
+      "one": "nota",
+      "other": "notas"
+    },
+    "totalNote": {
+      "one": "nota total",
+      "other": "notas totales"
+    },
+    "folder": {
+      "one": "carpeta",
+      "other": "carpetas"
+    },
+    "zeroNotes": "0 notas",
+    "percentCompleted": " · {percentage} % completado",
+    "goalTooltip": "{words} / {target} palabras",
+    "foldersListed": "{count} carpetas",
+    "notesListed": "{count} notas",
+    "recentFiles": "{count} archivos recientes",
+    "compactProgress": "{notes} notas  ·  {percentage}% completado",
+    "compactEmpty": "0 notas  ·  0% completado"
+  },
+  "statuses": {
+    "draft": "Borrador",
+    "inProgress": "En progreso",
+    "completed": "Completado",
+    "pending": "Pendiente",
+    "review": "Revisar",
+    "approved": "Aprobado",
+    "discarded": "Descartado",
+    "questions": "Dudas",
+    "highPriority": "Prioridad alta",
+    "mediumPriority": "Prioridad media",
+    "bookmark": "Guardado",
+    "thumbDown": "Revisar",
+    "noStatus": "Sin estado"
+  },
+  "filters": {
+    "all": "Todas las notas",
+    "empty": "Notas vacías",
+    "noStatus": "Sin estado",
+    "clear": "✕ Limpiar filtro"
+  },
+  "notes": {
+    "create": {
+      "menuItem": "Nueva nota",
+      "prompt": "Nombre de la nueva nota:",
+      "defaultName": "Nueva nota"
+    },
+    "created": "Nota creada: {name}",
+    "deleted": "Nota eliminada: {name}",
+    "quickAreaPlaceholder": "Escribe tus apuntes aquí…",
+    "status": {
+      "emptyTooltip": "Nota vacía",
+      "changeHint": "Haz clic para cambiar estado",
+      "setHint": "Haz clic para establecer estado",
+      "set": "Establecer estado",
+      "tooltipWithLabel": "{label} - Haz clic para cambiar estado",
+      "todoNotice": "📝 Menú de estado (TODO)"
+    },
+    "statusMenu": {
+      "none": "Sin estado"
+    },
+    "reorderTodoNotice": "Reordenamiento (TODO)"
+  },
+  "folders": {
+    "create": {
+      "menuItem": "Nueva carpeta",
+      "prompt": "Nombre de la nueva carpeta:"
+    },
+    "created": "Carpeta creada: {name}",
+    "contextMenu": {
+      "openInFolderLab": "Abrir en Folder Lab"
+    }
+  },
+  "export": {
+    "copyListTxt": "Copiar lista (TXT)",
+    "exportAllNotes": "Exportar todas las notas",
+    "generatingCompile": "📚 Generando compilado...",
+    "compiledUpdated": "Compilado actualizado: {name}",
+    "compiledCreated": "Compilado creado: {name}",
+    "listCopiedToClipboard": "Lista copiada al portapapeles",
+    "indexFileCreated": "{fileName} creado",
+    "subfoldersSoon": "Exportando todas las subcarpetas... (próximamente)",
+    "noNotesSelected": "No hay notas seleccionadas",
+    "selectionFileCreated": "✅ {fileName} creado",
+    "selectionExportError": "❌ Error al exportar selección",
+    "document": {
+      "pendingContent": "*[Contenido pendiente]*",
+      "noNotes": "*No hay notas para compilar*",
+      "selectionHeading": "# {folder} (selección)"
+    }
+  },
+  "errors": {
+    "noRootConfigured": "❌ No hay carpeta raíz configurada. Ve a Ajustes → Folder Lab",
+    "initFailed": "❌ No fue posible inicializar el proyecto Folder Lab.",
+    "initProject": "❌ Error al inicializar el proyecto",
+    "noFolderSelected": "No hay carpeta seleccionada",
+    "noFolderSelectedMarked": "❌ No hay carpeta seleccionada",
+    "noFolderOrFileSelected": "No hay carpeta o archivo seleccionado",
+    "noCurrentFolder": "No hay carpeta actual",
+    "alreadyAtRoot": "Ya estás en la carpeta raíz",
+    "folderNotFound": "Carpeta no encontrada",
+    "folder": {
+      "invalidName": "❌ El nombre no puede contener barras ni segmentos de ruta",
+      "alreadyExists": "Ya existe una carpeta con el nombre \"{name}\"",
+      "createFailed": "❌ No se pudo crear la carpeta"
+    },
+    "note": {
+      "invalidFile": "❌ Archivo no válido",
+      "emptyName": "El nombre no puede estar vacío",
+      "duplicateName": "Ya existe una nota con el nombre \"{name}\"",
+      "deleteFailed": "❌ Error al eliminar la nota"
+    },
+    "wordCount": {
+      "noRootConfigured": "❌ Configura la carpeta raíz en Ajustes → Folder Lab",
+      "failed": "❌ Error al contar palabras",
+      "updateFailed": "❌ No se pudo actualizar el conteo de palabras"
+    },
+    "focus": {
+      "noActiveNote": "No hay nota activa para el modo Focus"
+    },
+    "board": {
+      "noActiveNote": "No hay una nota activa.",
+      "noteViewNotFound": "No se encontró la vista de la nota activa.",
+      "notFound": "No se encontró el Board activo."
+    },
+    "navigation": {
+      "nodeNotFound": "❌ Nodo no encontrado: {path}"
+    },
+    "viewNotOpen": "Folder Lab no está abierto",
+    "viewNotOpenMarked": "⚠️ Folder Lab no está abierto",
+    "openSidePanel": "❌ No se pudo abrir el panel lateral",
+    "loadView": "No se pudo cargar Folder Lab",
+    "ignoredFoldersApplyFailed": "❌ No se pudo aplicar carpetas ignoradas al orden global",
+    "folderOrderCorrupt": "No se pudo leer _folder_order.json. Los datos existentes se conservan en disco: corrige o elimina el archivo para continuar.",
+    "filtersUnavailable": "🔍 Filtros (no disponible)",
+    "ai": {
+      "notInitialized": "❌ Servicio de IA no inicializado"
+    },
+    "withMessage": "Error: {message}"
+  },
+  "notices": {
+    "viewRefreshed": "Folder Lab actualizado",
+    "navigationUpdated": "✅ Navegación actualizada",
+    "orderUpdated": "Orden actualizado",
+    "focusModeToggled": "Modo enfoque {state}",
+    "focusMode": {
+      "enabled": "activado",
+      "disabled": "desactivado"
+    },
+    "manualOrderToggled": "Orden manual {state}",
+    "manualOrder": {
+      "enabled": "activado",
+      "disabled": "desactivado"
+    },
+    "bookRootConfigured": "✅ Carpeta raíz configurada: {path}",
+    "navTypeChanged": "Navegación cambiada a: {typeName}",
+    "presetApplied": "Preset Jekyll aplicado",
+    "noActiveNote": "No hay nota activa",
+    "noActiveNoteMarked": "❌ No hay nota activa",
+    "contextTestResult": "✅ Contexto: {name} ({length} caracteres)"
+  },
+  "commands": {
+    "openFolderLab": "Abrir panel de Folder Lab",
+    "refreshView": "Refrescar vista",
+    "toggleFocusMode": "Alternar modo Focus",
+    "testContextResolver": "Probar ContextResolver (nota actual)"
+  },
+  "settings": {
+    "title": "📂 Configuración de Folder Lab",
+    "manualOrder": {
+      "name": "Usar orden manual",
+      "desc": "Activa el orden manual en el explorador de archivos"
+    },
+    "showNumbers": {
+      "name": "Mostrar números",
+      "desc": "Muestra números en el índice"
+    },
+    "numberingStyle": {
+      "name": "Estilo de numeración",
+      "desc": "Romanos (I, II, III) o arábigos (1, 2, 3)",
+      "option": {
+        "roman": "Romanos (I, II, III)",
+        "arabic": "Arábigos (1, 2, 3)",
+        "none": "Sin números"
+      }
+    },
+    "bookRoot": {
+      "heading": "📚 Carpeta raíz del libro",
+      "name": "Carpeta raíz del libro",
+      "desc": "Carpeta principal que contiene todo el libro. Al seleccionarla se inicializará el proyecto.",
+      "placeholder": "Ej: Libro/",
+      "selectButton": "📁 Seleccionar",
+      "configuredNotice": "✅ Carpeta raíz configurada: {path}",
+      "currentFolderInfo": "📂 Carpeta actual: {path}"
+    },
+    "navigation": {
+      "heading": "🧭 Navegación",
+      "type": {
+        "name": "Tipo de navegación",
+        "desc": "Elige cómo se organiza la navegación en Folder Lab",
+        "option": {
+          "folders": "Carpetas y archivos",
+          "properties": "Propiedades de las notas"
+        }
+      }
+    },
+    "properties": {
+      "preset": {
+        "name": "Preset de propiedades",
+        "desc": "Selecciona un esquema predefinido para las propiedades",
+        "option": {
+          "jekyll": "Jekyll / Just the Docs",
+          "custom": "Personalizado"
+        },
+        "appliedNotice": "Preset Jekyll aplicado"
+      },
+      "title": {
+        "name": "Propiedad de título",
+        "desc": "Nombre de la propiedad que contiene el título de la nota"
+      },
+      "parent": {
+        "name": "Propiedad de padre",
+        "desc": "Nombre de la propiedad que contiene el padre de la nota"
+      },
+      "order": {
+        "name": "Propiedad de orden",
+        "desc": "Nombre de la propiedad que contiene el orden de la nota"
+      },
+      "hasChildren": {
+        "name": "Propiedad de hijos",
+        "desc": "Nombre de la propiedad que indica si tiene hijos"
+      },
+      "permalink": {
+        "name": "Propiedad de permalink",
+        "desc": "Nombre de la propiedad que contiene el permalink"
+      }
+    },
+    "ignoredFolders": {
+      "name": "Carpetas ignoradas",
+      "desc": "Nombres de carpetas excluidas de la iteración del orden global (p. ej. carpetas técnicas como \"assets\"). Sepáralas por comas o saltos de línea. Se aplica por nombre exacto en cualquier nivel; no afecta a las notas."
+    },
+    "refreshNavigation": {
+      "name": "Refrescar navegación",
+      "desc": "Reconstruye el árbol de navegación desde las fuentes actuales",
+      "button": "🔄 Refrescar"
+    },
+    "ai": {
+      "heading": "🤖 Configuración de IA",
+      "provider": {
+        "name": "Proveedor de IA",
+        "desc": "Selecciona el servicio de IA que quieres usar"
+      },
+      "apiKey": {
+        "name": "API Key",
+        "desc": "Tu clave de API del servicio seleccionado",
+        "placeholder": "Introduce tu API Key"
+      },
+      "recommendedModel": {
+        "name": "Usar modelo recomendado",
+        "desc": "El plugin seleccionará automáticamente el mejor modelo para tu proveedor"
+      },
+      "customModel": {
+        "name": "Modelo personalizado",
+        "desc": "Nombre del modelo (ej: gpt-4o, gemini-1.5-pro, claude-3-5-sonnet-20241022)",
+        "placeholder": "Nombre del modelo"
+      },
+      "temperature": {
+        "name": "Temperatura",
+        "desc": "Creatividad de la IA (0 = preciso, 2 = creativo)"
+      },
+      "maxTokens": {
+        "name": "Máximo de tokens",
+        "desc": "Longitud máxima de la respuesta"
+      },
+      "testConnection": {
+        "name": "🔌 Probar conexión",
+        "desc": "Verifica que tu configuración sea correcta",
+        "button": "Probar",
+        "testing": "⏳ Probando...",
+        "connected": "✅ Conectado",
+        "error": "❌ Error"
+      },
+      "help": {
+        "heading": "📌 Cómo obtener tu API Key"
+      }
+    },
+    "info": {
+      "heading": "ℹ️ Información",
+      "orderStorage": "El orden se guarda en un archivo _folder_order.json dentro de la carpeta .folder-order (oculta).",
+      "emptyNotes": "Notas vacías: se detectan automáticamente (< 10 caracteres sin contar el título).",
+      "wordCountExclusions": "El conteo de palabras excluye automáticamente archivos compilados y archivos dentro de .folder-order."
+    }
+  },
+  "modal": {
+    "selectRoot": {
+      "title": "Seleccionar carpeta raíz del libro",
+      "description": "Elige la carpeta principal que contiene todo el libro."
+    },
+    "wordCount": {
+      "fallbackBookName": "Libro",
+      "stat": {
+        "totalWords": "Total palabras",
+        "notes": "Notas",
+        "avgPerNote": "Promedio por nota"
+      },
+      "mostWords": "🏆 Más palabras",
+      "leastWords": "📉 Menos palabras",
+      "detailsHeading": "Detalle por nota",
+      "refreshButton": "Actualizar estadísticas",
+      "refreshButtonAria": "Actualizar estadísticas del conteo de palabras",
+      "refreshing": "Actualizando…",
+      "refreshError": "No se pudo actualizar; se muestran los últimos datos válidos.",
+      "setGoal": "Establecer meta",
+      "goalTitle": "Meta de escritura",
+      "changeGoal": "Cambiar meta",
+      "goalWords": "Meta de palabras",
+      "currentWords": "Palabras actuales",
+      "compliance": "Cumplimiento",
+      "goalPlaceholder": "p. ej. 80000",
+      "goalAria": "Meta de palabras del libro",
+      "saveGoal": "Guardar meta"
+    },
+    "polish": {
+      "title": "Pulir fragmento",
+      "originalLabel": "Original (solo lectura)",
+      "personalLabel": "Versión personal",
+      "discard": "Descartar versión personal",
+      "save": "Guardar versión",
+      "buttonShort": "Pulir"
+    }
+  },
+  "focus": {
+    "title": {
+      "noActiveNote": "Sin nota activa"
+    },
+    "closeAria": "Cerrar modo Focus",
+    "workspace": {
+      "board": "Board",
+      "close": "Cerrar",
+      "library": "Biblioteca",
+      "note": "Nota",
+      "backToNote": "Volver a la nota",
+      "openBoard": "Abrir Board"
+    },
+    "sources": {
+      "note": "Nota",
+      "notes": "Apuntes",
+      "snips": "Snips",
+      "tasks": "Tareas"
+    },
+    "dragdrop": {
+      "dropFailed": "No se pudo procesar el elemento soltado"
+    },
+    "pane": {
+      "error": {
+        "instanceNotFound": "Instancia de widget \"{instanceId}\" no encontrada",
+        "widgetNotFound": "Widget \"{typeId}\" no encontrado"
+      }
+    }
+  },
+  "board": {
+    "viewTitle": "Board",
+    "saveError": "No se pudo guardar el Board. Los cambios se conservan en memoria: se reintentará al cerrar o al seguir editando.",
+    "modes": {
+      "explore": "Explorar",
+      "architecture": "Arquitectura",
+      "document": "Documento"
+    },
+    "explore": {
+      "emptyHint": "Arrastra aquí elementos del panel para crear bloques"
+    },
+    "context": {
+      "title": "Contexto",
+      "noLists": "Sin listas",
+      "group": {
+        "restrictions": "Restricciones",
+        "candidates": "Candidatos",
+        "tasks": "Tareas"
+      },
+      "counts": {
+        "activeFeminine": {
+          "one": "activa",
+          "other": "activas"
+        },
+        "activeMasculine": {
+          "one": "activo",
+          "other": "activos"
+        },
+        "pending": {
+          "one": "pendiente",
+          "other": "pendientes"
+        },
+        "completed": {
+          "one": "completada",
+          "other": "completadas"
+        }
+      }
+    },
+    "card": {
+      "fallbackTitle": "Texto",
+      "action": {
+        "activate": "Activar bloque",
+        "deactivate": "Desactivar bloque",
+        "showMore": "Ver más",
+        "showLess": "Ver menos",
+        "remove": "Eliminar bloque"
+      },
+      "connect": {
+        "aria": "Conectar este bloque"
+      }
+    },
+    "connection": {
+      "dot": {
+        "aria": "Punto de conexión"
+      }
+    },
+    "connectTooltip": "Conectar",
+    "group": {
+      "placeholderName": "Nombrar grupo",
+      "renameInput": "Nombre del grupo",
+      "tooltip": "Arrastrar grupo · Clic: editar nombre",
+      "action": {
+        "remove": "Eliminar contenedor"
+      },
+      "connect": {
+        "aria": "Conectar este grupo"
+      }
+    },
+    "architecture": {
+      "title": "Arquitectura del documento",
+      "hint": "Define la estructura editorial y asigna el material de Explorar. El orden de aquí determina el orden del Documento.",
+      "invitation": {
+        "mainTopic": "Define el título o tema principal",
+        "addSection": "Añadir sección",
+        "addItem": "Añadir apartado"
+      },
+      "level": {
+        "title": "Título",
+        "numbered": "Nivel {level}"
+      },
+      "placeholder": {
+        "documentTitle": "Título del documento",
+        "elementTitle": "Título del elemento"
+      },
+      "action": {
+        "moveUp": "Mover arriba",
+        "moveDown": "Mover abajo",
+        "levelUp": "Subir nivel",
+        "levelDown": "Bajar nivel",
+        "addSubelement": "Añadir subelemento",
+        "deleteElement": "Eliminar elemento",
+        "moveInSectionUp": "Subir en la sección",
+        "moveInSectionDown": "Bajar en la sección",
+        "removeFromSection": "Quitar de la sección",
+        "assignToSection": "Asignar a una sección"
+      },
+      "empty": {
+        "noMaterial": "Sin material asignado"
+      },
+      "badge": {
+        "inactive": "Desactivada"
+      },
+      "tray": {
+        "title": "Material sin asignar"
+      },
+      "menu": {
+        "untitled": "Sin título"
+      },
+      "add": {
+        "title": "Añadir título",
+        "section": "Añadir sección",
+        "subsection": "Añadir subsección",
+        "item": "Añadir apartado"
+      }
+    },
+    "document": {
+      "empty": {
+        "title": "El documento aún no tiene contenido",
+        "hint": "Define la estructura en Arquitectura y asigna ahí el material activo de Explorar. El orden editorial de Arquitectura determina el orden de este texto."
+      },
+      "heading": {
+        "untitled": "Sin título"
+      },
+      "badge": {
+        "original": "Original"
+      },
+      "version": {
+        "personal": "Personal",
+        "original": "Original"
+      },
+      "action": {
+        "toggleVersion": "Alternar versión del fragmento",
+        "toggleVersionTooltip": "Alternar entre original y versión personal"
+      }
+    }
+  },
+  "widgets": {
+    "common": {
+      "session": "Sesión",
+      "sessionToday": "Hoy",
+      "expand": "Expandir",
+      "collapse": "Contraer",
+      "errorWithMessage": "Error: {message}"
+    },
+    "defs": {
+      "snips": {
+        "label": "Snips",
+        "description": "Fragmentos de texto consolidados",
+        "emptyState": "Arrastra aquí un fragmento de texto"
+      },
+      "collections": {
+        "label": "Colecciones",
+        "description": "Colección de fragmentos de texto",
+        "emptyState": "Arrastra aquí un fragmento de texto"
+      },
+      "restrictions": {
+        "label": "Restricciones",
+        "description": "Colección de restricciones",
+        "emptyState": "Arrastra aquí un fragmento de texto"
+      },
+      "candidates": {
+        "label": "Candidatos",
+        "description": "Candidatos seleccionables",
+        "emptyState": "Arrastra aquí un fragmento de texto"
+      },
+      "tasks": {
+        "label": "Tareas",
+        "description": "Lista de tareas",
+        "placeholder": "Nueva tarea...",
+        "emptyState": "Crea una tarea o arrastra aquí un texto"
+      }
+    },
+    "registered": {
+      "activeNote": {
+        "label": "Nota activa",
+        "description": "Muestra y permite trabajar directamente con la nota actualmente activa en Obsidian."
+      },
+      "notes": {
+        "label": "Apuntes",
+        "description": "Captura y organiza apuntes espontáneos asociados al contexto. Es un punto de entrada para alimentar otros widgets con ideas, textos y observaciones."
+      },
+      "resources": {
+        "label": "Archivos compartidos de la carpeta",
+        "description": "Muestra los archivos y recursos compartidos por las notas de la carpeta actual."
+      },
+      "memory": {
+        "label": "Asistente",
+        "description": "Utiliza inteligencia artificial para analizar el contexto de la nota y ejecutar capacidades sobre sus fuentes y contenidos."
+      }
+    },
+    "managerDefaultName": {
+      "assistant": "Asistente",
+      "notes": "Apuntes"
+    },
+    "declarative": {
+      "empty": {
+        "noteRequired": "Abre una nota para usar {label}"
+      },
+      "notice": {
+        "cleared": "{label} vaciadas",
+        "completedCleared": "Tareas completadas eliminadas",
+        "movedTo": "Elemento movido a {label}",
+        "addedTo": "Elemento añadido a {label}"
+      },
+      "action": {
+        "candidateSelected": "Candidato seleccionado",
+        "selectCandidate": "Seleccionar candidato",
+        "activate": "Activar elemento",
+        "deactivate": "Desactivar elemento"
+      }
+    },
+    "controls": {
+      "sourceFallbackLabel": "Fuente"
+    },
+    "activeNote": {
+      "label": "Nota",
+      "editorAria": "Editar {name}",
+      "placeholder": "Escribe en la nota activa…",
+      "externalConflictNotice": "La nota cambió fuera de este editor. Tus cambios locales se conservan aquí; para imponerlos, sigue editando. Para conservar los cambios externos, no sigas editando y vuelve a abrir la nota.",
+      "empty": {
+        "noteRequired": "Abre una nota Markdown para editarla aquí"
+      }
+    },
+    "memory": {
+      "empty": {
+        "apiKeyRequired": "Configura tu API Key en Ajustes → Folder Lab",
+        "noteRequired": "Abre una nota para usar el Asistente",
+        "noSavedResponses": "No hay respuestas guardadas."
+      },
+      "capability": {
+        "placeholder": "Seleccionar"
+      },
+      "action": {
+        "apply": "Aplicar",
+        "deactivateResponse": "Desactivar respuesta",
+        "activateResponse": "Activar respuesta",
+        "deleteResponse": "Eliminar respuesta"
+      },
+      "placeholder": {
+        "result": "El resultado aparecerá aquí.",
+        "instructions": "Indicaciones adicionales..."
+      },
+      "notice": {
+        "selectCapability": "Selecciona una capacidad"
+      },
+      "status": {
+        "processing": "Procesando"
+      },
+      "error": {
+        "sourceLoadFailed": "No se pudo cargar la fuente \"{source}\".",
+        "unknown": "Error desconocido"
+      }
+    },
+    "notesWidget": {
+      "action": {
+        "save": "Guardar",
+        "copy": "Copiar apuntes",
+        "activate": "Activar apunte",
+        "deactivate": "Desactivar apunte",
+        "delete": "Eliminar apunte"
+      },
+      "empty": {
+        "noteRequired": "Abre una nota para escribir apuntes"
+      },
+      "placeholder": {
+        "draft": "Escribe tus apuntes..."
+      },
+      "notice": {
+        "created": "Apunte creado",
+        "saved": "Apunte guardado"
+      }
+    },
+    "resourcesWidget": {
+      "label": "Recursos",
+      "empty": {
+        "noteRequired": "Abre una nota para ver sus recursos",
+        "noResources": "Sin recursos",
+        "hint": "Agrega archivos o enlaces relacionados con esta nota"
+      },
+      "action": {
+        "addTooltip": "Agregar recurso",
+        "openFolderTooltip": "Abrir carpeta de recursos",
+        "activate": "Activar recurso",
+        "deactivate": "Desactivar recurso",
+        "delete": "Eliminar recurso"
+      },
+      "meta": {
+        "web": "WEB",
+        "fileFallback": "ARCHIVO"
+      }
+    }
+  },
+  "library": {
+    "tab": {
+      "widgets": "WIDGETS",
+      "assistant": "ASISTENTE",
+      "recipes": "RECETAS"
+    },
+    "recipesEmpty": "Recetas",
+    "widgetsColumn": {
+      "available": "Widgets disponibles",
+      "instances": "En esta nota"
+    },
+    "widgetsAction": {
+      "add": "Agregar widget",
+      "delete": "Eliminar widget",
+      "apply": "Aplicar"
+    },
+    "widgetsEmpty": "No hay widgets configurados.",
+    "instanceRenameTooltip": "Clic para renombrar",
+    "section": {
+      "sources": "FUENTES",
+      "domains": "DOMINIOS",
+      "capabilities": "CAPACIDADES"
+    },
+    "capabilitiesEmpty": "No hay capacidades disponibles en este dominio."
+  },
+  "resources": {
+    "modal": {
+      "title": "Agregar recurso"
+    },
+    "field": {
+      "type": "Tipo",
+      "name": "Nombre",
+      "description": "Descripción (opcional)",
+      "file": "Archivo",
+      "url": "URL",
+      "tags": "Etiquetas (opcional)"
+    },
+    "type": {
+      "file": "Archivo",
+      "link": "Enlace"
+    },
+    "placeholder": {
+      "name": "Nombre del recurso",
+      "description": "Breve descripción...",
+      "file": "Selecciona un archivo...",
+      "tags": "ciencia, sistemas, referencia"
+    },
+    "action": {
+      "add": "Agregar",
+      "browse": "Seleccionar"
+    },
+    "validation": {
+      "selectFile": "Selecciona un archivo",
+      "fileMissingInVault": "El archivo no existe en el vault",
+      "enterUrl": "Introduce una URL",
+      "enterName": "Introduce un nombre para el recurso"
+    },
+    "filePickerPlaceholder": "Buscar archivo...",
+    "importDefaultFileName": "recurso",
+    "notice": {
+      "added": "Recurso agregado",
+      "addFailed": "No se pudo agregar el recurso",
+      "addError": "Error al agregar recurso",
+      "deleted": "Recurso eliminado",
+      "fileNotFound": "Archivo no encontrado",
+      "updateStateError": "Error al actualizar el estado del recurso",
+      "notRegistered": "Este recurso no está registrado en la metadata",
+      "removedFromRegistry": "Eliminado del registro (el archivo permanece en _resources)",
+      "folderAlreadyExists": "La carpeta de recursos ya está disponible en el vault",
+      "folderMissing": "La carpeta de recursos no existe"
+    }
+  },
+  "ai": {
+    "browser": {
+      "title": "Trabajo",
+      "empty": "No hay capacidades disponibles en este dominio."
+    },
+    "connection": {
+      "apiKeyNotConfigured": "API Key no configurada",
+      "connected": "{name} conectado correctamente\nModelo: {model}",
+      "failed": "Error de conexión. Verifica tu API Key"
+    }
+  },
+  "domains": {
+    "research": {
+      "label": "Investigación",
+      "description": "Capacidades para explorar, verificar y ampliar información.",
+      "capabilities": {
+        "questions": {
+          "label": "Preguntas",
+          "description": "Identifica preguntas relevantes y cuestiones abiertas."
+        },
+        "references": {
+          "label": "Referencias",
+          "description": "Identifica referencias y necesidades de investigación."
+        },
+        "concepts": {
+          "label": "Conceptos clave",
+          "description": "Extrae los conceptos más importantes del texto y explica su relevancia."
+        },
+        "thesis": {
+          "label": "Tesis",
+          "description": "Identifica la tesis central que el texto sostiene, plantea o intenta demostrar."
+        }
+      }
+    },
+    "review": {
+      "label": "Revisión",
+      "description": "Capacidades para evaluar la calidad del contenido.",
+      "capabilities": {
+        "clarity": {
+          "label": "Claridad",
+          "description": "Detecta problemas de claridad en el texto."
+        },
+        "coherence": {
+          "label": "Coherencia",
+          "description": "Detecta problemas de coherencia y estructura."
+        }
+      }
+    },
+    "transform": {
+      "label": "Transformación",
+      "description": "Capacidades para convertir el contenido en estructuras y representaciones útiles.",
+      "capabilities": {
+        "outline": {
+          "label": "Esquema",
+          "description": "Organiza el contenido en una estructura jerárquica de ideas principales y secundarias."
+        },
+        "mindmap": {
+          "label": "Mapa mental",
+          "description": "Transforma el contenido en una estructura conceptual jerárquica mediante encabezados Markdown."
+        },
+        "studyQuestions": {
+          "label": "Preguntas de estudio",
+          "description": "Convierte el contenido en preguntas útiles para estudiar y comprobar su comprensión."
+        }
+      }
+    }
+  }
+}

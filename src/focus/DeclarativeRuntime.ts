@@ -730,11 +730,6 @@ export class DeclarativeRuntime {
 
   debug(): void {
 
-    console.log(
-      '[DeclarativeRuntime] Definiciones:',
-      this.getDefinitions()
-    );
-
 
     for (
       const definition
@@ -747,10 +742,6 @@ export class DeclarativeRuntime {
         );
 
 
-      console.log(
-        `[DeclarativeRuntime] ${definition.id}`,
-        result
-      );
-    }
+          }
   }
 }

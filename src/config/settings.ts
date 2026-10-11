@@ -17,6 +17,13 @@ export interface NavigationPropertyMapping {
   permalink: string;
   /** Reglas de exclusión configurables */
   exclusions: NavigationExclusionRule[];
+  /**
+   * Nombres de carpetas excluidas de la iteración del orden
+   * global (p. ej. carpetas técnicas como "assets"). Comparación
+   * por nombre exacto, válida en cualquier nivel. Vacía por
+   * defecto (= comportamiento anterior).
+   */
+  ignoredFolders: string[];
 }
 
 export const DEFAULT_JEKYLL_MAPPING: NavigationPropertyMapping = {
@@ -31,7 +38,8 @@ export const DEFAULT_JEKYLL_MAPPING: NavigationPropertyMapping = {
       value: true,
       operator: 'equals'
     }
-  ]
+  ],
+  ignoredFolders: []
 };
 
 export interface FolderOrderSettings {
@@ -53,6 +61,13 @@ export interface FolderOrderSettings {
   // Navegación
   navigationType: 'folders' | 'properties';
   navigationPropertyMapping: NavigationPropertyMapping;
+  /**
+   * Meta de palabras del libro (carpeta master). 0 = sin meta.
+   * Clave propia de ajustes: persiste con el mecanismo existente.
+   * Solo el libro tiene meta; las subcarpetas no tienen ni meta
+   * ni porcentaje propios.
+   */
+  bookWordGoal: number;
 }
 
 export const DEFAULT_SETTINGS: FolderOrderSettings = {
@@ -71,5 +86,6 @@ export const DEFAULT_SETTINGS: FolderOrderSettings = {
   aiTemperature: 0.3,
   aiMaxTokens: 500,
   navigationType: 'folders',
-  navigationPropertyMapping: DEFAULT_JEKYLL_MAPPING
+  navigationPropertyMapping: DEFAULT_JEKYLL_MAPPING,
+  bookWordGoal: 0
 };

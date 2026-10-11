@@ -6,6 +6,7 @@
 
 
 import { FolderLabController } from '../core/FolderLabController';  //  CORREGIDO
+import { i18n } from '../i18n/I18nService';
 
 export class StatsComponent {
   private container: HTMLElement;
@@ -40,9 +41,9 @@ export class StatsComponent {
     
     const stats = await this.controller.getStats();
     if (stats && stats.totalNotes > 0) {
-      this.element.textContent = `${stats.totalNotes} notas  ·  ${stats.percentage}% completado`;
+      this.element.textContent = i18n.t('stats.compactProgress', { notes: stats.totalNotes, percentage: stats.percentage });
     } else {
-      this.element.textContent = '0 notas  ·  0% completado';
+      this.element.textContent = i18n.t('stats.compactEmpty');
     }
   }
 }

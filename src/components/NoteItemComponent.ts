@@ -8,7 +8,7 @@ import { setIcon, Menu, Notice } from 'obsidian';
 import { FolderLabController } from '../core/FolderLabController';  // CORREGIDO
 import { FolderLabItem } from '../models/FolderLabItem';
 import { toRoman } from '../utils/roman-utils';
-
+import { i18n } from '../i18n/I18nService';
 export class NoteItemComponent {
   private container: HTMLElement;
   private controller: FolderLabController;
@@ -116,7 +116,7 @@ export class NoteItemComponent {
     if (isEmpty) {
       setIcon(icon, 'alert-circle');
       icon.style.color = 'var(--text-warning)';
-      icon.title = 'Nota vacía';
+      icon.title = i18n.t('notes.status.emptyTooltip');
       statusContainer.style.cursor = 'default';
       statusContainer.style.opacity = '0.8';
     } else {
@@ -124,17 +124,17 @@ export class NoteItemComponent {
       if (status) {
         setIcon(icon, status);
         icon.style.color = 'var(--text-muted)';
-        icon.title = 'Haz clic para cambiar estado';
+        icon.title = i18n.t('notes.status.changeHint');
       } else {
         setIcon(icon, 'more-vertical');
         icon.style.color = 'var(--text-muted)';
         icon.style.opacity = '0.4';
-        icon.title = 'Haz clic para establecer estado';
+        icon.title = i18n.t('notes.status.setHint');
       }
 
       statusContainer.onclick = (e) => {
         e.stopPropagation();
-        new Notice('📝 Menú de estado (TODO)');
+        new Notice(i18n.t('notes.status.todoNotice'));
       };
     }
   }
@@ -152,7 +152,7 @@ export class NoteItemComponent {
       cls: 'folder-order-refresh-icon'
     });
     setIcon(refreshIcon, 'refresh-cw');
-    refreshIcon.title = 'Regenerar compilado';
+    refreshIcon.title = i18n.t('actions.regenerateCompile');
     refreshIcon.style.cursor = 'pointer';
     refreshIcon.style.color = 'var(--text-muted)';
     refreshIcon.style.opacity = '0.6';
@@ -218,7 +218,7 @@ export class NoteItemComponent {
       const from = parseInt(e.dataTransfer?.getData('text/plain') || '-1');
       if (from === -1 || from === index) return;
 
-      new Notice('Reordenamiento (TODO)');
+      new Notice(i18n.t('notes.reorder.todoNotice'));
     });
   }
 
@@ -230,7 +230,7 @@ export class NoteItemComponent {
       if (this.item?.isSpecial) {
         const menu = new Menu();
         menu.addItem((item) => {
-          item.setTitle('Regenerar compilado')
+          item.setTitle(i18n.t('actions.regenerateCompile'))
             .setIcon('refresh-cw')
             .onClick(() => this.controller.exportAllNotes());
         });
@@ -240,7 +240,7 @@ export class NoteItemComponent {
 
       const menu = new Menu();
       menu.addItem((item) => {
-        item.setTitle('Eliminar')
+        item.setTitle(i18n.t('actions.delete'))
           .setIcon('trash-2')
           .onClick(() => {
             if (this.item?.file) {

@@ -3,7 +3,7 @@
 
 import { Resource, ResourceType } from './Resource';
 import { App, Modal, Setting, setIcon, Notice, TFolder, TFile, FuzzySuggestModal, FuzzyMatch } from 'obsidian';
-
+import { i18n } from '../../i18n/I18nService';
 export class AddResourceModal extends Modal {
   private resourceType: ResourceType = 'file';
   private title: string = '';
@@ -13,6 +13,7 @@ export class AddResourceModal extends Modal {
   private tags: string = '';
   private onSubmit: (resource: Omit<Resource, 'id' | 'createdAt' | 'updatedAt'>) => void;
   private fileInput: HTMLInputElement | null = null;
+  private titleInput: HTMLInputElement | null = null;
 
   constructor(
     app: App,
@@ -26,16 +27,16 @@ export class AddResourceModal extends Modal {
     this.contentEl.empty();
     this.contentEl.addClass('fl-resource-modal');
 
-    const header = this.contentEl.createEl('h2', { text: 'Agregar recurso' });
+    const header = this.contentEl.createEl('h2', { text: i18n.t('resources.modal.title') });
     header.style.marginBottom = '16px';
 
     // Tipo de recurso
     new Setting(this.contentEl)
-      .setName('Tipo')
+      .setName(i18n.t('resources.field.type'))
       .addDropdown(dropdown => {
         dropdown
-          .addOption('file', 'Archivo')
-          .addOption('link', 'Enlace')
+          .addOption('file', i18n.t('resources.type.file'))
+          .addOption('link', i18n.t('resources.type.link'))
           .setValue(this.resourceType)
           .onChange((value) => {
             this.resourceType = value as ResourceType;
@@ -45,21 +46,22 @@ export class AddResourceModal extends Modal {
 
     // Nombre
     new Setting(this.contentEl)
-      .setName('Nombre')
+      .setName(i18n.t('resources.field.name'))
       .addText(text => {
         text
-          .setPlaceholder('Nombre del recurso')
+          .setPlaceholder(i18n.t('resources.placeholder.name'))
           .onChange((value) => {
             this.title = value;
           });
+        this.titleInput = text.inputEl;
       });
 
     // Descripción (opcional)
     new Setting(this.contentEl)
-      .setName('Descripción (opcional)')
+      .setName(i18n.t('resources.field.description'))
       .addTextArea(textarea => {
         textarea
-          .setPlaceholder('Breve descripción...')
+          .setPlaceholder(i18n.t('resources.placeholder.description'))
           .onChange((value) => {
             this.description = value;
           });
@@ -77,11 +79,11 @@ export class AddResourceModal extends Modal {
     });
     actions.style.cssText = 'display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--background-modifier-border);';
 
-    const cancelBtn = actions.createEl('button', { text: 'Cancelar' });
+    const cancelBtn = actions.createEl('button', { text: i18n.t('common.cancel') });
     cancelBtn.onclick = () => this.close();
 
     const addBtn = actions.createEl('button', { 
-      text: 'Agregar',
+      text: i18n.t('resources.action.add'),
       cls: 'mod-cta'
     });
     addBtn.onclick = () => this.handleSubmit();
@@ -93,10 +95,10 @@ export class AddResourceModal extends Modal {
     if (this.resourceType === 'file') {
       // Seleccionar archivo
       const setting = new Setting(container)
-        .setName('Archivo')
+        .setName(i18n.t('resources.field.file'))
         .addText(text => {
           text
-            .setPlaceholder('Selecciona un archivo...')
+            .setPlaceholder(i18n.t('resources.placeholder.file'))
             .onChange((value) => {
               this.sourcePath = value;
             });
@@ -104,7 +106,7 @@ export class AddResourceModal extends Modal {
         })
         .addButton(button => {
           button
-            .setButtonText('Seleccionar')
+            .setButtonText(i18n.t('resources.action.browse'))
             .onClick(() => {
               this.openFilePicker();
             });
@@ -112,7 +114,7 @@ export class AddResourceModal extends Modal {
     } else if (this.resourceType === 'link') {
       // URL
       new Setting(container)
-        .setName('URL')
+        .setName(i18n.t('resources.field.url'))
         .addText(text => {
           text
             .setPlaceholder('https://...')
@@ -123,10 +125,10 @@ export class AddResourceModal extends Modal {
 
       // Etiquetas
       new Setting(container)
-        .setName('Etiquetas (opcional)')
+        .setName(i18n.t('resources.field.tags'))
         .addText(text => {
           text
-            .setPlaceholder('ciencia, sistemas, referencia')
+            .setPlaceholder(i18n.t('resources.placeholder.tags'))
             .onChange((value) => {
               this.tags = value;
             });
@@ -151,9 +153,8 @@ export class AddResourceModal extends Modal {
         if (!this.title) {
           this.title = file.basename;
           // Actualizar el campo de título
-          const titleInput = this.contentEl.querySelector('input[placeholder="Nombre del recurso"]') as HTMLInputElement;
-          if (titleInput) {
-            titleInput.value = file.basename;
+          if (this.titleInput) {
+            this.titleInput.value = file.basename;
           }
         }
       }
@@ -164,24 +165,24 @@ export class AddResourceModal extends Modal {
   private handleSubmit(): void {
     if (this.resourceType === 'file') {
       if (!this.sourcePath) {
-        new Notice('Selecciona un archivo');
+        new Notice(i18n.t('resources.validation.selectFile'));
         return;
       }
       // Verificar que el archivo existe
       const file = this.app.vault.getFileByPath(this.sourcePath);
       if (!file) {
-        new Notice('El archivo no existe en el vault');
+        new Notice(i18n.t('resources.validation.fileMissingInVault'));
         return;
       }
     }
 
     if (this.resourceType === 'link' && !this.url) {
-      new Notice('Introduce una URL');
+      new Notice(i18n.t('resources.validation.enterUrl'));
       return;
     }
 
     if (!this.title) {
-      new Notice('Introduce un nombre para el recurso');
+      new Notice(i18n.t('resources.validation.enterName'));
       return;
     }
 
@@ -213,7 +214,7 @@ class FileSuggesterModal extends FuzzySuggestModal<TFile> {
   constructor(app: App, onSelect: (file: TFile) => void) {
     super(app);
     this.onSelect = onSelect;
-    this.setPlaceholder('Buscar archivo...');
+    this.setPlaceholder(i18n.t('resources.filePickerPlaceholder'));
   }
 
   getItems(): TFile[] {

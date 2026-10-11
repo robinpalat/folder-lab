@@ -52,7 +52,13 @@ export class BoardView extends TextFileView {
 
     const generation = ++this.renderGeneration;
 
-    this.board?.destroy();
+    /*
+     * P1-2A: el destroy anterior esperaba (await) el guardado
+     * pendiente. Hacerlo aquí también evita que el load() de un
+     * Board nuevo lea el almacén ANTES de que termine el flush
+     * del Board anterior.
+     */
+    await this.board?.destroy();
     this.board = null;
 
     this.contentEl.empty();
@@ -75,7 +81,7 @@ export class BoardView extends TextFileView {
 
     if (generation !== this.renderGeneration) {
       // Llegó una petición más reciente: esta queda obsoleta.
-      board.destroy();
+      await board.destroy();
       return;
     }
 
@@ -93,7 +99,13 @@ export class BoardView extends TextFileView {
   }
 
   async onClose(): Promise<void> {
-    this.board?.destroy();
+    /*
+     * P1-2A: Obsidian espera la promesa de onClose. destroy()
+     * espera el guardado pendiente o en vuelo, de modo que un
+     * cierre por Focus, por el botón Board/Nota o por cierre
+     * del panel no descarta cambios sin persistir.
+     */
+    await this.board?.destroy();
     this.board = null;
 
     this.contentEl.empty();

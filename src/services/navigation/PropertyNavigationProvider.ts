@@ -1,6 +1,7 @@
 import { App, TFile } from 'obsidian';
 import { NavigationProvider, NavigationTree, NavigationNode } from '../../models/Navigation';
 import { NavigationPropertyMapping, DEFAULT_JEKYLL_MAPPING } from '../../config/settings';
+import { i18n } from '../../i18n/I18nService';
 
 const VIRTUAL_ROOT_ID = 'virtual:root';
 const VIRTUAL_ROOT_PATH = '';
@@ -90,12 +91,7 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
       const parentRef = this.getProperty(frontmatter, this.mapping.parent);
       const order = this.getProperty(frontmatter, this.mapping.order);
       
-      console.log('[PROPERTY BUILD ORDER]', {
-  file: file.name,
-  order,
-  frontmatterOrder: frontmatter[this.mapping.order]
-});
-      const hasChildren = this.getProperty(frontmatter, this.mapping.hasChildren);
+            const hasChildren = this.getProperty(frontmatter, this.mapping.hasChildren);
       const permalink = this.getProperty(frontmatter, this.mapping.permalink);
       const layout = frontmatter.layout;
 
@@ -280,7 +276,7 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
     const virtualRoot: NavigationNode = {
       id: VIRTUAL_ROOT_ID,
       path: VIRTUAL_ROOT_PATH,
-      title: 'Navegación por propiedades',
+      title: i18n.t('navigation.propertiesRootTitle'),
       parentPath: null,
       type: 'folder',
       filePath: null,
@@ -316,45 +312,6 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
     };
 
     this.tree = result;
-
-    console.log('🌳 ROOT TREE (jerárquico):');
-    this.printTree(transformedRoots);
-
-    console.log('📋 FLAT NODES (índice auxiliar):');
-    console.log(result.flatNodes.map(n => `${n.title} (${n.type})`).join('\n'));
-    
-    
-    console.log(
-  '[PROPERTY FINAL ROOT ORDER]',
-  transformedRoots.map(n => ({
-    title: n.title,
-    order: n.order,
-    path: n.path
-  }))
-);
-
-    const describirHijos = (nodos: NavigationNode[]) =>
-      nodos.map(n => ({
-        titulo: n.title,
-        tipo: n.type,
-        orden: n.order ?? '(sin orden)',
-        id: n.id
-      }));
-
-    console.log('[FOLDERLAB-DROP-TRACE]', {
-      punto: 'reconstrucción: orden final de hermanos (raíz)',
-      hermanos: describirHijos(transformedRoots)
-    });
-
-    for (const raiz of transformedRoots) {
-      if (raiz.children && raiz.children.length > 0) {
-        console.log('[FOLDERLAB-DROP-TRACE]', {
-          punto: 'reconstrucción: orden final de hermanos (contenedor)',
-          contenedor: raiz.title,
-          hermanos: describirHijos(raiz.children)
-        });
-      }
-    }
 
     return result;
   }
@@ -448,15 +405,4 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
     return frontmatter[key];
   }
 
-  private printTree(nodes: NavigationNode[], indent: string = ''): void {
-    for (const node of nodes) {
-      const isVirtual = node.metadata?.isVirtualFolder ? ' [VIRTUAL FOLDER]' : '';
-      const isOwnPage = node.metadata?.isOwnPage ? ' [OWN PAGE]' : '';
-      const childCount = node.children ? node.children.length : 0;
-      console.log(`${indent}├── ${node.title}${isVirtual}${isOwnPage} (${node.type}, hijos: ${childCount}, id: ${node.id})`);
-      if (node.children && node.children.length > 0) {
-        this.printTree(node.children, indent + '│   ');
-      }
-    }
-  }
 }

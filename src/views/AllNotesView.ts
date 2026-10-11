@@ -113,17 +113,6 @@ async renderNavigation(
       await this.walkNavigationTree(tree.root, 0, items);
     }
 
-    console.log('[FOLDERLAB-DROP-TRACE]', {
-      punto: 'orden visual final (AllNotesView)',
-      elementos: items.map((entry, indice) => ({
-        indice,
-        nombre:
-          (entry.data as { name?: string }).name ?? '(sin nombre)',
-        tipo: entry.type,
-        numero: (entry as { number?: number }).number ?? '(sin numero)'
-      }))
-    });
-
     await this.listComponent.render(items);
     return this.calculateStatsFromItems(items);
     
@@ -188,13 +177,6 @@ async renderNavigation(
 
     subfolders.sort(compareByPersistedOrder);
     noteFiles.sort(compareByPersistedOrder);
-
-    console.log('[FOLDERLAB-DROP-TRACE]', {
-      punto: 'AllNotesView.walkTree (proveedor folders): orden ALFABÉTICO por nombre; _folder_order.json NO se consulta aquí',
-      carpeta: folder.path,
-      notas: noteFiles.map(f => f.name),
-      subcarpetas: subfolders.map(f => f.name)
-    });
 
     for (const file of noteFiles) {
       const isEmpty = await this.noteService.isNoteEmpty(file);

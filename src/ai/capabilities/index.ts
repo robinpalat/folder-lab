@@ -59,8 +59,7 @@ for (const ext of PromptLoader.loadAllExternalCapabilities()) {
       ext.domain
     )
   );
-  console.log(`Capacidad externa registrada: ${ext.domain} → ${ext.capability.label}`);
-}
+  }
     
   
   

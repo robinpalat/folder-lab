@@ -64,6 +64,9 @@
   font-size: 0.9em;
   color: var(--text-muted);
   opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .folder-lab-top-section {
@@ -2339,6 +2342,12 @@ body.focus-splitter-dragging {
   width: 100%;
   max-width: 600px;
   padding: 20px;
+}
+
+.fl-folder-goal-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
 }
 
 .word-count-modal h2 {

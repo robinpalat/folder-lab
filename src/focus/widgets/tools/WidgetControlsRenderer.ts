@@ -1,4 +1,5 @@
 import { Menu, setIcon } from 'obsidian';
+import { i18n } from '../../../i18n/I18nService';
 
 import type {
   WidgetControlOption,
@@ -218,7 +219,7 @@ private static renderSourceSelector(
     attr: {
       type: 'button',
       'aria-expanded': 'false',
-      'aria-label': source.label || 'Fuente'
+      'aria-label': source.label || i18n.t('widgets.controls.sourceFallbackLabel')
     }
   });
 

@@ -21,6 +21,9 @@ import { WordCountResult } from '../services/WordCountService';
 import { FilterMenu } from '../components/FilterMenu';
 import { NavigationService } from '../services/NavigationService';
 import { NavigationNode, NavigationTree } from '../models/Navigation';
+import { shouldStartSessionWordCount } from '../utils/headerStats';
+import { i18n } from '../i18n/I18nService';
+import { applyObsidianLocale } from '../i18n/obsidianLocale';
 import { RecentActivityService } from '../services/RecentActivityService';
 import { WidgetManager } from '../focus/WidgetManager';
 
@@ -72,11 +75,26 @@ export class FolderLabView extends ItemView {
   // ============================================================
   private renderSequence: number = 0;
 
+  /**
+   * Garantiza una sola patada del conteo automático de palabras
+   * por instancia de vista (por sesión): evita que las varias
+   * rutas de inicialización multipliquen los recorridos del libro.
+   */
+  private wordCountInitStarted: boolean = false;
+
   // ============================================================
   // NAVEGACIÓN VIRTUAL (MODO PROPERTIES)
   // ============================================================
   private currentNavigationNode: NavigationNode | null = null;
   private boundHandleNavigationTreeChanged = this.handleNavigationTreeChanged.bind(this);
+  /*
+   * 3B: handlers de document como campos estables. Registrar con
+   * `.bind(this)` inline y remover con OTRO `.bind(this)` no
+   * elimina nada (identidad distinta): los listeners sobrevivían
+   * al cierre de la vista y seguían actuando sobre ella dispuesta.
+   */
+  private boundHandleExportEvent = this.handleExportEvent.bind(this);
+  private boundHandleRefreshEvent = this.handleRefreshEvent.bind(this);
   /**
  * LEGACY — mantenido temporalmente para compatibilidad
  * con goBackVirtual() y limpieza de estado existente.
@@ -108,11 +126,11 @@ export class FolderLabView extends ItemView {
     this.filterMenu = new FilterMenu(this.controller, this.controller.filterService);
 
     this.controller.onStateChange((event: FolderLabEvent) => {
-      this.handleEvent(event);
+      void this.handleEvent(event);
     });
 
-    document.addEventListener('folder-lab-export', this.handleExportEvent.bind(this));
-    document.addEventListener('folder-lab-refresh', this.handleRefreshEvent.bind(this));
+    document.addEventListener('folder-lab-export', this.boundHandleExportEvent);
+    document.addEventListener('folder-lab-refresh', this.boundHandleRefreshEvent);
   }
 
   get isDisposed(): boolean {
@@ -127,21 +145,16 @@ export class FolderLabView extends ItemView {
   private logRender(source: 'properties' | 'folders' | 'unknown', details?: any): void {
     const renderId = ++this.renderSequence;
     const navType = this.navigationService?.getNavigationType() || 'folders';
-    console.log(
-      `[RENDER ${renderId}]`,
-      {
-        navigationType: navType,
-        source: source,
-        details: details,
-        stack: new Error().stack?.split('\n').slice(2, 6).join('\n')
       }
-    );
-  }
 
   async loadFolderOrder(folderPath: string): Promise<void> {
     if (this._isDisposed) return;
+    /*
+     * controller.loadFolder notifica folderChanged y la vista ya
+     * renderiza en el manejador. Llamar también a loadFolder(vista)
+     * duplicaba el renderizado (encabezado y lista) en esta ruta.
+     */
     await this.controller.loadFolder(folderPath);
-    await this.loadFolder(folderPath);
     this.plugin.settings.lastFolderPath = folderPath;
     await this.plugin.saveSettings();
   }
@@ -159,26 +172,21 @@ export class FolderLabView extends ItemView {
   // ============================================================
 
   private async handleNavigationTreeChanged(): Promise<void> {
-    console.log('[UI] navigation-tree-changed recibido');
-    console.log('[FOLDERLAB-EVENT-TRACE]', {
-      evento: 'navigation-tree-changed',
-      navType: this.navigationService?.getNavigationType() ?? 'folders(desconocido)',
-      isAllNotes: this.state.isAllNotesMode()
-    });
-
     if (!this.navigationService) {
-      console.log('[UI] NavigationService no disponible');
-      return;
+            return;
     }
 
     const navType = this.navigationService.getNavigationType();
 
     if (navType === 'properties') {
-      console.log('[UI] Actualizando Properties UI...');
-      await this.renderPropertyNavigation();
+            // El árbol ya se reconstruyó en NavigationService.refresh()
+      // (origen de este evento): reutilizarlo evita un segundo
+      // escaneo completo del vault.
+      await this.renderPropertyNavigation(
+        this.navigationService.getTree() ?? undefined
+      );
     } else {
-      console.log('[UI] Modo folders, ignorando navigation-tree-changed (UI ya actualizada por loadFolder)');
-    }
+          }
   }
 
   // ============================================================
@@ -191,8 +199,7 @@ export class FolderLabView extends ItemView {
     const navType = this.navigationService?.getNavigationType() || 'folders';
 
     if (navType === 'properties') {
-      console.log('[TOGGLE FOLDER] properties mode - renderPropertyNavigation');
-      this.state.toggleFolderMode();
+            this.state.toggleFolderMode();
       this.updateToolbarButtons();
       this.renderPropertyNavigation();
     } else {
@@ -247,8 +254,7 @@ export class FolderLabView extends ItemView {
     const navType = this.navigationService?.getNavigationType() || 'folders';
 
     if (navType === 'properties') {
-      console.log('[TOGGLE ALL NOTES] properties mode - renderPropertyNavigation');
-      this.state.toggleAllNotesMode();
+            this.state.toggleAllNotesMode();
       this.updateToolbarButtons();
       this.renderPropertyNavigation();
     } else {
@@ -279,13 +285,13 @@ export class FolderLabView extends ItemView {
         recentNotesBtn.addClass('is-active');
         recentNotesBtn.setAttr(
           'aria-label',
-          'Volver a notas de la carpeta'
+          i18n.t('actions.recentNotesActive')
         );
       } else {
         recentNotesBtn.removeClass('is-active');
         recentNotesBtn.setAttr(
           'aria-label',
-          'Mostrar notas recientes'
+          i18n.t('actions.recentNotesInactive')
         );
       }
     }
@@ -294,10 +300,10 @@ export class FolderLabView extends ItemView {
     if (folderBtn) {
       if (this.state.isFolderTreeMode()) {
         folderBtn.addClass('is-active');
-        folderBtn.setAttr('aria-label', 'Ocultar carpetas');
+        folderBtn.setAttr('aria-label', i18n.t('actions.hideFolders'));
       } else {
         folderBtn.removeClass('is-active');
-        folderBtn.setAttr('aria-label', 'Ver carpetas');
+        folderBtn.setAttr('aria-label', i18n.t('actions.showFolders'));
       }
     }
 
@@ -305,10 +311,10 @@ export class FolderLabView extends ItemView {
     if (allNotesBtn) {
       if (this.state.isAllNotesMode()) {
         allNotesBtn.addClass('is-active');
-        allNotesBtn.setAttr('aria-label', 'Volver a notas de la carpeta');
+        allNotesBtn.setAttr('aria-label', i18n.t('actions.recentNotesActive'));
       } else {
         allNotesBtn.removeClass('is-active');
-        allNotesBtn.setAttr('aria-label', 'Mostrar todas las notas');
+        allNotesBtn.setAttr('aria-label', i18n.t('actions.allNotes'));
       }
     }
 
@@ -325,13 +331,13 @@ export class FolderLabView extends ItemView {
         filterBtn.addClass('is-active');
         filterBtn.setAttr(
           'aria-label',
-          'Filtro activo'
+          i18n.t('actions.filterActive')
         );
       } else {
         filterBtn.removeClass('is-active');
         filterBtn.setAttr(
           'aria-label',
-          'Filtrar notas'
+          i18n.t('actions.filterNotes')
         );
       }
     }
@@ -378,11 +384,7 @@ export class FolderLabView extends ItemView {
   async toggleFocusMode(): Promise<void> {
     const state = this.state;
 
-    console.log("ANTES", state.isFocusMode);
-
     state.toggleFocusMode();
-
-    console.log("DESPUÉS", state.isFocusMode);
 
     if (state.isFocusMode) {
       const activeFile = this.app.workspace.getActiveFile();
@@ -399,7 +401,7 @@ export class FolderLabView extends ItemView {
 
         this.showFocusMode();
       } else {
-        new Notice('No hay nota activa para el modo Focus');
+        new Notice(i18n.t('errors.focus.noActiveNote'));
         state.toggleFocusMode();
         this.showExplorerMode();
       }
@@ -438,7 +440,7 @@ export class FolderLabView extends ItemView {
   }
 
   getDisplayText(): string {
-    return 'Folder Lab';
+    return i18n.t('common.appName');
   }
 
   getIcon(): string {
@@ -458,13 +460,6 @@ export class FolderLabView extends ItemView {
     switch (event.type) {
       case 'folderChanged':
 
-        console.log('[RENDER TRACE] folderChanged event');
-        console.log('[FOLDERLAB-EVENT-TRACE]', {
-          evento: 'folderChanged',
-          navType: this.navigationService?.getNavigationType() ?? 'folders(desconocido)',
-          isAllNotesAntes: this.state.isAllNotesMode()
-        });
-
         /*
          * La decisión usa el MODO GLOBAL ACTIVO (isAllNotesMode),
          * no el proveedor: el proveedor (folders/properties) indica
@@ -479,12 +474,7 @@ export class FolderLabView extends ItemView {
              * folderChanged. La UI se refresca vía order-changed /
              * navigation-tree-changed; aquí no se hace nada.
              */
-            console.log('[FOLDERLAB-EVENT-TRACE]', {
-              evento: 'folderChanged',
-              rama: 'ALL_NOTES+properties: IGNORADO (sin exitGlobalModes ni loadFolder)',
-              isAllNotes: this.state.isAllNotesMode()
-            });
-            break;
+                        break;
           }
 
           /*
@@ -492,12 +482,6 @@ export class FolderLabView extends ItemView {
            * listado en su sitio, SIN salir del modo (conserva la
            * actualización ante cambios estructurales legítimos).
            */
-          console.log('[FOLDERLAB-EVENT-TRACE]', {
-            evento: 'folderChanged',
-            rama: 'ALL_NOTES+folders: re-render en el modo (sin exitGlobalModes)',
-            isAllNotes: this.state.isAllNotesMode()
-          });
-
           const allNotesFolder =
             this.app.vault.getAbstractFileByPath(event.folderPath);
 
@@ -508,13 +492,22 @@ export class FolderLabView extends ItemView {
           break;
         }
 
-        console.log('[FOLDERLAB-EVENT-TRACE]', {
-          evento: 'folderChanged',
-          rama: 'sin ALL_NOTES: exitGlobalModes + loadFolder (histórico)',
-          isAllNotesAntes: this.state.isAllNotesMode()
-        });
-        this.exitGlobalModes();
-        this.loadFolder(event.folderPath);
+        /*
+         * Vista de recientes activa: el MODO es la fuente de
+         * verdad. Un cambio de carpeta genérico NO expulsa de
+         * recientes ni pinta las estadísticas de master: se
+         * rederiva la propia lista (y su recuento) en su sitio.
+         */
+        if (this.state.isRecentNotesMode()) {
+                    await this.renderRecentNotesMode();
+          break;
+        }
+
+                this.exitGlobalModes();
+        // Await: el renderizado de la vista se serializa con el
+        // evento; sin él, esta ruta y las llamadas explícitas
+        // concurrentes solapaban renderizados del encabezado.
+        await this.loadFolder(event.folderPath);
         break;
 
       case 'noteChanged':
@@ -556,12 +549,12 @@ export class FolderLabView extends ItemView {
           this.updateToolbarButtons();
           const currentPath = this.controller.getCurrentPath();
           if (currentPath) {
-            this.loadFolder(currentPath);
+            await this.loadFolder(currentPath);
           }
         } else {
           const currentPath = this.controller.getCurrentPath();
           if (currentPath) {
-            this.loadFolder(currentPath);
+            await this.loadFolder(currentPath);
           }
         }
         break;
@@ -612,6 +605,10 @@ export class FolderLabView extends ItemView {
   async onOpen(): Promise<void> {
     if (this._isDisposed) return;
 
+    // Reevaluar el locale de Obsidian al (re)abrir la vista.
+    // Idempotente: solo actúa si el idioma activo cambió.
+    applyObsidianLocale();
+
     const container = this.contentEl;
     container.empty();
     container.addClass('folder-lab-view');
@@ -641,8 +638,7 @@ export class FolderLabView extends ItemView {
     this.setupVaultEvents();
     this.setupActiveLeafEvents();
 
-    console.log('Inicializando controlador...');
-    await this.controller.initialize();
+        await this.controller.initialize();
 
     // NavigationService ya existe en controller, solo configurarlo
     if (this.navigationService) {
@@ -656,8 +652,6 @@ export class FolderLabView extends ItemView {
     const navType = this.navigationService?.getNavigationType() || 'folders';
 
     if (navType === 'properties') {
-      console.log('[PROPERTIES] Cargando navegación por propiedades...');
-
       const tree = await this.navigationService?.build();
 
       this.currentNavigationNode =
@@ -683,6 +677,58 @@ export class FolderLabView extends ItemView {
     } else {
       this.showExplorerMode();
     }
+
+    /*
+     * Conteo de palabras del libro en SEGUNDO PLANO: no se
+     * espera (void) y por tanto no bloquea ni retrasa la
+     * presentación inicial. Si hay meta y aún no hay resultado,
+     * el % de la raíz master aparecerá cuando termine.
+     */
+    this.initializeBookWordCountInBackground();
+  }
+
+  /**
+   * Inicialización automática de sesión del conteo de palabras.
+   *
+   * Solo se inicia si hay meta global configurada y aún no
+   * existe un resultado válido en memoria, y una única vez por
+   * sesión (wordCountInitStarted). Cualquier vuelo en curso se
+   * comparte con el modal vía SingleFlightCache.
+   *
+   * Al terminar, el encabezado SOLO se refresca si la vista
+   * activa es la raíz master: el modo activo es la fuente de
+   * verdad y nunca se pisan otras vistas. Si el usuario está en
+   * una subcarpeta o vista global, el resultado queda preparado
+   * en memoria para cuando vuelva a master.
+   */
+  private initializeBookWordCountInBackground(): void {
+    const shouldStart = shouldStartSessionWordCount({
+      alreadyStarted: this.wordCountInitStarted,
+      goal: this.controller.getBookGoal(),
+      hasCachedResult:
+        this.controller.getCachedWordCountResult() !== null
+    });
+
+    // Una sola patada por sesión, decida lo que decida la regla.
+    this.wordCountInitStarted = true;
+
+    if (!shouldStart) return;
+
+    void this.controller
+      .getWordCountResult()
+      .then(() => {
+        if (this._isDisposed) return;
+
+        if (this.controller.isAtMasterRoot()) {
+          this.refreshHeaderStatistics();
+        }
+      })
+      .catch((error) => {
+        console.warn(
+          '[FOLDER-LAB] No se pudo inicializar el conteo de palabras:',
+          error
+        );
+      });
   }
 
   private showExplorerMode(): void {
@@ -739,16 +785,24 @@ export class FolderLabView extends ItemView {
           },
 
           // Board / Nota
+          // 3A-final (P2-2): el estado del botón se deriva del
+          // resultado real de la operación, no se asume.
           () => {
             const boardLeaves =
               this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE);
 
             if (boardLeaves.length > 0) {
-              void this.closeBoardView();
-              this.focusWorkspace?.setBoardActive(false);
+              void this.closeBoardView().then((closed) => {
+                if (closed) {
+                  this.focusWorkspace?.setBoardActive(false);
+                }
+              });
             } else {
-              void this.openBoardView();
-              this.focusWorkspace?.setBoardActive(true);
+              void this.openBoardView().then((opened) => {
+                if (opened) {
+                  this.focusWorkspace?.setBoardActive(true);
+                }
+              });
             }
           }
         );
@@ -806,8 +860,8 @@ export class FolderLabView extends ItemView {
 
     // Limpiar eventos
     (this.app.workspace as any).off('folder-lab:navigation-tree-changed', this.boundHandleNavigationTreeChanged);
-    document.removeEventListener('folder-lab-export', this.handleExportEvent.bind(this));
-    document.removeEventListener('folder-lab-refresh', this.handleRefreshEvent.bind(this));
+    document.removeEventListener('folder-lab-export', this.boundHandleExportEvent);
+    document.removeEventListener('folder-lab-refresh', this.boundHandleRefreshEvent);
 
     if (this.renderTimeout) {
       window.clearTimeout(this.renderTimeout);
@@ -821,12 +875,17 @@ export class FolderLabView extends ItemView {
   }
 
 
-  private async openBoardView(): Promise<void> {
+  /**
+   * 3A-final (P2-2): devuelve true solo si el Board quedó
+   * realmente abierto, para que el botón Board/Nota no muestre
+   * un estado que no corresponde cuando la apertura falla.
+   */
+  private async openBoardView(): Promise<boolean> {
     const activeFile = this.app.workspace.getActiveFile();
 
     if (!activeFile) {
-      new Notice('No hay una nota activa.');
-      return;
+      new Notice(i18n.t('errors.board.noActiveNote'));
+      return false;
     }
 
     const markdownLeaves =
@@ -839,8 +898,8 @@ export class FolderLabView extends ItemView {
     );
 
     if (!leaf) {
-      new Notice('No se encontró la vista de la nota activa.');
-      return;
+      new Notice(i18n.t('errors.board.noteViewNotFound'));
+      return false;
     }
 
     this.boardPreviousState = leaf.view.getState();
@@ -849,18 +908,21 @@ export class FolderLabView extends ItemView {
       type: BOARD_VIEW_TYPE,
       state: this.boardPreviousState
     });
+
+    return true;
   }
 
 
-  private async closeBoardView(): Promise<void> {
+  /** 3A-final: devuelve true solo si había un Board que restaurar. */
+  private async closeBoardView(): Promise<boolean> {
     const boardLeaves =
       this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE);
 
     const leaf = boardLeaves[0];
 
     if (!leaf) {
-      new Notice('No se encontró el Board activo.');
-      return;
+      new Notice(i18n.t('errors.board.notFound'));
+      return false;
     }
 
     const state = leaf.view.getState();
@@ -869,6 +931,8 @@ export class FolderLabView extends ItemView {
       type: 'markdown',
       state
     });
+
+    return true;
   }
 
 
@@ -879,15 +943,87 @@ export class FolderLabView extends ItemView {
   showWordCountModal(result: WordCountResult): void {
     const currentPath = this.controller.getCurrentPath();
     const folder = currentPath ? this.app.vault.getAbstractFileByPath(currentPath) : null;
-    const bookName = folder instanceof TFolder ? folder.name : 'Libro';
+    const bookName = folder instanceof TFolder ? folder.name : i18n.t('modal.wordCount.fallbackBookName');
 
-    const modal = new WordCountModal(this.app, result, bookName);
+    /*
+     * La meta pertenece al libro master, no a la carpeta abierta.
+     * El diálogo la lee/escribe vía el controlador (persistencia en
+     * ajustes). Cambiar la meta recalcula el % con el conteo en
+     * memoria, sin recorrer las notas.
+     *
+     * «Actualizar estadísticas» fuerza un conteo nuevo (única vía
+     * junto a la inicialización) y refresca también el % del
+     * encabezado si corresponde.
+     */
+    const modal = new WordCountModal(this.app, result, bookName, {
+      getGoal: () => this.controller.getBookGoal(),
+      setGoal: async (words) => {
+        this.controller.setBookGoal(words);
+        await this.plugin.saveSettings();
+        this.refreshHeaderStatistics();
+      },
+      refreshStats: async () => {
+        const fresh = await this.controller.getWordCountResult({
+          force: true
+        });
+
+        if (!fresh) {
+          new Notice(i18n.t('errors.wordCount.updateFailed'));
+          return null;
+        }
+
+        this.refreshHeaderStatistics();
+        return fresh;
+      }
+    });
     modal.open();
+  }
+
+  /**
+   * Refresca las estadísticas del encabezado según el MODO
+   * ACTIVO (fuente de verdad). Las vistas globales y recientes
+   * las fija su propio renderizador; aquí solo se rederivan los
+   * modelos de navegación normal (raíz master o subcarpeta).
+   */
+  private refreshHeaderStatistics(): void {
+    if (
+      this.state.isAllNotesMode() ||
+      this.state.isFolderTreeMode() ||
+      this.state.isRecentNotesMode()
+    ) {
+      return;
+    }
+
+    if (this.controller.isAtMasterRoot()) {
+      this.headerComponent?.updateStatistics(
+        this.controller.getMasterRootHeaderStats()
+      );
+    } else {
+      this.headerComponent?.updateStatistics(
+        this.controller.getFolderHeaderStats()
+      );
+    }
   }
 
   // ============================================================
   // EVENTOS DEL VAULT
   // ============================================================
+
+  /**
+   * Indica si debe omitirse la recarga provocada por vault:modify.
+   * Solo es true mientras un reorder de properties está escribiendo
+   * (ventana cubierta por el refresco final de order-changed);
+   * cualquier modificación externa fuera de esa ventana recarga
+   * con normalidad.
+   */
+  private shouldSkipReloadDuringReorder(): boolean {
+    return (
+      (this.controller?.propertyOrderService as
+        | { isReordering?: () => boolean }
+        | null
+        | undefined)?.isReordering?.() === true
+    );
+  }
 
   private setupVaultEvents(): void {
     this.registerEvent(
@@ -900,17 +1036,20 @@ export class FolderLabView extends ItemView {
           this.recentActivityService.scheduleEdit(file);
         }
 
+        // No se lanza ningún conteo de palabras aquí: el % del
+        // encabezado usa el último conteo en memoria y solo se
+        // actualiza con «Actualizar estadísticas» del diálogo.
+        // Los recuentos de notas/subcarpetas se refrescan con el
+        // re-render del modo (loadFolder → renderNormalMode).
         const currentPath = this.controller.getCurrentPath();
 
-        console.log('[FOLDERLAB-VAULT-TRACE]', {
-          evento: 'vault:modify',
-          archivo: file.path,
-          currentPath,
-          llamaLoadFolder: !!(currentPath && file.path.startsWith(currentPath))
-        });
-
         if (currentPath && file.path.startsWith(currentPath)) {
-          this.controller.loadFolder(currentPath);
+          // Durante un reorder del Board/properties, las escrituras
+          // intermedias NO provocan recarga: el refresco definitivo
+          // llega vía order-changed tras sincronizar metadatos.
+          if (!this.shouldSkipReloadDuringReorder()) {
+            this.controller.loadFolder(currentPath);
+          }
         }
       })
     );
@@ -977,9 +1116,37 @@ export class FolderLabView extends ItemView {
           void this.recentActivityService.record(activeFile, 'open', 1);
         }
 
-        if (state.isFocusMode) {
-          if (activeFile) {
+        if (state.isFocusMode && activeFile) {
+          const previousFocusNote = state.getFocusNote();
+
+          if (previousFocusNote !== activeFile.path) {
             state.setFocusNote(activeFile.path);
+
+            /*
+             * P2-B: Focus representa UNA nota. Al cambiar la nota
+             * activa (Quick Switcher u otra ruta de Obsidian), los
+             * paneles, el contexto y las instancias de widgets
+             * deben re-apuntarse a la nueva nota. updateNote es la
+             * operación existente para eso (render lo usa al entrar
+             * en Focus).
+             */
+            this.focusWorkspace
+              ?.updateNote(activeFile)
+              .catch((error) => {
+                console.error(
+                  '[FolderLabView] No se pudo actualizar el Contexto a la nueva nota:',
+                  error
+                );
+              });
+
+            /*
+             * El Board es subordinado a Focus y representa la nota
+             * de Focus: el Board de la nota ANTERIOR se cierra
+             * (misma regla que al salir de Focus). Si el cambio de
+             * nota activa es la propia pestaña del Board (mismo
+             * path), no se cierra nada.
+             */
+            void this.closeBoardIfOpen();
           }
         }
 
@@ -1068,17 +1235,19 @@ export class FolderLabView extends ItemView {
   // ============================================================
 
   private async loadFolder(folderPath: string): Promise<void> {
-    console.log('[FOLDERLAB-VIEW-TRACE]', {
-      metodo: 'loadFolder(vista)',
-      folderPath,
-      navType: this.navigationService?.getNavigationType() ?? 'folders(desconocido)',
-      navigationMode: (this.state as any).navigationMode,
-      isAllNotes: this.state.isAllNotesMode(),
-      pila: new Error().stack?.split('\n').slice(2, 8).join('\n')
-    });
-    if (this._isDisposed) return;
+        if (this._isDisposed) return;
 
     if (this.state.isFocusMode) {
+      return;
+    }
+
+    /*
+     * La vista de recientes posee su lista y su encabezado: un
+     * loadFolder genérico no debe pisarlas con las estadísticas
+     * de la carpeta. Se rederiva recientes en su sitio.
+     */
+    if (this.state.isRecentNotesMode()) {
+      await this.renderRecentNotesMode();
       return;
     }
 
@@ -1090,13 +1259,18 @@ export class FolderLabView extends ItemView {
         : this.app.vault.getAbstractFileByPath(folderPath);
 
     if (!(folder instanceof TFolder)) {
-      this.showEmptyState('Carpeta no encontrada');
+      this.showEmptyState(i18n.t('empty.folderNotFound'));
       return;
     }
 
+    /*
+     * Título y botón atrás son agnósticos al modo. Las
+     * ESTADÍSTICAS no: cada renderizador las calcula a partir del
+     * modelo de su modo (notas de la carpeta, carpetas visibles o
+     * notas de la vista global). Un updateStats() global aquí
+     * mostraba siempre las notas de la carpeta maestra.
+     */
     this.headerComponent.updateTitle();
-
-    await this.headerComponent.updateStats();
     this.headerComponent.updateBackButton();
 
     if (this.state.isFolderTreeMode() && this.state.isAllNotesMode()) {
@@ -1104,11 +1278,9 @@ export class FolderLabView extends ItemView {
     } else if (this.state.isFolderTreeMode()) {
       await this.renderFolderMode(folder);
     } else if (this.state.isAllNotesMode()) {
-      console.log('[FOLDERLAB-VIEW-TRACE]', { decision: 'renderAllNotesMode', isAllNotes: true });
-      await this.renderAllNotesMode(folder);
+            await this.renderAllNotesMode(folder);
     } else {
-      console.log('[FOLDERLAB-VIEW-TRACE]', { decision: 'renderNormalMode', isAllNotes: this.state.isAllNotesMode(), modo: (this.state as any).navigationMode });
-      await this.renderNormalMode(folder);
+            await this.renderNormalMode(folder);
     }
 
     this.state.currentNoteType = 'general';
@@ -1130,7 +1302,7 @@ export class FolderLabView extends ItemView {
     return {
       id: 'virtual:root',
       path: 'virtual:root',
-      title: 'Navegación por propiedades',
+      title: i18n.t('navigation.propertiesRootTitle'),
       parentPath: null,
       type: 'folder',
       filePath: null,
@@ -1215,61 +1387,18 @@ export class FolderLabView extends ItemView {
   }
 
 
-  /**
-   * Calcula las estadísticas del contexto actual de Properties.
-   *
-   * A diferencia de Filesystem, Properties no utiliza currentPath.
-   * El contexto está representado por un NavigationNode.
-   */
-  private async getPropertyStats(
-    node: NavigationNode
-  ): Promise<{ totalNotes: number; percentage: number }> {
-
-    const files: TFile[] = [];
-
-    const collectNotes = (current: NavigationNode): void => {
-      if (current.filePath) {
-        const file = this.app.vault.getFileByPath(current.filePath);
-
-        if (file instanceof TFile) {
-          files.push(file);
-        }
-      }
-
-      if (current.children) {
-        for (const child of current.children) {
-          collectNotes(child);
-        }
-      }
-    };
-
-    // No contar el propio virtual root como archivo.
-    // Sus descendientes sí forman parte del contexto.
-    if (node.id === 'virtual:root') {
-      for (const child of node.children || []) {
-        collectNotes(child);
-      }
-    } else {
-      collectNotes(node);
-    }
-
-    const stats =
-      await this.controller.statsService.calculateNoteStats(files);
-
-    return {
-      totalNotes: stats.total,
-      percentage: stats.percentage
-    };
-  }
-
   // ============================================================
   // RENDERIZADO DE NAVEGACIÓN POR PROPIEDADES
   // ============================================================
 
   /**
    * Renderiza navegación por propiedades usando el Virtual Root
+   *
+   * Si se recibe un árbol ya construido (p. ej. recién refrescado
+   * por NavigationService), se reutiliza tal cual; en cualquier
+   * otro caso se construye uno nuevo para no usar datos obsoletos.
    */
-  private async renderPropertyNavigation(): Promise<void> {
+  private async renderPropertyNavigation(prebuiltTree: NavigationTree | null = null): Promise<void> {
     if (!this.navigationService) return;
 
     if (!this.headerComponent) {
@@ -1287,7 +1416,7 @@ export class FolderLabView extends ItemView {
 
     this.logRender('properties', { method: 'renderPropertyNavigation' });
 
-    const tree = await this.navigationService.build();
+    const tree = prebuiltTree ?? await this.navigationService.build();
 
     // Obtener el contexto (NUNCA cambia al cambiar de modo)
     const contextNode = this.getCurrentContext(tree);
@@ -1300,14 +1429,16 @@ export class FolderLabView extends ItemView {
       ? this.controller.getVaultName()
       : contextNode.title;
 
-this.headerComponent.updateFolderName(title);
-this.headerComponent.updateWordCountVisibility();
+    this.headerComponent.updateFolderName(title);
+    this.headerComponent.updateWordCountVisibility();
 
-    const propertyStats =
-      await this.getPropertyStats(contextNode);
-
-    await this.headerComponent.updateStats(propertyStats);
-
+    /*
+     * Las estadísticas NO se calculan aquí: dependen del modo
+     * activo y las fija cada renderizador de modo con su propio
+     * modelo (notas directas, carpetas visibles o notas de la
+     * vista global). Calcular antes stats del contexto entero
+     * leía todos los archivos descendientes y parpadeaba.
+     */
     this.headerComponent.updateBackButton();
 
     // Crear NoteListComponent si no existe
@@ -1384,7 +1515,10 @@ this.headerComponent.updateWordCountVisibility();
 
 
     if (recentNotes.length === 0) {
-      this.showEmptyState('No hay notas recientes');
+      // El encabezado de recientes SIEMPRE refleja su propia
+      // lista, también vacía: nunca conserva el de master.
+      this.headerComponent.updateStats({ kind: 'recent', files: 0 });
+      this.showEmptyState(i18n.t('empty.noRecentNotes'));
       return;
     }
 
@@ -1418,8 +1552,15 @@ this.headerComponent.updateWordCountVisibility();
       });
     }
 
+    // Recuento derivado del MISMO modelo que se va a renderizar
+    // (los archivos que realmente aparecerán en la lista).
+    this.headerComponent.updateStats({
+      kind: 'recent',
+      files: listItems.length
+    });
+
     if (listItems.length === 0) {
-      this.showEmptyState('No hay notas recientes');
+      this.showEmptyState(i18n.t('empty.noRecentNotes'));
       return;
     }
 
@@ -1458,8 +1599,7 @@ this.headerComponent.updateWordCountVisibility();
    *  Modo Normal: OWN PAGE + notas directas (excluyendo contenedores)
    */
   private async renderNormalModeProperties(contextNode: NavigationNode): Promise<void> {
-    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderNormalModeProperties', isAllNotes: this.state.isAllNotesMode() });
-    const items: ListItem[] = [];
+        const items: ListItem[] = [];
     const filesForStats: TFile[] = [];
     let localNumber = 0;
 
@@ -1528,18 +1668,22 @@ this.headerComponent.updateWordCountVisibility();
         filesForStats
       );
 
-    await this.headerComponent.updateStats({
-      totalNotes: stats.total,
-      percentage: stats.percentage
+    /*
+     * Navegación normal (properties): notas del contexto visible
+     * (formato «N notas»); sin subcarpetas ni % (la raíz master
+     * del libro no es un nodo de properties).
+     */
+    this.headerComponent.updateStats({
+      kind: 'notes',
+      notes: stats.total
     });
 
     if (items.length === 0) {
-      this.showEmptyState('No hay elementos para mostrar');
+      this.showEmptyState(i18n.t('empty.noElements'));
       return;
     }
 
-    console.log('[PROPERTY NAV] Modo: Normal - items:', items.length);
-    await this.noteList!.render(items);
+        await this.noteList!.render(items);
   }
 
   /**
@@ -1549,14 +1693,17 @@ this.headerComponent.updateWordCountVisibility();
     tree: NavigationTree,
     contextNode: NavigationNode
   ): Promise<void> {
-    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderAllNotesModeProperties', contexto: contextNode.id, isAllNotes: this.state.isAllNotesMode() });
-
     const stats =
       contextNode.id === 'virtual:root'
         ? await this.allNotesView!.renderNavigation(tree)
         : await this.allNotesView!.renderNavigation(tree, contextNode);
 
-    await this.headerComponent.updateStats(stats);
+    // «Todas las notas»: solo el recuento del propio conjunto;
+    // sin carpetas ni porcentaje.
+    this.headerComponent.updateStats({
+      kind: 'notes',
+      notes: stats.totalNotes
+    });
   }
 
   /**
@@ -1580,13 +1727,19 @@ this.headerComponent.updateWordCountVisibility();
       });
     }
 
+    // «Todas las carpetas» (properties): solo el total de
+    // contenedores listados; sin subcarpetas ni porcentaje.
+    this.headerComponent.updateStats({
+      kind: 'folders',
+      folders: containers.length
+    });
+
     if (items.length === 0) {
-      this.showEmptyState('No hay subcarpetas para mostrar');
+      this.showEmptyState(i18n.t('empty.noSubfolders'));
       return;
     }
 
-    console.log('[PROPERTY NAV] Modo: Carpetas - items:', items.length);
-    await this.noteList!.render(items);
+        await this.noteList!.render(items);
   }
 
   /**
@@ -1595,13 +1748,6 @@ this.headerComponent.updateWordCountVisibility();
   private async navigateToVirtualNode(
     node: NavigationNode
   ): Promise<void> {
-    console.log(
-      '[VIRTUAL NAV] Navegando a:',
-      node.title,
-      'tipo:',
-      node.type
-    );
-
     // Si no tiene hijos → abrir archivo
     if (
       node.type === 'note' ||
@@ -1650,7 +1796,7 @@ this.headerComponent.updateWordCountVisibility();
       await this.navigateToVirtualNode(node);
     } else {
       console.warn('[VIRTUAL NAV] Nodo no encontrado:', path);
-      new Notice(`❌ Nodo no encontrado: ${path}`);
+      new Notice(i18n.t('errors.navigation.nodeNotFound', { path }));
     }
   }
 
@@ -1694,7 +1840,12 @@ this.headerComponent.updateWordCountVisibility();
 
   private renderContent(): void {
     if (this._isDisposed) return;
-    this.headerComponent.updateStats();
+    /*
+     * Sin updateStats(): las estadísticas las fija el renderizador
+     * del modo activo (loadFolder / renderPropertyNavigation).
+     * Lanzarlas aquí duplicaba el renderizado del encabezado en la
+     * inicialización.
+     */
     this.headerComponent.updateBackButton();
     this.updateActiveNoteHighlight();
   }
@@ -1828,11 +1979,6 @@ this.headerComponent.updateWordCountVisibility();
 
     this.exitGlobalModes();
     this.updateToolbarButtons();
-    console.log('[BACK TO PARENT]', {
-      currentPath,
-      parentPath
-    });
-
 
     await this.controller.loadFolder(parentPath);
   }
@@ -1848,10 +1994,7 @@ this.headerComponent.updateWordCountVisibility();
     const navigationService = this.navigationService;
 
     if (!navigationService) {
-      console.log(
-        '[BACK DEBUG] navigationService = NULL'
-      );
-      return false;
+            return false;
     }
 
     const navType =
@@ -1866,10 +2009,7 @@ this.headerComponent.updateWordCountVisibility();
         this.currentNavigationNode;
 
       if (!currentNode) {
-        console.log(
-          '[BACK DEBUG] PROPERTIES - virtual:root'
-        );
-        return false;
+                return false;
       }
 
       const result =
@@ -1888,10 +2028,7 @@ this.headerComponent.updateWordCountVisibility();
       this.controller.getCurrentPath();
 
     if (!currentPath) {
-      console.log(
-        '[BACK DEBUG] FOLDERS - sin currentPath'
-      );
-      return false;
+            return false;
     }
 
     const result =
@@ -1913,8 +2050,22 @@ this.headerComponent.updateWordCountVisibility();
   // ============================================================
 
   private async renderNormalMode(folder: TFolder): Promise<void> {
-    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderNormalMode(vista-carpetas)', folder: folder.path, isAllNotes: this.state.isAllNotesMode() });
-    this.logRender('folders', { folder: folder.path });
+        this.logRender('folders', { folder: folder.path });
+
+    /*
+     * Navegación normal: modelo EXPLÍCITO según el ámbito.
+     * - Raíz master: contrato propio de cuatro valores.
+     * - Subcarpeta: notas directas · subcarpetas directas.
+     */
+    if (this.controller.isAtMasterRoot()) {
+      this.headerComponent.updateStatistics(
+        this.controller.getMasterRootHeaderStats()
+      );
+    } else {
+      this.headerComponent.updateStatistics(
+        this.controller.getFolderHeaderStats()
+      );
+    }
 
     this.listContainer.empty();
 
@@ -1976,12 +2127,19 @@ this.headerComponent.updateWordCountVisibility();
       );
     }
 
-    this.subfolderView.render(folder.path);
+    // «Todas las carpetas»: solo el total de carpetas de la
+    // lista visible que acaba de renderizarse; sin subcarpetas,
+    // sin notas y sin porcentaje.
+    const { totalFolders } = this.subfolderView.render(folder.path);
+
+    this.headerComponent.updateStats({
+      kind: 'folders',
+      folders: totalFolders
+    });
   }
 
   private async renderAllNotesMode(folder: TFolder): Promise<void> {
-    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderAllNotesMode(vista-carpetas)', folder: folder.path });
-    this.logRender('folders', { folder: folder.path });
+        this.logRender('folders', { folder: folder.path });
 
     this.listContainer.empty();
 
@@ -2002,13 +2160,20 @@ this.headerComponent.updateWordCountVisibility();
       );
     }
 
-    await this.allNotesView.render(folder.path);
+    // «Todas las notas»: solo el total de notas del conjunto que
+    // acaba de renderizarse; sin carpetas ni porcentaje.
+    const stats = await this.allNotesView.render(folder.path);
+
+    this.headerComponent.updateStats({
+      kind: 'notes',
+      notes: stats.totalNotes
+    });
   }
 
   private async renderCombinedMode(folder: TFolder): Promise<void> {
     this.listContainer.empty();
     const message = this.listContainer.createEl('p', { cls: 'folder-lab-empty' });
-    message.textContent = 'Modo combinado (próximamente)';
+    message.textContent = i18n.t('empty.combinedModeSoon');
   }
 
   // ============================================================
@@ -2034,6 +2199,10 @@ this.headerComponent.updateWordCountVisibility();
   // ============================================================
 
   private async handleExportEvent(event: Event): Promise<void> {
+    // 3B: un evento ya en cola al cerrar no debe actuar sobre la
+    // vista dispuesta.
+    if (this._isDisposed) return;
+
     const customEvent = event as CustomEvent;
     const folderPath = customEvent.detail?.folderPath || this.controller.getCurrentPath();
     if (folderPath) {
@@ -2042,6 +2211,10 @@ this.headerComponent.updateWordCountVisibility();
   }
 
   private async handleRefreshEvent(event: Event): Promise<void> {
+    // 3B: un evento ya en cola al cerrar no debe actuar sobre la
+    // vista dispuesta.
+    if (this._isDisposed) return;
+
     const navigationType = this.controller.navigationService.getNavigationType();
 
     if (navigationType === 'properties') {
@@ -2055,8 +2228,12 @@ this.headerComponent.updateWordCountVisibility();
       this.controller.getCurrentPath();
 
     if (folderPath) {
+      /*
+       * controller.loadFolder notifica folderChanged y la vista
+       * renderiza en el manejador (esperado con await). Una segunda
+       * llamada a loadFolder(vista) duplicaba el renderizado.
+       */
       await this.controller.loadFolder(folderPath);
-      await this.loadFolder(folderPath);
     }
   }
 

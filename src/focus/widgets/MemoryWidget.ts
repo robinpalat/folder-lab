@@ -1,4 +1,5 @@
 import { MarkdownRenderer, Notice } from 'obsidian';
+import { i18n } from '../../i18n/I18nService';
 
 import { WidgetControls } from './tools/WidgetControls';
 import { WidgetControlsRenderer } from './tools/WidgetControlsRenderer';
@@ -28,7 +29,9 @@ interface MemoryResult {
 
 export class MemoryWidget implements FocusWidget {
   readonly id = "memory";
-  readonly label = "Asistente";
+  get label(): string {
+    return i18n.t('widgets.registered.memory.label');
+  }
   readonly icon = "cpu";
 
   private container: HTMLElement | null = null;
@@ -118,7 +121,7 @@ this.contextResolver = new ContextResolver(
     // del Asistente están disponibles.
 
     if (!configured) {
-      this.renderMessage('Configura tu API Key en Ajustes → Folder Lab');
+      this.renderMessage(i18n.t('widgets.memory.empty.apiKeyRequired'));
 
       if (this.position === 'bottom') {
         this.renderControls(false);
@@ -128,7 +131,7 @@ this.contextResolver = new ContextResolver(
     }
 
     if (!this.currentFile) {
-      this.renderMessage('Abre una nota para usar el Asistente');
+      this.renderMessage(i18n.t('widgets.memory.empty.noteRequired'));
 
       if (this.position === 'bottom') {
         this.renderControls(false);
@@ -192,10 +195,10 @@ this.contextResolver = new ContextResolver(
 
   private getSourceLabel(): string {
     const labels: Record<string, string> = {
-      note: 'Nota',
-      notes: 'Apuntes',
-      snips: 'Snips',
-      tasks: 'Tareas'
+      note: i18n.t('focus.sources.note'),
+      notes: i18n.t('focus.sources.notes'),
+      snips: i18n.t('focus.sources.snips'),
+      tasks: i18n.t('focus.sources.tasks')
     };
 
     return this.selectedSources
@@ -220,7 +223,7 @@ this.contextResolver = new ContextResolver(
 
   private getCapabilityLabel(): string {
     if (!this.selectedCapability) {
-      return 'Seleccionar';
+      return i18n.t('widgets.memory.capability.placeholder');
     }
 
     try {
@@ -273,19 +276,19 @@ this.contextResolver = new ContextResolver(
 
         controls.action({
       id: 'execute',
-      label: 'Aplicar',
+      label: i18n.t('widgets.memory.action.apply'),
       primary: true
     });
 
 
     controls.select({
       id: 'session',
-      label: 'Sesión',
-      value: 'Hoy',
+      label: i18n.t('widgets.common.session'),
+      value: i18n.t('widgets.common.sessionToday'),
       options: [
         {
           id: 'today',
-          label: 'Hoy'
+          label: i18n.t('widgets.common.sessionToday')
         }
       ]
     });
@@ -443,7 +446,7 @@ this.contextResolver = new ContextResolver(
     } else {
       this.responseArea.createEl('div', {
         cls: 'fl-widget-result-placeholder',
-        text: 'El resultado aparecerá aquí.'
+        text: i18n.t('widgets.memory.placeholder.result')
       });
     }
     // ------------------------------------------------------------
@@ -454,7 +457,7 @@ this.contextResolver = new ContextResolver(
       cls: 'fl-widget-instructions-input'
     });
 
-    instructions.placeholder = 'Indicaciones adicionales...';
+    instructions.placeholder = i18n.t('widgets.memory.placeholder.instructions');
     instructions.value = this.instructions;
 
     instructions.addEventListener('input', () => {
@@ -515,7 +518,7 @@ this.contextResolver = new ContextResolver(
     if (this.results.length === 0) {
       const empty = this.resultContainer.createEl('div', {
         cls: 'fl-widget-empty-text',
-        text: 'No hay respuestas guardadas.'
+        text: i18n.t('widgets.memory.empty.noSavedResponses')
       });
 
       empty.style.padding = '12px';
@@ -541,8 +544,8 @@ this.contextResolver = new ContextResolver(
         primaryAction: {
           id: 'toggle',
           label: result.active
-            ? 'Desactivar respuesta'
-            : 'Activar respuesta',
+            ? i18n.t('widgets.memory.action.deactivateResponse')
+            : i18n.t('widgets.memory.action.activateResponse'),
 
           onClick: async () => {
             result.active = !result.active;
@@ -557,7 +560,7 @@ this.contextResolver = new ContextResolver(
 
         deleteAction: {
           id: 'delete',
-          label: 'Eliminar respuesta',
+          label: i18n.t('widgets.memory.action.deleteResponse'),
 
           onClick: async () => {
             const index = this.results.findIndex(
@@ -590,8 +593,8 @@ this.contextResolver = new ContextResolver(
       {
         initiallyExpanded: false,
         previewLines: 3,
-        collapsedLabel: 'Expandir',
-        expandedLabel: 'Contraer',
+        collapsedLabel: i18n.t('widgets.common.expand'),
+        expandedLabel: i18n.t('widgets.common.collapse'),
         editable: false,
         rootClass: 'fl-memory-expandable',
         contentClass: 'fl-memory-expandable-content',
@@ -741,12 +744,12 @@ this.contextResolver = new ContextResolver(
 
   private async execute(): Promise<void> {
     if (!this.currentFile) {
-      new Notice('No hay nota activa');
+      new Notice(i18n.t('notices.noActiveNote'));
       return;
     }
 
     if (!this.selectedCapability) {
-      new Notice('Selecciona una capacidad');
+      new Notice(i18n.t('widgets.memory.notice.selectCapability'));
       return;
     }
 
@@ -774,7 +777,7 @@ this.contextResolver = new ContextResolver(
 
       loadingEl = this.responseArea.createEl('div', {
         cls: 'fl-widget-result-placeholder fl-widget-loading-dots',
-        text: 'Procesando'
+        text: i18n.t('widgets.memory.status.processing')
       });
 
       loadingEl.style.userSelect = 'none';
@@ -817,31 +820,11 @@ this.contextResolver = new ContextResolver(
         );
 
         throw new Error(
-          `No se pudo cargar la fuente "${sourceLabel}".`
+          i18n.t('widgets.memory.error.sourceLoadFailed', { source: sourceLabel })
         );
       }
 
       (context as any).aiService = this.aiService;
-
-      console.log(
-        '[MemoryWidget] Fuentes seleccionadas:',
-        request.sources
-      );
-
-      console.log(
-        '[MemoryWidget] contextType:',
-        request.contextType
-      );
-
-      console.log(
-        '[MemoryWidget] Apuntes resueltos:',
-        (context as any).additional?.notes
-      );
-
-      console.log(
-        '[MemoryWidget] CONTEXTO FINAL:',
-        JSON.stringify(context, null, 2)
-      );
 
 
       const result =
@@ -903,12 +886,15 @@ this.contextResolver = new ContextResolver(
       // --------------------------------------------------------
 
       this.showResultMessage(
-        `Error: ${result.error || 'Error desconocido'
-        }`
+        i18n.t('widgets.common.errorWithMessage', {
+          message: result.error || i18n.t('widgets.memory.error.unknown')
+        })
       );
 
       new Notice(
-        `Error: ${result.error || 'Error desconocido'}`
+        i18n.t('widgets.common.errorWithMessage', {
+          message: result.error || i18n.t('widgets.memory.error.unknown')
+        })
       );
 
     } catch (error) {
@@ -919,13 +905,13 @@ this.contextResolver = new ContextResolver(
       const message =
         error instanceof Error
           ? error.message
-          : 'Error desconocido';
+          : i18n.t('widgets.memory.error.unknown');
 
       this.showResultMessage(
-        `Error: ${message}`
+        i18n.t('widgets.common.errorWithMessage', { message })
       );
 
-      new Notice(`Error: ${message}`);
+      new Notice(i18n.t('widgets.common.errorWithMessage', { message }));
     }
   }
 

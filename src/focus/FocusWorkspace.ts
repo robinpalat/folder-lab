@@ -8,7 +8,7 @@ import { FolderLabState } from "../core/FolderLabState";
 import { WidgetManager } from './WidgetManager';
 import { LibraryBrowser } from './LibraryBrowser';
 import { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
-
+import { i18n } from '../i18n/I18nService';
 export class FocusWorkspace {
   private static nextId = 1;
 
@@ -191,7 +191,7 @@ export class FocusWorkspace {
 
     boardBtn.createSpan({
       cls: 'fl-context-board-label',
-      text: 'Board'
+      text: i18n.t('focus.workspace.board')
     });
 
     boardBtn.onclick = () => {
@@ -202,7 +202,7 @@ export class FocusWorkspace {
 
     const closeBtn = this.closeContainer.createEl('button', {
       cls: 'fl-context-close-btn',
-      text: 'Cerrar'
+      text: i18n.t('focus.workspace.close')
     });
 
     closeBtn.onclick = () => {
@@ -220,7 +220,7 @@ export class FocusWorkspace {
 
     libraryBtn.createSpan({
       cls: 'fl-context-library-label',
-      text: 'Biblioteca'
+      text: i18n.t('focus.workspace.library')
     });
 
     libraryBtn.onclick = () => {
@@ -256,18 +256,7 @@ export class FocusWorkspace {
       const textarea =
         this.topContainer?.querySelector(".fl-notes-draft-textarea") as HTMLElement | null;
 
-      console.log("[FOCUS GEOMETRY]", {
-        mainArea: measure(this.mainArea),
-        topContainer: measure(this.topContainer),
-        splitter: measure(this.splitterContainer),
-        bottomContainer: measure(this.bottomContainer),
-        frame: measure(frame),
-        notesWidget: measure(widget),
-        notesSurface: measure(surface),
-        draft: measure(draft),
-        textarea: measure(textarea)
-      });
-    });
+          });
 
     // Si cambia el tamaño del panel de Obsidian, recalcular la geometría.
     this.layoutObserver?.disconnect();
@@ -298,10 +287,6 @@ export class FocusWorkspace {
     position: 'top' | 'bottom',
     instanceId: string
   ): Promise<void> {
-    console.log(
-      `[FocusWorkspace] Widget changed in ${position}: ${instanceId}`
-    );
-
     const layout = this.widgetManager.getLayout();
 
     if (position === 'top') {
@@ -315,11 +300,6 @@ export class FocusWorkspace {
         instanceId
       );
     }
-
-    console.log(
-      '[FocusWorkspace] Layout actualizado:',
-      this.widgetManager.getLayout()
-    );
 
     await this.widgetManager.saveForCurrentNote();
 
@@ -408,30 +388,38 @@ export class FocusWorkspace {
 
     btn.createSpan({
       cls: 'fl-context-board-label',
-      text: active ? 'Nota' : 'Board'
+      text: active ? i18n.t('focus.workspace.note') : i18n.t('focus.workspace.board')
     });
 
     btn.setAttribute(
       'aria-label',
-      active ? 'Volver a la nota' : 'Abrir Board'
+      active ? i18n.t('focus.workspace.backToNote') : i18n.t('focus.workspace.openBoard')
     );
 
     btn.setAttribute(
       'title',
-      active ? 'Volver a la nota' : 'Abrir Board'
+      active ? i18n.t('focus.workspace.backToNote') : i18n.t('focus.workspace.openBoard')
     );
   }
 
   async updateNote(activeFile: TFile): Promise<void> {
     console.trace("UPDATE NOTE");
-    console.log("FocusWorkspace", this.id, "UPDATE NOTE");
-
     if (this.context) {
       updateFocusContext(this.context, activeFile);
     }
 
     // Cargar la configuración correspondiente a la nueva nota
     await this.widgetManager.loadForNote(activeFile);
+
+    /*
+     * P2-B: si mientras cargaba se solicitó otra nota (cambio
+     * rápido con Quick Switcher u otra ruta), el contexto ya
+     * apunta a la nota más reciente: esta actualización queda
+     * obsoleta y no debe tocar panes ni layout con datos ajenos.
+     */
+    if (this.context && this.context.activeFile !== activeFile) {
+      return;
+    }
 
     const layout = this.widgetManager.getLayout();
 
@@ -503,8 +491,6 @@ export class FocusWorkspace {
   }
 
   destroy(): void {
-    console.log("FocusWorkspace", this.id, "DESTROYED");
-
     this.layoutObserver?.disconnect();
     this.layoutObserver = null;
     if (this.topPane) {

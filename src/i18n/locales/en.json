@@ -1,0 +1,842 @@
+{
+  "common": {
+    "appName": "Folder Lab",
+    "cancel": "Cancel",
+    "accept": "OK",
+    "confirm": "Confirm",
+    "close": "Close",
+    "select": "Select",
+    "apply": "Apply",
+    "add": "Add",
+    "delete": "Delete",
+    "error": "Error",
+    "unknownError": "Unknown error",
+    "notApplicable": "N/A"
+  },
+  "actions": {
+    "createNoteOrFolder": "Create note or folder",
+    "compile": "Compile",
+    "countWords": "Word count",
+    "recentNotes": "Recent notes",
+    "recentNotesActive": "Back to folder notes",
+    "recentNotesInactive": "Show recent notes",
+    "allNotes": "Show all notes",
+    "showFolders": "Show folders",
+    "hideFolders": "Hide folders",
+    "filterNotes": "Filter notes",
+    "filterActive": "Filter active",
+    "back": "Go to parent",
+    "regenerateCompile": "Regenerate compiled note",
+    "openNoteContext": "Open note context",
+    "deleteElement": "Delete element"
+  },
+  "navigation": {
+    "propertiesRootTitle": "Properties navigation",
+    "rootFallback": "Root",
+    "providerFolders": "Folders and files",
+    "providerProperties": "Note properties"
+  },
+  "empty": {
+    "noElements": "No items to show",
+    "noFilterMatch": "No notes match the filter",
+    "folderNotFound": "Folder not found",
+    "noRecentNotes": "No recent notes",
+    "noSubfolders": "No subfolders to show",
+    "combinedModeSoon": "Combined mode (coming soon)",
+    "noRootFolders": "There are no folders in the vault root"
+  },
+  "stats": {
+    "headerPlaceholder": "0 notes · 0 subfolders",
+    "note": {
+      "one": "note",
+      "other": "notes"
+    },
+    "totalNote": {
+      "one": "note total",
+      "other": "notes total"
+    },
+    "folder": {
+      "one": "folder",
+      "other": "folders"
+    },
+    "zeroNotes": "0 notes",
+    "percentCompleted": " · {percentage}% completed",
+    "goalTooltip": "{words} / {target} words",
+    "foldersListed": "{count} folders",
+    "notesListed": "{count} notes",
+    "recentFiles": "{count} recent files",
+    "compactProgress": "{notes} notes · {percentage}% completed",
+    "compactEmpty": "0 notes · 0% completed"
+  },
+  "statuses": {
+    "draft": "Draft",
+    "inProgress": "In progress",
+    "completed": "Completed",
+    "pending": "Pending",
+    "review": "Review",
+    "approved": "Approved",
+    "discarded": "Discarded",
+    "questions": "Questions",
+    "highPriority": "High priority",
+    "mediumPriority": "Medium priority",
+    "bookmark": "Saved",
+    "thumbDown": "Review",
+    "noStatus": "No status"
+  },
+  "filters": {
+    "all": "All notes",
+    "empty": "Empty notes",
+    "noStatus": "No status",
+    "clear": "✕ Clear filter"
+  },
+  "notes": {
+    "create": {
+      "menuItem": "New note",
+      "prompt": "Name of the new note:",
+      "defaultName": "New note"
+    },
+    "created": "Note created: {name}",
+    "deleted": "Note deleted: {name}",
+    "quickAreaPlaceholder": "Write your notes here…",
+    "status": {
+      "emptyTooltip": "Empty note",
+      "changeHint": "Click to change status",
+      "setHint": "Click to set status",
+      "set": "Set status",
+      "tooltipWithLabel": "{label} - Click to change status",
+      "todoNotice": "📝 Status menu (TODO)"
+    },
+    "statusMenu": {
+      "none": "No status"
+    },
+    "reorderTodoNotice": "Reordering (TODO)"
+  },
+  "folders": {
+    "create": {
+      "menuItem": "New folder",
+      "prompt": "Name of the new folder:"
+    },
+    "created": "Folder created: {name}",
+    "contextMenu": {
+      "openInFolderLab": "Open in Folder Lab"
+    }
+  },
+  "export": {
+    "copyListTxt": "Copy list (TXT)",
+    "exportAllNotes": "Export all notes",
+    "generatingCompile": "📚 Generating compiled note...",
+    "compiledUpdated": "Compiled note updated: {name}",
+    "compiledCreated": "Compiled note created: {name}",
+    "listCopiedToClipboard": "List copied to clipboard",
+    "indexFileCreated": "{fileName} created",
+    "subfoldersSoon": "Exporting all subfolders... (coming soon)",
+    "noNotesSelected": "No notes selected",
+    "selectionFileCreated": "✅ {fileName} created",
+    "selectionExportError": "❌ Error exporting selection",
+    "document": {
+      "pendingContent": "*[Content pending]*",
+      "noNotes": "*No notes to compile*",
+      "selectionHeading": "# {folder} (selection)"
+    }
+  },
+  "errors": {
+    "noRootConfigured": "❌ No root folder configured. Go to Settings → Folder Lab",
+    "initFailed": "❌ Could not initialize the Folder Lab project.",
+    "initProject": "❌ Error initializing the project",
+    "noFolderSelected": "No folder selected",
+    "noFolderSelectedMarked": "❌ No folder selected",
+    "noFolderOrFileSelected": "No folder or file selected",
+    "noCurrentFolder": "No current folder",
+    "alreadyAtRoot": "You are already at the root folder",
+    "folderNotFound": "Folder not found",
+    "folder": {
+      "invalidName": "❌ The name cannot contain slashes or path segments",
+      "alreadyExists": "A folder named \"{name}\" already exists",
+      "createFailed": "❌ Could not create the folder"
+    },
+    "note": {
+      "invalidFile": "❌ Invalid file",
+      "emptyName": "The name cannot be empty",
+      "duplicateName": "A note named \"{name}\" already exists",
+      "deleteFailed": "❌ Error deleting the note"
+    },
+    "wordCount": {
+      "noRootConfigured": "❌ Configure the root folder in Settings → Folder Lab",
+      "failed": "❌ Error counting words",
+      "updateFailed": "❌ Could not update the word count"
+    },
+    "focus": {
+      "noActiveNote": "No active note for Focus mode"
+    },
+    "board": {
+      "noActiveNote": "There is no active note.",
+      "noteViewNotFound": "The active note's view was not found.",
+      "notFound": "The active Board was not found."
+    },
+    "navigation": {
+      "nodeNotFound": "❌ Node not found: {path}"
+    },
+    "viewNotOpen": "Folder Lab is not open",
+    "viewNotOpenMarked": "⚠️ Folder Lab is not open",
+    "openSidePanel": "❌ Could not open the side panel",
+    "loadView": "Could not load Folder Lab",
+    "ignoredFoldersApplyFailed": "❌ Could not apply ignored folders to the global order",
+    "folderOrderCorrupt": "Could not read _folder_order.json. Existing data is kept on disk: fix or delete the file to continue.",
+    "filtersUnavailable": "🔍 Filters (unavailable)",
+    "ai": {
+      "notInitialized": "❌ AI service not initialized"
+    },
+    "withMessage": "Error: {message}"
+  },
+  "notices": {
+    "viewRefreshed": "Folder Lab updated",
+    "navigationUpdated": "✅ Navigation updated",
+    "orderUpdated": "Order updated",
+    "focusModeToggled": "Focus mode {state}",
+    "focusMode": {
+      "enabled": "enabled",
+      "disabled": "disabled"
+    },
+    "manualOrderToggled": "Manual order {state}",
+    "manualOrder": {
+      "enabled": "enabled",
+      "disabled": "disabled"
+    },
+    "bookRootConfigured": "✅ Root folder configured: {path}",
+    "navTypeChanged": "Navigation changed to: {typeName}",
+    "presetApplied": "Jekyll preset applied",
+    "noActiveNote": "No active note",
+    "noActiveNoteMarked": "❌ No active note",
+    "contextTestResult": "✅ Context: {name} ({length} characters)"
+  },
+  "commands": {
+    "openFolderLab": "Open Folder Lab panel",
+    "refreshView": "Refresh view",
+    "toggleFocusMode": "Toggle Focus mode",
+    "testContextResolver": "Test ContextResolver (current note)"
+  },
+  "settings": {
+    "title": "📂 Folder Lab settings",
+    "manualOrder": {
+      "name": "Use manual order",
+      "desc": "Enables manual ordering in the file explorer"
+    },
+    "showNumbers": {
+      "name": "Show numbers",
+      "desc": "Shows numbers in the index"
+    },
+    "numberingStyle": {
+      "name": "Numbering style",
+      "desc": "Roman (I, II, III) or Arabic (1, 2, 3)",
+      "option": {
+        "roman": "Roman (I, II, III)",
+        "arabic": "Arabic (1, 2, 3)",
+        "none": "No numbers"
+      }
+    },
+    "bookRoot": {
+      "heading": "📚 Book root folder",
+      "name": "Book root folder",
+      "desc": "Main folder that contains the whole book. Selecting it initializes the project.",
+      "placeholder": "E.g., Book/",
+      "selectButton": "📁 Select",
+      "configuredNotice": "✅ Root folder configured: {path}",
+      "currentFolderInfo": "📂 Current folder: {path}"
+    },
+    "navigation": {
+      "heading": "🧭 Navigation",
+      "type": {
+        "name": "Navigation type",
+        "desc": "Choose how navigation is organized in Folder Lab",
+        "option": {
+          "folders": "Folders and files",
+          "properties": "Note properties"
+        }
+      }
+    },
+    "properties": {
+      "preset": {
+        "name": "Properties preset",
+        "desc": "Select a predefined schema for the properties",
+        "option": {
+          "jekyll": "Jekyll / Just the Docs",
+          "custom": "Custom"
+        },
+        "appliedNotice": "Jekyll preset applied"
+      },
+      "title": {
+        "name": "Title property",
+        "desc": "Name of the property that contains the note title"
+      },
+      "parent": {
+        "name": "Parent property",
+        "desc": "Name of the property that contains the note's parent"
+      },
+      "order": {
+        "name": "Order property",
+        "desc": "Name of the property that contains the note's order"
+      },
+      "hasChildren": {
+        "name": "Children property",
+        "desc": "Name of the property that indicates whether it has children"
+      },
+      "permalink": {
+        "name": "Permalink property",
+        "desc": "Name of the property that contains the permalink"
+      }
+    },
+    "ignoredFolders": {
+      "name": "Ignored folders",
+      "desc": "Folder names excluded from the global order iteration (e.g. technical folders like \"assets\"). Separate them with commas or new lines. Matched by exact name at any level; notes are not affected."
+    },
+    "refreshNavigation": {
+      "name": "Refresh navigation",
+      "desc": "Rebuilds the navigation tree from the current sources",
+      "button": "🔄 Refresh"
+    },
+    "ai": {
+      "heading": "🤖 AI settings",
+      "provider": {
+        "name": "AI provider",
+        "desc": "Select the AI service you want to use"
+      },
+      "apiKey": {
+        "name": "API key",
+        "desc": "Your API key for the selected service",
+        "placeholder": "Enter your API key"
+      },
+      "recommendedModel": {
+        "name": "Use recommended model",
+        "desc": "The plugin will automatically select the best model for your provider"
+      },
+      "customModel": {
+        "name": "Custom model",
+        "desc": "Model name (e.g. gpt-4o, gemini-1.5-pro, claude-3-5-sonnet-20241022)",
+        "placeholder": "Model name"
+      },
+      "temperature": {
+        "name": "Temperature",
+        "desc": "AI creativity (0 = precise, 2 = creative)"
+      },
+      "maxTokens": {
+        "name": "Maximum tokens",
+        "desc": "Maximum length of the response"
+      },
+      "testConnection": {
+        "name": "🔌 Test connection",
+        "desc": "Verify that your configuration is correct",
+        "button": "Test",
+        "testing": "⏳ Testing...",
+        "connected": "✅ Connected",
+        "error": "❌ Error"
+      },
+      "help": {
+        "heading": "📌 How to get your API key"
+      }
+    },
+    "info": {
+      "heading": "ℹ️ Information",
+      "orderStorage": "The order is stored in a _folder_order.json file inside the .folder-order folder (hidden).",
+      "emptyNotes": "Empty notes: detected automatically (< 10 characters excluding the title).",
+      "wordCountExclusions": "The word count automatically excludes compiled files and files inside .folder-order."
+    }
+  },
+  "modal": {
+    "selectRoot": {
+      "title": "Select the book's root folder",
+      "description": "Choose the main folder that contains the whole book."
+    },
+    "wordCount": {
+      "fallbackBookName": "Book",
+      "stat": {
+        "totalWords": "Total words",
+        "notes": "Notes",
+        "avgPerNote": "Average per note"
+      },
+      "mostWords": "🏆 Most words",
+      "leastWords": "📉 Fewest words",
+      "detailsHeading": "Details per note",
+      "refreshButton": "Refresh statistics",
+      "refreshButtonAria": "Refresh word count statistics",
+      "refreshing": "Refreshing…",
+      "refreshError": "Could not refresh; showing the last valid data.",
+      "setGoal": "Set goal",
+      "goalTitle": "Writing goal",
+      "changeGoal": "Change goal",
+      "goalWords": "Word goal",
+      "currentWords": "Current words",
+      "compliance": "Progress",
+      "goalPlaceholder": "e.g. 80000",
+      "goalAria": "Book word goal",
+      "saveGoal": "Save goal"
+    },
+    "polish": {
+      "title": "Polish fragment",
+      "originalLabel": "Original (read-only)",
+      "personalLabel": "Personal version",
+      "discard": "Discard personal version",
+      "save": "Save version",
+      "buttonShort": "Polish"
+    }
+  },
+  "focus": {
+    "title": {
+      "noActiveNote": "No active note"
+    },
+    "closeAria": "Close Focus mode",
+    "workspace": {
+      "board": "Board",
+      "close": "Close",
+      "library": "Library",
+      "note": "Note",
+      "backToNote": "Back to the note",
+      "openBoard": "Open Board"
+    },
+    "sources": {
+      "note": "Note",
+      "notes": "Notes",
+      "snips": "Snips",
+      "tasks": "Tasks"
+    },
+    "dragdrop": {
+      "dropFailed": "Could not process the dropped item"
+    },
+    "pane": {
+      "error": {
+        "instanceNotFound": "Widget instance \"{instanceId}\" not found",
+        "widgetNotFound": "Widget \"{typeId}\" not found"
+      }
+    }
+  },
+  "board": {
+    "viewTitle": "Board",
+    "saveError": "The Board could not be saved. Changes are kept in memory: it will retry on close or on the next edit.",
+    "modes": {
+      "explore": "Explore",
+      "architecture": "Architecture",
+      "document": "Document"
+    },
+    "explore": {
+      "emptyHint": "Drag items from the panel here to create blocks"
+    },
+    "context": {
+      "title": "Context",
+      "noLists": "No lists",
+      "group": {
+        "restrictions": "Restrictions",
+        "candidates": "Candidates",
+        "tasks": "Tasks"
+      },
+      "counts": {
+        "activeFeminine": {
+          "one": "active",
+          "other": "active"
+        },
+        "activeMasculine": {
+          "one": "active",
+          "other": "active"
+        },
+        "pending": {
+          "one": "pending",
+          "other": "pending"
+        },
+        "completed": {
+          "one": "completed",
+          "other": "completed"
+        }
+      }
+    },
+    "card": {
+      "fallbackTitle": "Text",
+      "action": {
+        "activate": "Activate block",
+        "deactivate": "Deactivate block",
+        "showMore": "Show more",
+        "showLess": "Show less",
+        "remove": "Delete block"
+      },
+      "connect": {
+        "aria": "Connect this block"
+      }
+    },
+    "connection": {
+      "dot": {
+        "aria": "Connection point"
+      }
+    },
+    "connectTooltip": "Connect",
+    "group": {
+      "placeholderName": "Name the group",
+      "renameInput": "Group name",
+      "tooltip": "Drag group · Click: rename",
+      "action": {
+        "remove": "Delete group"
+      },
+      "connect": {
+        "aria": "Connect this group"
+      }
+    },
+    "architecture": {
+      "title": "Document architecture",
+      "hint": "Define the editorial structure and assign material from Explore. The order here determines the order of the Document.",
+      "invitation": {
+        "mainTopic": "Define the main title or topic",
+        "addSection": "Add section",
+        "addItem": "Add item"
+      },
+      "level": {
+        "title": "Title",
+        "numbered": "Level {level}"
+      },
+      "placeholder": {
+        "documentTitle": "Document title",
+        "elementTitle": "Element title"
+      },
+      "action": {
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "levelUp": "Indent",
+        "levelDown": "Outdent",
+        "addSubelement": "Add subelement",
+        "deleteElement": "Delete element",
+        "moveInSectionUp": "Move up in section",
+        "moveInSectionDown": "Move down in section",
+        "removeFromSection": "Remove from section",
+        "assignToSection": "Assign to a section"
+      },
+      "empty": {
+        "noMaterial": "No material assigned"
+      },
+      "badge": {
+        "inactive": "Inactive"
+      },
+      "tray": {
+        "title": "Unassigned material"
+      },
+      "menu": {
+        "untitled": "Untitled"
+      },
+      "add": {
+        "title": "Add title",
+        "section": "Add section",
+        "subsection": "Add subsection",
+        "item": "Add item"
+      }
+    },
+    "document": {
+      "empty": {
+        "title": "The document has no content yet",
+        "hint": "Define the structure in Architecture and assign the active material from Explore there. The editorial order of Architecture determines the order of this text."
+      },
+      "heading": {
+        "untitled": "Untitled"
+      },
+      "badge": {
+        "original": "Original"
+      },
+      "version": {
+        "personal": "Personal",
+        "original": "Original"
+      },
+      "action": {
+        "toggleVersion": "Toggle fragment version",
+        "toggleVersionTooltip": "Toggle between original and personal version"
+      }
+    }
+  },
+  "widgets": {
+    "common": {
+      "session": "Session",
+      "sessionToday": "Today",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "errorWithMessage": "Error: {message}"
+    },
+    "defs": {
+      "snips": {
+        "label": "Snips",
+        "description": "Consolidated text fragments",
+        "emptyState": "Drag a text fragment here"
+      },
+      "collections": {
+        "label": "Collections",
+        "description": "Collection of text fragments",
+        "emptyState": "Drag a text fragment here"
+      },
+      "restrictions": {
+        "label": "Restrictions",
+        "description": "Collection of restrictions",
+        "emptyState": "Drag a text fragment here"
+      },
+      "candidates": {
+        "label": "Candidates",
+        "description": "Selectable candidates",
+        "emptyState": "Drag a text fragment here"
+      },
+      "tasks": {
+        "label": "Tasks",
+        "description": "Task list",
+        "placeholder": "New task...",
+        "emptyState": "Create a task or drag text here"
+      }
+    },
+    "registered": {
+      "activeNote": {
+        "label": "Active note",
+        "description": "Shows and lets you work directly with the note currently active in Obsidian."
+      },
+      "notes": {
+        "label": "Notes",
+        "description": "Captures and organizes spontaneous notes associated with the context. It is an entry point for feeding other widgets with ideas, texts and observations."
+      },
+      "resources": {
+        "label": "Shared folder files",
+        "description": "Shows the files and resources shared by the notes in the current folder."
+      },
+      "memory": {
+        "label": "Assistant",
+        "description": "Uses artificial intelligence to analyze the note's context and run capabilities on its sources and content."
+      }
+    },
+    "managerDefaultName": {
+      "assistant": "Assistant",
+      "notes": "Notes"
+    },
+    "declarative": {
+      "empty": {
+        "noteRequired": "Open a note to use {label}"
+      },
+      "notice": {
+        "cleared": "{label} cleared",
+        "completedCleared": "Completed tasks removed",
+        "movedTo": "Item moved to {label}",
+        "addedTo": "Item added to {label}"
+      },
+      "action": {
+        "candidateSelected": "Candidate selected",
+        "selectCandidate": "Select candidate",
+        "activate": "Activate item",
+        "deactivate": "Deactivate item"
+      }
+    },
+    "controls": {
+      "sourceFallbackLabel": "Source"
+    },
+    "activeNote": {
+      "label": "Note",
+      "editorAria": "Edit {name}",
+      "placeholder": "Write in the active note…",
+      "externalConflictNotice": "The note changed outside this editor. Your local changes are kept here; keep editing to apply them. To keep the external changes, stop editing and reopen the note.",
+      "empty": {
+        "noteRequired": "Open a Markdown note to edit it here"
+      }
+    },
+    "memory": {
+      "empty": {
+        "apiKeyRequired": "Configure your API key in Settings → Folder Lab",
+        "noteRequired": "Open a note to use the Assistant",
+        "noSavedResponses": "No saved responses."
+      },
+      "capability": {
+        "placeholder": "Select"
+      },
+      "action": {
+        "apply": "Apply",
+        "deactivateResponse": "Deactivate response",
+        "activateResponse": "Activate response",
+        "deleteResponse": "Delete response"
+      },
+      "placeholder": {
+        "result": "The result will appear here.",
+        "instructions": "Additional instructions..."
+      },
+      "notice": {
+        "selectCapability": "Select a capability"
+      },
+      "status": {
+        "processing": "Processing"
+      },
+      "error": {
+        "sourceLoadFailed": "Could not load the source \"{source}\".",
+        "unknown": "Unknown error"
+      }
+    },
+    "notesWidget": {
+      "action": {
+        "save": "Save",
+        "copy": "Copy notes",
+        "activate": "Activate note",
+        "deactivate": "Deactivate note",
+        "delete": "Delete note"
+      },
+      "empty": {
+        "noteRequired": "Open a note to write notes"
+      },
+      "placeholder": {
+        "draft": "Write your notes..."
+      },
+      "notice": {
+        "created": "Note created",
+        "saved": "Note saved"
+      }
+    },
+    "resourcesWidget": {
+      "label": "Resources",
+      "empty": {
+        "noteRequired": "Open a note to view its resources",
+        "noResources": "No resources",
+        "hint": "Add files or links related to this note"
+      },
+      "action": {
+        "addTooltip": "Add resource",
+        "openFolderTooltip": "Open resources folder",
+        "activate": "Activate resource",
+        "deactivate": "Deactivate resource",
+        "delete": "Delete resource"
+      },
+      "meta": {
+        "web": "WEB",
+        "fileFallback": "FILE"
+      }
+    }
+  },
+  "library": {
+    "tab": {
+      "widgets": "WIDGETS",
+      "assistant": "ASSISTANT",
+      "recipes": "RECIPES"
+    },
+    "recipesEmpty": "Recipes",
+    "widgetsColumn": {
+      "available": "Available widgets",
+      "instances": "In this note"
+    },
+    "widgetsAction": {
+      "add": "Add widget",
+      "delete": "Delete widget",
+      "apply": "Apply"
+    },
+    "widgetsEmpty": "No widgets configured.",
+    "instanceRenameTooltip": "Click to rename",
+    "section": {
+      "sources": "SOURCES",
+      "domains": "DOMAINS",
+      "capabilities": "CAPABILITIES"
+    },
+    "capabilitiesEmpty": "No capabilities available in this domain."
+  },
+  "resources": {
+    "modal": {
+      "title": "Add resource"
+    },
+    "field": {
+      "type": "Type",
+      "name": "Name",
+      "description": "Description (optional)",
+      "file": "File",
+      "url": "URL",
+      "tags": "Tags (optional)"
+    },
+    "type": {
+      "file": "File",
+      "link": "Link"
+    },
+    "placeholder": {
+      "name": "Resource name",
+      "description": "Brief description...",
+      "file": "Select a file...",
+      "tags": "science, systems, reference"
+    },
+    "action": {
+      "add": "Add",
+      "browse": "Browse"
+    },
+    "validation": {
+      "selectFile": "Select a file",
+      "fileMissingInVault": "The file does not exist in the vault",
+      "enterUrl": "Enter a URL",
+      "enterName": "Enter a name for the resource"
+    },
+    "filePickerPlaceholder": "Search file...",
+    "importDefaultFileName": "resource",
+    "notice": {
+      "added": "Resource added",
+      "addFailed": "Could not add the resource",
+      "addError": "Error adding resource",
+      "deleted": "Resource deleted",
+      "fileNotFound": "File not found",
+      "updateStateError": "Error updating the resource state",
+      "notRegistered": "This resource is not registered in the metadata",
+      "removedFromRegistry": "Removed from the registry (the file remains in _resources)",
+      "folderAlreadyExists": "The resources folder is already available in the vault",
+      "folderMissing": "The resources folder does not exist"
+    }
+  },
+  "ai": {
+    "browser": {
+      "title": "Work",
+      "empty": "No capabilities available in this domain."
+    },
+    "connection": {
+      "apiKeyNotConfigured": "API key not configured",
+      "connected": "{name} connected successfully\nModel: {model}",
+      "failed": "Connection error. Check your API key"
+    }
+  },
+  "domains": {
+    "research": {
+      "label": "Research",
+      "description": "Capabilities to explore, verify and expand information.",
+      "capabilities": {
+        "questions": {
+          "label": "Questions",
+          "description": "Identify relevant questions and open issues."
+        },
+        "references": {
+          "label": "References",
+          "description": "Identify references and research needs."
+        },
+        "concepts": {
+          "label": "Key concepts",
+          "description": "Extract the most important concepts from the text and explain their relevance."
+        },
+        "thesis": {
+          "label": "Thesis",
+          "description": "Identify the central thesis that the text supports, raises or tries to prove."
+        }
+      }
+    },
+    "review": {
+      "label": "Review",
+      "description": "Capabilities to evaluate the quality of the content.",
+      "capabilities": {
+        "clarity": {
+          "label": "Clarity",
+          "description": "Detect clarity problems in the text."
+        },
+        "coherence": {
+          "label": "Coherence",
+          "description": "Detect coherence and structure problems."
+        }
+      }
+    },
+    "transform": {
+      "label": "Transform",
+      "description": "Capabilities to convert the content into useful structures and representations.",
+      "capabilities": {
+        "outline": {
+          "label": "Outline",
+          "description": "Organize the content into a hierarchical structure of main and secondary ideas."
+        },
+        "mindmap": {
+          "label": "Mind map",
+          "description": "Transform the content into a hierarchical conceptual structure using Markdown headings."
+        },
+        "studyQuestions": {
+          "label": "Study questions",
+          "description": "Turn the content into useful questions for studying and checking comprehension."
+        }
+      }
+    }
+  }
+}

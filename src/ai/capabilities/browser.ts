@@ -1,7 +1,12 @@
 import { Modal } from 'obsidian';
 import { CapabilityRegistry } from './CapabilityRegistry';
 import type { Capability } from './types';
-
+import { i18n } from '../../i18n/I18nService';
+import {
+  getDomainLabel,
+  getCapabilityLabel,
+  getCapabilityDescription
+} from './capabilityTexts';
 export interface CapabilitySelection {
   sourceIds: Array<'note' | 'notes' | 'snips' | 'tasks'>;
   groupId: string;
@@ -44,7 +49,7 @@ export class CapabilityBrowser extends Modal {
   onOpen(): void {
     this.modalEl.addClass('fl-capability-browser');
 
-    this.titleEl.setText('Trabajo');
+    this.titleEl.setText(i18n.t('ai.browser.title'));
 
     const content = this.contentEl;
     content.empty();
@@ -64,7 +69,7 @@ export class CapabilityBrowser extends Modal {
     const sourcesTitle = sourcesPanel.createEl('div', {
       cls: 'fl-capability-browser-section-title'
     });
-    sourcesTitle.textContent = 'FUENTES';
+    sourcesTitle.textContent = i18n.t('library.section.sources');
 
     const sourcesContainer = sourcesPanel.createEl('div', {
       cls: 'fl-capability-browser-sources-list'
@@ -75,10 +80,10 @@ export class CapabilityBrowser extends Modal {
       label: string;
       icon: string;
     }> = [
-      { id: 'note', label: 'Nota', icon: 'file-text' },
-      { id: 'notes', label: 'Apuntes', icon: 'pencil' },
-      { id: 'snips', label: 'Snips', icon: 'scissors' },
-      { id: 'tasks', label: 'Tareas', icon: 'check-square' }
+      { id: 'note', label: i18n.t('focus.sources.note'), icon: 'file-text' },
+      { id: 'notes', label: i18n.t('focus.sources.notes'), icon: 'pencil' },
+      { id: 'snips', label: i18n.t('focus.sources.snips'), icon: 'scissors' },
+      { id: 'tasks', label: i18n.t('focus.sources.tasks'), icon: 'check-square' }
     ];
 
     for (const source of sources) {
@@ -137,7 +142,7 @@ export class CapabilityBrowser extends Modal {
     const groupsTitle = groupsPanel.createEl('div', {
       cls: 'fl-capability-browser-section-title'
     });
-    groupsTitle.textContent = 'DOMINIOS';
+    groupsTitle.textContent = i18n.t('library.section.domains');
 
     this.groupsContainer = groupsPanel.createEl('div', {
       cls: 'fl-capability-browser-groups-list'
@@ -149,7 +154,7 @@ export class CapabilityBrowser extends Modal {
       const groupEl = this.groupsContainer.createEl('div', {
         cls: 'fl-capability-browser-group'
       });
-      groupEl.textContent = group.label;
+      groupEl.textContent = getDomainLabel(group.id, group.label);
       groupEl.setAttribute('data-group-id', group.id);
 
       if (group.id === this.selectedGroupId) {
@@ -182,7 +187,7 @@ export class CapabilityBrowser extends Modal {
     const capabilitiesTitle = capabilitiesPanel.createEl('div', {
       cls: 'fl-capability-browser-section-title'
     });
-    capabilitiesTitle.textContent = 'CAPACIDADES';
+    capabilitiesTitle.textContent = i18n.t('library.section.capabilities');
 
     this.capabilitiesContainer = capabilitiesPanel.createEl('div', {
       cls: 'fl-capability-browser-capabilities-list'
@@ -199,7 +204,7 @@ export class CapabilityBrowser extends Modal {
     });
 
     const cancelButton = footer.createEl('button', {
-      text: 'Cancelar',
+      text: i18n.t('common.cancel'),
       cls: 'fl-capability-browser-cancel mod-secondary'
     });
 
@@ -208,7 +213,7 @@ export class CapabilityBrowser extends Modal {
     };
 
     const selectButton = footer.createEl('button', {
-      text: 'Seleccionar',
+      text: i18n.t('common.select'),
       cls: 'fl-capability-browser-select mod-cta'
     });
 
@@ -242,7 +247,7 @@ export class CapabilityBrowser extends Modal {
       const empty = this.capabilitiesContainer.createEl('div', {
         cls: 'fl-capability-browser-empty'
       });
-      empty.textContent = 'No hay capacidades disponibles en este dominio.';
+      empty.textContent = i18n.t('library.capabilitiesEmpty');
       return;
     }
 
@@ -275,13 +280,19 @@ export class CapabilityBrowser extends Modal {
     const label = item.createEl('div', {
       cls: 'fl-capability-browser-item-label'
     });
-    label.textContent = capability.label;
+    label.textContent = getCapabilityLabel(
+      capability.id,
+      capability.label
+    );
 
     if (capability.description) {
       const description = item.createEl('div', {
         cls: 'fl-capability-browser-item-description'
       });
-      description.textContent = capability.description;
+      description.textContent = getCapabilityDescription(
+        capability.id,
+        capability.description
+      );
     }
 
     item.onclick = () => {
