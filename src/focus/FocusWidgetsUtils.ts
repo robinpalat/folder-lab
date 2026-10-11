@@ -384,6 +384,7 @@ export interface FolderLabTextPayload {
     widgetId: string;
     instanceId: string;
     itemId: string;
+    sessionId?: string;
   };
 }
 
@@ -460,7 +461,12 @@ export class FolderLabDragDrop {
       try {
         dt.setData('text/plain', text);
         dt.setData('application/x-folder-lab', JSON.stringify(payload));
-        dt.effectAllowed = 'copy';
+        /*
+         * 'copyMove' y no 'copy': los destinos fijan dropEffect='move'
+         * durante dragover. Con effectAllowed='copy' la operación queda
+         * en 'none' y el navegador no llega a disparar el drop.
+         */
+        dt.effectAllowed = 'copyMove';
       } catch (error) {
         console.warn('[FolderLabDragDrop] No se pudo preparar la selección:', error);
       }
@@ -531,7 +537,13 @@ export class FolderLabDragDrop {
           JSON.stringify(payload)
         );
 
-        dt.effectAllowed = 'copy';
+        /*
+         * 'copyMove' y no 'copy': los destinos (Board y widgets)
+         * fijan dropEffect='move' durante dragover. Con
+         * effectAllowed='copy' la operación queda en 'none' y el
+         * navegador no llega a disparar el drop.
+         */
+        dt.effectAllowed = 'copyMove';
 
         onDragState?.(true);
 

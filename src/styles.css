@@ -913,9 +913,23 @@
   flex: 0 0 12px;
   width: 12px;
 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-  opacity: 0.35;
+  opacity: 0.75;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
 
+/* Estado del desplegable: chevron arriba mientras el menú está
+   abierto (aria-expanded gestionado por el selector). */
+.fl-widget-selector-btn[aria-expanded="true"] .fl-widget-selector-arrow {
+  transform: rotate(180deg);
+}
+
+.fl-widget-selector-chevron svg {
+  width: 12px;
+  height: 12px;
 }
 
 .fl-widget-selector-btn:hover {
@@ -924,7 +938,7 @@
 }
 
 .fl-widget-selector-btn:hover .fl-widget-selector-arrow {
-  opacity: 0.65;
+  opacity: 0.95;
 }
 
 .fl-widget-selector-icon {
@@ -2891,11 +2905,215 @@ body.focus-splitter-dragging {
   padding: 0 !important;
   overflow: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   BOARD — BARRA DE INSTANCIAS
+   ============================================================ */
+
+/*
+ * Navegación del Board: tratamiento plano y editorial, integrado
+ * con la cabecera (misma superficie primary). La vista activa se
+ * distingue con un subrayado fino, sin fondos elevados ni bordes.
+ */
+.fl-board-mode-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  box-sizing: border-box;
+}
+
+.fl-board-mode-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px 5px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fl-board-mode-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-board-mode-button:hover {
+  color: var(--text-normal);
+  background: transparent !important;
+}
+
+.fl-board-mode-button.is-active {
+  color: var(--text-normal);
+  font-weight: 600;
+  border-bottom-color: var(--text-normal);
+  background: transparent !important;
+}
+
+.fl-board-mode-content {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------
+   Contexto de la investigación (widgets participation: 'context').
+   Cabecera GENERAL de ancho completo, ENCIMA de la navegación:
+   franja 1 «Contexto | nota activa», franja 2 indicadores.
+   La navegación queda en su propia franja debajo; las tarjetas
+   empiezan bajo ambas, sin solaparse.
+   ------------------------------------------------------------ */
+
+.fl-board-explore {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.fl-board-context-header {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 10px 14px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  box-sizing: border-box;
+}
+
+.fl-board-context-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 18px;
+  min-width: 0;
+}
+
+/* Jerarquía editorial: Contexto > nombre de la nota. */
+.fl-ctx-title {
+  color: var(--text-normal);
+  font-size: calc(var(--font-ui-small) + 2px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.fl-ctx-title-sep {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.fl-ctx-note-name {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.fl-board-context-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px 20px;
+}
+
+.fl-ctx-separator {
+  flex: 0 0 1px;
+  width: 1px;
+  margin: 2px 0;
+  background: var(--background-modifier-border);
+}
+
+.fl-board-context-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* Jerarquía: nombre del widget por debajo del título Contexto. */
+.fl-ctx-group-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Icono de identidad del widget (definition.identity.icon) con
+   su color semántico vía applyWidgetIdentity: rojo restricciones,
+   verde candidatos, morado tareas. Mismo tamaño que en el panel
+   (.fl-widget-selector-icon: 16px). */
+.fl-ctx-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: var(--fl-widget-identity-color, var(--text-muted));
+}
+
+.fl-ctx-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Nombres de las instancias (listas) de la nota — información
+   secundaria; admiten varias líneas si los nombres son largos. */
+.fl-ctx-instances {
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  font-weight: 400;
+  line-height: 1.4;
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+
+/* Información PRINCIPAL: estados/contadores de elementos. */
+.fl-ctx-counts {
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-board-context-group.is-empty .fl-ctx-counts {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.fl-board-context-group.is-empty .fl-ctx-instances {
+  font-style: italic;
 }
 
 .fl-board-surface {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  display: block;
+  overflow: auto;
+  transition: background-color 120ms ease;
 }
 
 .fl-context-board-btn {
@@ -2965,14 +3183,8 @@ body.focus-splitter-dragging {
 }
 
 /* ============================================================
-   BOARD — TARJETAS DE TEXTO
+   BOARD — BLOQUES DE TEXTO
    ============================================================ */
-
-.fl-board-surface {
-  display: block;
-  overflow: auto;
-  transition: background-color 120ms ease;
-}
 
 .fl-board-surface.is-text-dragging {
   background: var(--background-modifier-hover);
@@ -2985,14 +3197,30 @@ body.focus-splitter-dragging {
 .fl-board-card-grid {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  align-content: start;
-  gap: 12px;
   min-width: 100%;
   min-height: 100%;
-  padding: 16px;
   box-sizing: border-box;
+  /*
+   * La grilla cubre todo el lienzo por encima de la capa de
+   * conexiones (z-index 0). Sin transparentarla al ratón, absorbe
+   * hover y clic y las líneas nunca reciben eventos. Las tarjetas
+   * recuperan los suyos con pointer-events: auto.
+   */
+  pointer-events: none;
+}
+
+.fl-board-empty-state {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  pointer-events: none;
+}
+
+.fl-board-empty-state.is-hidden {
+  display: none;
 }
 
 .fl-board-connection-layer {
@@ -3005,26 +3233,197 @@ body.focus-splitter-dragging {
 
 .fl-board-connection-line {
   fill: none;
-  stroke: var(--interactive-accent);
+  stroke: var(--text-muted);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.8;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.fl-board-connection-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+/* Control de borrado: cruz discreta sobre el punto medio de la
+   línea. Invisible hasta pasar el cursor por la conexión. */
+.fl-board-connection-delete {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.fl-board-connection-group:hover .fl-board-connection-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Permite mantener el control visible al encimar el cursor sobre él. */
+.fl-board-connection-delete:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fl-board-connection-delete-bg {
+  fill: var(--background-primary);
+  stroke: var(--background-modifier-border);
+  stroke-width: 1;
+}
+
+.fl-board-connection-delete-x {
+  fill: none;
+  stroke: var(--text-error);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  pointer-events: none;
 }
 
 .fl-board-text-card {
-  position: relative;
-  min-width: 0;
+  position: absolute;
+  width: 240px;
   padding: 12px;
   border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-m);
+  border-radius: 4px;
   background: var(--background-primary);
-  box-shadow: var(--shadow-s);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  pointer-events: auto;
+}
+
+.fl-board-text-card.is-dragging {
+  opacity: 0.9;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  z-index: 2;
 }
 
 .fl-board-text-card.is-connection-source {
   border-color: var(--interactive-accent);
   box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.fl-board-block-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  cursor: grab;
+  user-select: none;
+}
+
+.fl-board-text-card.is-dragging .fl-board-block-header {
+  cursor: grabbing;
+}
+
+.fl-board-block-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 3px;
+  color: var(--fl-widget-identity-color, var(--text-muted));
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+}
+
+.fl-board-block-badge svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.fl-board-block-badge-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------
+   Controles esquina superior derecha (columna vertical).
+   Mismo patrón que los bloques de texto de los widgets
+   (FocusListItem): indicador cuadrado arriba, cierre abajo.
+   ------------------------------------------------------------ */
+
+.fl-board-block-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* Reset plano: sin fondo, borde ni relieve (patrón widget). */
+.fl-board-block-indicator-button,
+.fl-board-block-remove {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 2px;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+/* Indicador activo/inactivo: valores idénticos a
+   .fl-focus-list-item-action-indicator (6×6 faint · 8×8 muted). */
+.fl-board-block-indicator {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 0;
+  background: var(--text-faint);
+  transition:
+    width 0.15s ease,
+    height 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.fl-board-block-indicator.is-active {
+  width: 8px;
+  height: 8px;
+  background: var(--text-muted);
+}
+
+/* Cierre: invisible fuera de la tarjeta; blanco al hacer hover
+   de la tarjeta o al quedar seleccionada como origen de
+   conexión; rojo (--text-error, color del widget) al hacer
+   hover sobre la propia cruz. */
+.fl-board-block-remove {
+  opacity: 0;
+  color: var(--text-normal);
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.fl-board-block-remove svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-board-text-card:hover .fl-board-block-remove,
+.fl-board-text-card.is-connection-source .fl-board-block-remove {
+  opacity: 1;
+}
+
+.fl-board-block-remove:hover {
+  color: var(--text-error);
 }
 
 .fl-board-text-card-content {
@@ -3043,17 +3442,23 @@ body.focus-splitter-dragging {
   line-clamp: 3;
 }
 
+/*
+ * Pie de la tarjeta: grid de tres columnas (1fr auto 1fr).
+ * Garantiza el punto conector en el CENTRO horizontal exacto y
+ * estable, independientemente de la longitud del texto o del
+ * estado expandido/colapsado.
+ */
 .fl-board-text-card-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   margin-top: 8px;
 }
 
-.fl-board-text-card-toggle,
-.fl-board-text-card-connect {
+.fl-board-text-card-toggle {
   display: none;
+  justify-self: start;
   padding: 0;
   border: 0;
   background: transparent !important;
@@ -3062,14 +3467,653 @@ body.focus-splitter-dragging {
   cursor: pointer;
 }
 
-.fl-board-text-card.is-expandable .fl-board-text-card-toggle,
-.fl-board-text-card-connect {
+.fl-board-text-card.is-expandable .fl-board-text-card-toggle {
   display: inline-flex;
 }
 
-.fl-board-text-card-toggle:hover,
-.fl-board-text-card-connect:hover {
+.fl-board-text-card-toggle:hover {
   color: var(--text-accent);
+}
+
+.fl-board-text-card.is-block-inactive {
+  opacity: 0.55;
+}
+
+/* Punto de conexión: círculo blanco plano en el centro exacto
+   del borde inferior, entre «Ver más» y el cierre. Sin relieve
+   ni fondo tridimensional. Siempre accesible. */
+.fl-board-connect-dot {
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  max-width: 10px;
+  max-height: 10px;
+  box-sizing: border-box;
+  justify-self: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-normal);
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.fl-board-connect-dot:hover {
+  background: var(--interactive-accent);
+}
+
+/* Estado de conexión en curso: el punto de la tarjeta origen
+   adopta el acento del tema, coherente con su borde. */
+.fl-board-text-card.is-connection-source .fl-board-connect-dot {
+  background: var(--interactive-accent);
+}
+
+/* Cierre (×) en la esquina inferior derecha del pie. */
+.fl-board-card-close {
+  justify-self: end;
+}
+
+/* Punto de conexión anclado al borde de la tarjeta: mismo tamaño
+   y color que el círculo de acciones; centrado exactamente sobre
+   el extremo de la línea. */
+.fl-board-anchor-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  max-width: 10px;
+  max-height: 10px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-normal);
+  box-shadow: none !important;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  transition: background-color 0.15s ease;
+}
+
+.fl-board-anchor-dot:hover {
+  background: var(--interactive-accent);
+}
+
+/* ------------------------------------------------------------
+   Selección rectangular y grupos etiquetados del lienzo.
+   ------------------------------------------------------------ */
+
+.fl-board-marquee {
+  position: absolute;
+  z-index: 3;
+  border: 1px dashed var(--interactive-accent);
+  background: color-mix(in srgb, var(--interactive-accent) 8%, transparent);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+/*
+ * Contenedor de grupo: objeto visual independiente en el lienzo.
+ * Caja punteada con encabezado propio (etiqueta + eliminar).
+ * Detrás de las tarjetas; sin invadir su contenido.
+ */
+.fl-board-group-box {
+  position: absolute;
+  z-index: 0;
+  border: 1px dashed var(--text-muted);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.fl-board-group-header {
+  position: absolute;
+  top: -24px;
+  left: -1px;
+  right: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.fl-board-group-label {
+  display: inline-flex;
+  align-items: center;
+  max-width: 70%;
+  padding: 1px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-board-group-label.is-placeholder {
+  color: var(--text-faint);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.fl-board-group-label:hover {
+  color: var(--text-accent);
+}
+
+.fl-board-group-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fl-board-group-remove svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fl-board-group-remove:hover {
+  color: var(--text-error);
+}
+
+.fl-board-group-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1px 6px;
+  border: 1px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  box-sizing: border-box;
+}
+
+/* La etiqueta es el asa de arrastre del contenedor. */
+.fl-board-group-label {
+  cursor: grab;
+}
+
+.fl-board-group-box.is-connection-source {
+  border-color: var(--interactive-accent);
+}
+
+/* Punto de conexión del contenedor (centro inferior), mismo
+   lenguaje que el de las tarjetas. */
+.fl-board-group-dot {
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  min-height: 10px;
+  max-width: 10px;
+  max-height: 10px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--text-normal);
+  box-shadow: none !important;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.15s ease;
+}
+
+.fl-board-group-dot:hover {
+  background: var(--interactive-accent);
+}
+
+.fl-board-group-box.is-connection-source .fl-board-group-dot {
+  background: var(--interactive-accent);
+}
+
+/* ============================================================
+   BOARD — ARQUITECTURA
+   ============================================================ */
+
+.fl-board-architecture {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+.fl-arch-header-title {
+  font-size: var(--font-ui-large);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.fl-arch-header-hint {
+  margin-top: 4px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.fl-arch-invitations {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.fl-arch-invitation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+  text-align: left;
+}
+
+.fl-arch-invitation svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.fl-arch-invitation:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.fl-arch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fl-arch-node {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.fl-arch-node-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fl-arch-node-level {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  min-width: 46px;
+}
+
+.fl-arch-node-title {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: 500;
+  padding: 2px 0;
+}
+
+.fl-arch-node-title:hover {
+  border-bottom-color: var(--background-modifier-border);
+}
+
+.fl-arch-node-title:focus {
+  border-bottom-color: var(--interactive-accent);
+  outline: none;
+}
+
+.fl-arch-node-controls,
+.fl-arch-block-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.fl-arch-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent !important;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fl-arch-icon-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-arch-icon-button:hover:not([disabled]) {
+  color: var(--text-accent);
+  background: var(--background-modifier-hover);
+}
+
+.fl-arch-icon-button[disabled] {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.fl-arch-assigned {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding-left: 54px;
+}
+
+.fl-arch-assigned-empty {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.fl-arch-assigned-block,
+.fl-arch-tray-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  box-sizing: border-box;
+}
+
+.fl-arch-assigned-block.is-inactive .fl-arch-block-preview,
+.fl-arch-tray-item.is-inactive .fl-arch-block-preview {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.fl-arch-block-preview {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fl-arch-inactive-badge {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 1px 6px;
+}
+
+.fl-arch-tray {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--background-modifier-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fl-arch-tray-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.fl-arch-add-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fl-arch-add-button {
+  padding: 4px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.fl-arch-add-button:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+
+/* ============================================================
+   BOARD — DOCUMENTO
+   ============================================================ */
+
+.fl-board-document {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 32px 64px;
+  box-sizing: border-box;
+  min-height: 100%;
+  color: var(--text-normal);
+  font-size: var(--font-text-size, 16px);
+  line-height: 1.7;
+}
+
+.fl-doc-empty {
+  margin-top: 48px;
+  text-align: center;
+}
+
+.fl-doc-empty-title {
+  font-size: var(--font-ui-large);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.fl-doc-empty-hint {
+  margin-top: 8px;
+  font-size: var(--font-ui-small);
+  color: var(--text-faint);
+}
+
+.fl-doc-title {
+  font-size: 1.7em;
+  font-weight: 700;
+  margin: 0 0 0.8em;
+  line-height: 1.3;
+}
+
+.fl-doc-heading {
+  font-weight: 600;
+  margin: 1.4em 0 0.5em;
+  line-height: 1.35;
+}
+
+.fl-doc-heading-level-2 { font-size: 1.3em; }
+.fl-doc-heading-level-3 { font-size: 1.15em; }
+.fl-doc-heading-level-4 { font-size: 1.05em; }
+
+.fl-doc-paragraph {
+  position: relative;
+  margin: 0 0 0.9em;
+  border-radius: var(--radius-s);
+}
+
+.fl-doc-paragraph-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  outline: none;
+  border-radius: var(--radius-s);
+}
+
+.fl-doc-paragraph-text:focus {
+  background: var(--background-modifier-hover);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+.fl-doc-paragraph-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.fl-doc-paragraph:hover .fl-doc-paragraph-controls,
+.fl-doc-paragraph.has-override .fl-doc-paragraph-controls {
+  opacity: 1;
+}
+
+.fl-doc-polish-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent !important;
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.fl-doc-polish-button svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fl-doc-polish-button:hover {
+  color: var(--text-accent);
+}
+
+.fl-doc-version-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.fl-doc-version-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent !important;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.fl-doc-version-toggle svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fl-doc-version-toggle.is-personal-active {
+  color: var(--text-accent);
+  border-color: var(--interactive-accent);
+}
+
+.fl-doc-version-toggle.is-original-active {
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   BOARD — MODAL PULIR
+   ============================================================ */
+
+.fl-board-polish-modal .fl-polish-section-label {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.fl-board-polish-modal .fl-polish-original-text {
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 160px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.fl-board-polish-modal .fl-polish-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 10px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  line-height: var(--line-height-normal);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.fl-board-polish-modal .fl-polish-textarea:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.fl-board-polish-modal .fl-polish-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 

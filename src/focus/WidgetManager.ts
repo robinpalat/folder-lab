@@ -17,6 +17,9 @@ export class WidgetManager {
   private readonly noteRepository: NoteRepository;
   private currentNotePath: string | null = null;
 
+  private readonly listeners =
+    new Set<() => void>();
+
 
   constructor(
     registry: FocusWidgetRegistry,
@@ -223,6 +226,8 @@ async renameInstance(
 
   await this.saveForCurrentNote();
 
+  this.notifyInstancesChanged();
+
   return true;
 }
 
@@ -314,7 +319,38 @@ async applyInstances(
   // ─────────────────────────────────────────────
 
   await this.saveForCurrentNote();
+
+  this.notifyInstancesChanged();
 }
+
+
+  /**
+   * Suscripción a cambios en las INSTANCIAS (p. ej. renombrado
+   * desde Biblioteca). Mismo patrón que WidgetController.onChange.
+   */
+  onChange(
+    listener: () => void
+  ): () => void {
+
+    this.listeners.add(listener);
+
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notifyInstancesChanged(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener();
+      } catch (error) {
+        console.error(
+          '[WidgetManager] Error en listener:',
+          error
+        );
+      }
+    }
+  }
 
 
   getDefinition(typeId: string): WidgetDefinition | undefined {

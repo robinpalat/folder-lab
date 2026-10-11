@@ -333,6 +333,29 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
   }))
 );
 
+    const describirHijos = (nodos: NavigationNode[]) =>
+      nodos.map(n => ({
+        titulo: n.title,
+        tipo: n.type,
+        orden: n.order ?? '(sin orden)',
+        id: n.id
+      }));
+
+    console.log('[FOLDERLAB-DROP-TRACE]', {
+      punto: 'reconstrucción: orden final de hermanos (raíz)',
+      hermanos: describirHijos(transformedRoots)
+    });
+
+    for (const raiz of transformedRoots) {
+      if (raiz.children && raiz.children.length > 0) {
+        console.log('[FOLDERLAB-DROP-TRACE]', {
+          punto: 'reconstrucción: orden final de hermanos (contenedor)',
+          contenedor: raiz.title,
+          hermanos: describirHijos(raiz.children)
+        });
+      }
+    }
+
     return result;
   }
 

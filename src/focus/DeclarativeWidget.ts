@@ -711,6 +711,23 @@ const item: WidgetRecord = {
                 : false;
 
 
+        /*
+         * Participación declarada en el Board (transfer.board):
+         * 'context' → el widget aporta contexto pero sus elementos
+         * NO se arrastran; ausente/'composition' → drag permitido
+         * cuando el widget declara outputs.
+         */
+        const boardPolicy =
+            this.definition.transfer?.board;
+
+        const canTransferToBoard =
+            boardPolicy?.participation !== 'context' &&
+            Boolean(
+                this.definition.transfer?.outputs
+                    ?.includes('text')
+            );
+
+
 
         const listItem =
             new FocusListItem(
@@ -802,10 +819,12 @@ const item: WidgetRecord = {
             'fl-list-item-content'
         );
 
-        content.setAttr(
-            'draggable',
-            'true'
-        );
+        if (canTransferToBoard) {
+            content.setAttr(
+                'draggable',
+                'true'
+            );
+        }
 
         const entityContent =
             this.definition.entity?.content;
@@ -819,51 +838,88 @@ const item: WidgetRecord = {
                 itemData[textField] ?? ''
             );
 
-        createExpandableText(
-            content,
-            text,
+        const expandable =
+            createExpandableText(
+                content,
+                text,
 
-            {
-                initiallyExpanded: false,
+                {
+                    initiallyExpanded: false,
 
-                previewLines:
-                    entityContent?.previewLines ??
-                    3,
+                    previewLines:
+                        entityContent?.previewLines ??
+                        3,
 
-                expandedLabel: 'Contraer',
-                collapsedLabel: 'Expandir',
+                    expandedLabel: 'Contraer',
+                    collapsedLabel: 'Expandir',
 
-                editable:
-                    entityContent?.editable ??
-                    false,
+                    editable:
+                        entityContent?.editable ??
+                        false,
 
-                rootClass:
-                    `fl-${this.id}-expandable`,
+                    rootClass:
+                        `fl-${this.id}-expandable`,
 
-                contentClass:
-                    `fl-${this.id}-expandable-content`,
+                    contentClass:
+                        `fl-${this.id}-expandable-content`,
 
-                actionClass:
-                    `fl-${this.id}-expandable-action`,
+                    actionClass:
+                        `fl-${this.id}-expandable-action`,
 
-                onExpandedChange: (expanded) => {
-                    listItem.setExpanded(expanded);
-                },
+                    onExpandedChange: (expanded) => {
+                        listItem.setExpanded(expanded);
+                    },
+                }
+            );
 
+        // ----------------------------------------------------------
+        // PERSISTENCIA DE EDICIONES EN LÍNEA
+        //
+        // Los widgets con entity.content.editable (p. ej. Tareas)
+        // permiten editar el texto en el contenido. Sin este
+        // guardado, la edición se perdía con la próxima recarga
+        // (onChange → reload) y siempre al reiniciar Obsidian.
+        // ----------------------------------------------------------
 
+        if (entityContent?.editable) {
 
+            const persistEdit = async (): Promise<void> => {
 
-            }
-        );
+                const newText =
+                    expandable.content.innerText;
+
+                if (
+                    newText === text ||
+                    !this.context?.activeFile
+                ) {
+                    return;
+                }
+
+                await this.controller.storage.update(
+                    this.getStorageKey(),
+                    this.context.activeFile.path,
+                    this.getInstanceId(),
+                    itemData.id,
+                    { [textField]: newText }
+                );
+            };
+
+            expandable.content.addEventListener(
+                'input',
+                () => { void persistEdit(); }
+            );
+
+            expandable.content.addEventListener(
+                'blur',
+                () => { void persistEdit(); }
+            );
+        }
 
         // ----------------------------------------------------------
         // OUTPUT TRANSFER
         // ----------------------------------------------------------
 
-        if (
-            this.definition.transfer?.outputs
-                ?.includes('text')
-        ) {
+        if (canTransferToBoard) {
 
             const dragDrop =
                 FolderLabDragDrop.getInstance(

@@ -160,6 +160,11 @@ export class FolderLabView extends ItemView {
 
   private async handleNavigationTreeChanged(): Promise<void> {
     console.log('[UI] navigation-tree-changed recibido');
+    console.log('[FOLDERLAB-EVENT-TRACE]', {
+      evento: 'navigation-tree-changed',
+      navType: this.navigationService?.getNavigationType() ?? 'folders(desconocido)',
+      isAllNotes: this.state.isAllNotesMode()
+    });
 
     if (!this.navigationService) {
       console.log('[UI] NavigationService no disponible');
@@ -338,6 +343,33 @@ export class FolderLabView extends ItemView {
   private exitGlobalModes(): void {
     this.state.exitGlobalModes();
     this.updateToolbarButtons();
+
+    /*
+     * El Board es subordinado a Focus: al desactivarse cualquier
+     * modo global, la vista del Board se cierra y se limpia su
+     * estado de presentación. La nota activa vuelve a su vista
+     * nativa (closeBoardView restaura el leaf markdown).
+     */
+    void this.closeBoardIfOpen();
+  }
+
+  /**
+   * Cierra la vista del Board si está abierta y restablece su
+   * estado de presentación. No toca el contenido persistido
+   * (tarjetas/conexiones en _board.json).
+   */
+  private async closeBoardIfOpen(): Promise<void> {
+    const boardLeaves =
+      this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE);
+
+    if (boardLeaves.length === 0) {
+      this.boardPreviousState = null;
+      return;
+    }
+
+    await this.closeBoardView();
+    this.focusWorkspace?.setBoardActive(false);
+    this.boardPreviousState = null;
   }
 
   // ============================================================
@@ -372,6 +404,13 @@ export class FolderLabView extends ItemView {
         this.showExplorerMode();
       }
     } else {
+      /*
+       * Salida de Focus: el Board no puede sobrevivir a Focus.
+       * Se cierra primero para que la nota activa quede en su
+       * vista nativa antes de restaurar la lista de notas.
+       */
+      await this.closeBoardIfOpen();
+
       this.showExplorerMode();
       const currentPath = this.controller.getCurrentPath();
 
@@ -420,6 +459,60 @@ export class FolderLabView extends ItemView {
       case 'folderChanged':
 
         console.log('[RENDER TRACE] folderChanged event');
+        console.log('[FOLDERLAB-EVENT-TRACE]', {
+          evento: 'folderChanged',
+          navType: this.navigationService?.getNavigationType() ?? 'folders(desconocido)',
+          isAllNotesAntes: this.state.isAllNotesMode()
+        });
+
+        /*
+         * La decisión usa el MODO GLOBAL ACTIVO (isAllNotesMode),
+         * no el proveedor: el proveedor (folders/properties) indica
+         * DE DÓNDE vienen los datos; el modo indica QUÉ vista está
+         * en pantalla. Mezclarlos expulsaba de «Todas las notas».
+         */
+        if (this.state.isAllNotesMode()) {
+          if (this.navigationService?.getNavigationType() === 'properties') {
+            /*
+             * Los cambios de frontmatter (p. ej. la renumeración
+             * nav_order) disparan vault modify → loadFolder →
+             * folderChanged. La UI se refresca vía order-changed /
+             * navigation-tree-changed; aquí no se hace nada.
+             */
+            console.log('[FOLDERLAB-EVENT-TRACE]', {
+              evento: 'folderChanged',
+              rama: 'ALL_NOTES+properties: IGNORADO (sin exitGlobalModes ni loadFolder)',
+              isAllNotes: this.state.isAllNotesMode()
+            });
+            break;
+          }
+
+          /*
+           * Proveedor folders con vista ALL_NOTES: refrescar el
+           * listado en su sitio, SIN salir del modo (conserva la
+           * actualización ante cambios estructurales legítimos).
+           */
+          console.log('[FOLDERLAB-EVENT-TRACE]', {
+            evento: 'folderChanged',
+            rama: 'ALL_NOTES+folders: re-render en el modo (sin exitGlobalModes)',
+            isAllNotes: this.state.isAllNotesMode()
+          });
+
+          const allNotesFolder =
+            this.app.vault.getAbstractFileByPath(event.folderPath);
+
+          if (allNotesFolder instanceof TFolder) {
+            await this.renderAllNotesMode(allNotesFolder);
+          }
+
+          break;
+        }
+
+        console.log('[FOLDERLAB-EVENT-TRACE]', {
+          evento: 'folderChanged',
+          rama: 'sin ALL_NOTES: exitGlobalModes + loadFolder (histórico)',
+          isAllNotesAntes: this.state.isAllNotesMode()
+        });
         this.exitGlobalModes();
         this.loadFolder(event.folderPath);
         break;
@@ -575,7 +668,7 @@ export class FolderLabView extends ItemView {
       await this.loadInitialFolder();
     }
 
-    this.state.exitGlobalModes();
+    this.exitGlobalModes();
     this.updateToolbarButtons();
     this.renderContent();
 
@@ -705,6 +798,12 @@ export class FolderLabView extends ItemView {
   async onClose(): Promise<void> {
     this._isDisposed = true;
 
+    /*
+     * El Board es subordinado a Focus: al cerrarse el panel,
+     * cualquier vista del Board abierta se cierra también.
+     */
+    await this.closeBoardIfOpen();
+
     // Limpiar eventos
     (this.app.workspace as any).off('folder-lab:navigation-tree-changed', this.boundHandleNavigationTreeChanged);
     document.removeEventListener('folder-lab-export', this.handleExportEvent.bind(this));
@@ -802,6 +901,13 @@ export class FolderLabView extends ItemView {
         }
 
         const currentPath = this.controller.getCurrentPath();
+
+        console.log('[FOLDERLAB-VAULT-TRACE]', {
+          evento: 'vault:modify',
+          archivo: file.path,
+          currentPath,
+          llamaLoadFolder: !!(currentPath && file.path.startsWith(currentPath))
+        });
 
         if (currentPath && file.path.startsWith(currentPath)) {
           this.controller.loadFolder(currentPath);
@@ -962,6 +1068,14 @@ export class FolderLabView extends ItemView {
   // ============================================================
 
   private async loadFolder(folderPath: string): Promise<void> {
+    console.log('[FOLDERLAB-VIEW-TRACE]', {
+      metodo: 'loadFolder(vista)',
+      folderPath,
+      navType: this.navigationService?.getNavigationType() ?? 'folders(desconocido)',
+      navigationMode: (this.state as any).navigationMode,
+      isAllNotes: this.state.isAllNotesMode(),
+      pila: new Error().stack?.split('\n').slice(2, 8).join('\n')
+    });
     if (this._isDisposed) return;
 
     if (this.state.isFocusMode) {
@@ -990,8 +1104,10 @@ export class FolderLabView extends ItemView {
     } else if (this.state.isFolderTreeMode()) {
       await this.renderFolderMode(folder);
     } else if (this.state.isAllNotesMode()) {
+      console.log('[FOLDERLAB-VIEW-TRACE]', { decision: 'renderAllNotesMode', isAllNotes: true });
       await this.renderAllNotesMode(folder);
     } else {
+      console.log('[FOLDERLAB-VIEW-TRACE]', { decision: 'renderNormalMode', isAllNotes: this.state.isAllNotesMode(), modo: (this.state as any).navigationMode });
       await this.renderNormalMode(folder);
     }
 
@@ -1030,6 +1146,12 @@ export class FolderLabView extends ItemView {
   /**
    * Obtiene el contexto actual de navegación
    * El contexto NUNCA cambia al cambiar de modo (Normal/Carpetas/Todas)
+   *
+   * El nodo devuelto pertenece SIEMPRE al árbol actual: aunque el
+   * ID siga existiendo, el objeto anterior conserva los hijos en
+   * el orden previo a la última reconstrucción (p. ej. después de
+   * renumerar nav_order). Devolver el objeto viejo dejaba a la
+   * vista normal listando el orden anterior.
    */
   private getCurrentContext(tree: NavigationTree): NavigationNode {
     // Si no hay contexto, usar virtual root
@@ -1037,18 +1159,14 @@ export class FolderLabView extends ItemView {
       return this.createVirtualRoot(tree);
     }
 
-    //  Si el contexto es virtual root, mantenerlo
-    if (this.currentNavigationNode.id === 'virtual:root') {
-      return this.currentNavigationNode;
+    // Resolver el ID en el árbol ACTUAL y devolver el nodo fresco
+    const fresh = tree.nodeMap.get(this.currentNavigationNode.id);
+
+    if (fresh) {
+      return fresh;
     }
 
-    // Verificar que el contexto existe en el árbol actual
-    const exists = tree.nodeMap.has(this.currentNavigationNode.id);
-    if (exists) {
-      return this.currentNavigationNode;
-    }
-
-    //  Si no existe, volver al virtual root
+    //  Si ya no existe, volver al virtual root
     return this.createVirtualRoot(tree);
   }
 
@@ -1340,6 +1458,7 @@ this.headerComponent.updateWordCountVisibility();
    *  Modo Normal: OWN PAGE + notas directas (excluyendo contenedores)
    */
   private async renderNormalModeProperties(contextNode: NavigationNode): Promise<void> {
+    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderNormalModeProperties', isAllNotes: this.state.isAllNotesMode() });
     const items: ListItem[] = [];
     const filesForStats: TFile[] = [];
     let localNumber = 0;
@@ -1430,6 +1549,7 @@ this.headerComponent.updateWordCountVisibility();
     tree: NavigationTree,
     contextNode: NavigationNode
   ): Promise<void> {
+    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderAllNotesModeProperties', contexto: contextNode.id, isAllNotes: this.state.isAllNotesMode() });
 
     const stats =
       contextNode.id === 'virtual:root'
@@ -1501,7 +1621,7 @@ this.headerComponent.updateWordCountVisibility();
     this.currentNavigationNode = node;
 
     // Resetear modos a normal (el modo se mantiene, pero el contexto cambia)
-    this.state.exitGlobalModes();
+    this.exitGlobalModes();
     this.updateToolbarButtons();
 
     // Recargar la vista con el nuevo contexto
@@ -1634,7 +1754,7 @@ this.headerComponent.updateWordCountVisibility();
 
         this.currentNavigationNode = rootNode;
 
-        this.state.exitGlobalModes();
+        this.exitGlobalModes();
         this.updateToolbarButtons();
 
         await this.renderPropertyNavigation();
@@ -1648,7 +1768,7 @@ this.headerComponent.updateWordCountVisibility();
       if (!parentId) {
         this.currentNavigationNode = null;
 
-        this.state.exitGlobalModes();
+        this.exitGlobalModes();
         this.updateToolbarButtons();
 
         await this.renderPropertyNavigation();
@@ -1686,7 +1806,7 @@ this.headerComponent.updateWordCountVisibility();
 
       this.currentNavigationNode = parentNode;
 
-      this.state.exitGlobalModes();
+      this.exitGlobalModes();
       this.updateToolbarButtons();
 
       await this.renderPropertyNavigation();
@@ -1706,7 +1826,7 @@ this.headerComponent.updateWordCountVisibility();
 
     if (!parentPath) return;
 
-    this.state.exitGlobalModes();
+    this.exitGlobalModes();
     this.updateToolbarButtons();
     console.log('[BACK TO PARENT]', {
       currentPath,
@@ -1793,6 +1913,7 @@ this.headerComponent.updateWordCountVisibility();
   // ============================================================
 
   private async renderNormalMode(folder: TFolder): Promise<void> {
+    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderNormalMode(vista-carpetas)', folder: folder.path, isAllNotes: this.state.isAllNotesMode() });
     this.logRender('folders', { folder: folder.path });
 
     this.listContainer.empty();
@@ -1859,6 +1980,7 @@ this.headerComponent.updateWordCountVisibility();
   }
 
   private async renderAllNotesMode(folder: TFolder): Promise<void> {
+    console.log('[FOLDERLAB-VIEW-TRACE]', { metodo: 'renderAllNotesMode(vista-carpetas)', folder: folder.path });
     this.logRender('folders', { folder: folder.path });
 
     this.listContainer.empty();
@@ -1951,7 +2073,7 @@ this.headerComponent.updateWordCountVisibility();
 
     // Al cambiar de modalidad, comenzar siempre
     // en la Vista Normal.
-    this.state.exitGlobalModes();
+    this.exitGlobalModes();
     this.updateToolbarButtons();
 
     const navType = this.navigationService.getNavigationType();

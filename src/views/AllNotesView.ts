@@ -15,6 +15,7 @@ export class AllNotesView {
   private app: App;
   private state: FolderLabState;
   private controller: FolderLabController;
+  private orderService: OrderService;
   private noteService: NoteService;
   private listComponent: NoteListComponent;
   private container: HTMLElement;
@@ -33,6 +34,7 @@ export class AllNotesView {
   ) {
     this.app = app;
     this.state = state;
+    this.orderService = orderService;
     this.noteService = noteService;
     this.controller = controller;
     this.container = container;
@@ -111,6 +113,17 @@ async renderNavigation(
       await this.walkNavigationTree(tree.root, 0, items);
     }
 
+    console.log('[FOLDERLAB-DROP-TRACE]', {
+      punto: 'orden visual final (AllNotesView)',
+      elementos: items.map((entry, indice) => ({
+        indice,
+        nombre:
+          (entry.data as { name?: string }).name ?? '(sin nombre)',
+        tipo: entry.type,
+        numero: (entry as { number?: number }).number ?? '(sin numero)'
+      }))
+    });
+
     await this.listComponent.render(items);
     return this.calculateStatsFromItems(items);
     
@@ -141,8 +154,47 @@ async renderNavigation(
       }
     }
 
-    subfolders.sort((a, b) => a.name.localeCompare(b.name));
-    noteFiles.sort((a, b) => a.name.localeCompare(b.name));
+    /*
+     * El orden persistido por carpeta es la fuente de verdad
+     * (mismo contrato que la vista normal). Alfabético solo
+     * como fallback determinista cuando no hay lista guardada.
+     */
+    const persistedOrder =
+      await this.orderService.getOrderForFolder(folder.path);
+
+    const rankByPersistedOrder = (
+      name: string
+    ): number => {
+      const index = persistedOrder.indexOf(name);
+
+      return index === -1
+        ? Number.MAX_SAFE_INTEGER
+        : index;
+    };
+
+    const compareByPersistedOrder = (
+      a: { name: string },
+      b: { name: string }
+    ): number => {
+      const rankA = rankByPersistedOrder(a.name);
+      const rankB = rankByPersistedOrder(b.name);
+
+      if (rankA !== rankB) {
+        return rankA - rankB;
+      }
+
+      return a.name.localeCompare(b.name);
+    };
+
+    subfolders.sort(compareByPersistedOrder);
+    noteFiles.sort(compareByPersistedOrder);
+
+    console.log('[FOLDERLAB-DROP-TRACE]', {
+      punto: 'AllNotesView.walkTree (proveedor folders): orden ALFABÉTICO por nombre; _folder_order.json NO se consulta aquí',
+      carpeta: folder.path,
+      notas: noteFiles.map(f => f.name),
+      subcarpetas: subfolders.map(f => f.name)
+    });
 
     for (const file of noteFiles) {
       const isEmpty = await this.noteService.isNoteEmpty(file);
@@ -296,9 +348,14 @@ status: status || undefined
         child => child.metadata?.isOwnPage !== true
       ) || [];
 
+    /*
+     * El nodo sintético virtual:root no cuenta como profundidad
+     * jerárquica: sus hijos (las carpetas raíz reales) se procesan
+     * en el mismo nivel. Los contenedores reales sí suman un nivel.
+     */
     await this.walkNavigationTree(
       structuralChildren,
-      level + 1,
+      node.metadata?.isVirtualRoot ? level : level + 1,
       items
     );
   }
@@ -334,8 +391,14 @@ status: status || undefined
     }
 
     // 2. Descendientes (con numeración)
+    // El virtual:root sintético no suma profundidad: sus hijos
+    // (carpetas raíz reales) van en nivel 0.
     if (node.children && node.children.length > 0) {
-      await this.walkNavigationTree(node.children, 1, items);
+      await this.walkNavigationTree(
+        node.children,
+        node.metadata?.isVirtualRoot ? 0 : 1,
+        items
+      );
     }
   }
 

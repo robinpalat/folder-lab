@@ -30,6 +30,8 @@ import { AIService } from './ai/AIService';
 
 import { WidgetManager } from "./focus/WidgetManager";
 import { NoteRepository } from './storage/NoteRepository';
+import { BoardRepository } from './storage/BoardRepository';
+import { PluginDataStore } from './storage/PluginDataStore';
 import type { WidgetDefinition } from './focus/WidgetDefinition';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
@@ -127,6 +129,8 @@ export default class FolderLabPlugin extends Plugin {
   private widgetRegistry: FocusWidgetRegistry | null = null;
   private widgetManager: WidgetManager | null = null;
   private widgetController: WidgetController;
+  private boardRepository: BoardRepository | null = null;
+  private dataStore: PluginDataStore | null = null;
 
 
   async onload() {
@@ -158,8 +162,15 @@ export default class FolderLabPlugin extends Plugin {
     // INICIALIZAR REGISTRO DE WIDGETS (UNA SOLA VEZ)
     // ============================================================
 
+    /*
+     * Pipeline único y serializado de escritura sobre data.json:
+     * lo comparten los widgets (WidgetController) y los ajustes.
+     * Evita que saveData reescrituras completas se pisen entre sí.
+     */
+    this.dataStore = new PluginDataStore(this);
+
     this.widgetController =
-      new WidgetController(this);
+      new WidgetController(this, this.dataStore);
 
     this.widgetRegistry =
       new FocusWidgetRegistry(
@@ -243,6 +254,9 @@ export default class FolderLabPlugin extends Plugin {
     const noteRepository =
       new NoteRepository(this.app);
 
+    this.boardRepository =
+      new BoardRepository(this.app);
+
     this.widgetManager =
       new WidgetManager(
         this.widgetRegistry!,
@@ -292,7 +306,11 @@ export default class FolderLabPlugin extends Plugin {
 
     this.registerView(
       BOARD_VIEW_TYPE,
-      (leaf) => new BoardView(leaf)
+      (leaf) => new BoardView(leaf, {
+        widgetManager: this.widgetManager!,
+        repository: this.boardRepository!,
+        controller: this.widgetController
+      })
     );
 
     // ============================================================
@@ -515,7 +533,39 @@ export default class FolderLabPlugin extends Plugin {
   }
 
   async saveSettings() {
-    await this.saveData(this.settings);
+    /*
+     * Solo se escriben las claves PROPIAS de los ajustes (las de
+     * DEFAULT_SETTINGS más el estado privado del Asistente).
+     * Antes se guardaba el objeto settings completo —que arrastraba
+     * una copia obsoleta de las claves de los widgets— y cualquier
+     * guardado de ajustes BORRABA los datos de widgets escritos
+     * durante la sesión.
+     */
+    const ownedKeys = [
+      ...Object.keys(DEFAULT_SETTINGS),
+      "_widgetState"
+    ];
+
+    /*
+     * Si el store no está inicializado, se FALLA DE FORMA VISIBLE:
+     * jamás se cae a una escritura completa de data.json con la
+     * copia obsoleta de this.settings (eso borraba los datos de
+     * los widgets declarativos).
+     */
+    if (!this.dataStore) {
+      console.error(
+        '[FolderLab] PluginDataStore no inicializado: ' +
+        'guardado de ajustes cancelado para no sobrescribir datos de widgets.'
+      );
+      throw new Error(
+        '[FolderLab] PluginDataStore no inicializado'
+      );
+    }
+
+    await this.dataStore.saveOwnedSettings(
+      this.settings as unknown as Record<string, any>,
+      ownedKeys
+    );
 
     if (this.aiService) {
       this.aiService.updateSettings({

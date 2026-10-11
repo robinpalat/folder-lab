@@ -849,8 +849,11 @@ export class NotesWidget implements FocusWidget {
       );
 
       
+      const dragDrop =
+        FolderLabDragDrop.getInstance(this.app);
+
       const cleanupDrag =
-        FolderLabDragDrop.getInstance(this.app)
+        dragDrop
           .registerTextDragSource(
             content,
             () => expandable.content.innerText,
@@ -859,6 +862,22 @@ export class NotesWidget implements FocusWidget {
                 "fl-dnd-drag-active",
                 active
               );
+
+              /*
+               * Declara la procedencia del arrastre para el Board.
+               * El payload JSON no cambia: el drop en otros widgets
+               * sigue siendo una copia sin borrar el origen.
+               */
+              if (active) {
+                dragDrop.setActiveDragSource({
+                  widgetId: "notes",
+                  instanceId: "notes",
+                  itemId: String(index),
+                  sessionId: "today"
+                });
+              } else {
+                dragDrop.clearActiveDragSource();
+              }
             }
           );
 

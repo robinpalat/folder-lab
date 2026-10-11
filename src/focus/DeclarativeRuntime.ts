@@ -640,6 +640,24 @@ export class DeclarativeRuntime {
           }
         }
       );
+
+
+      const board =
+        definition.transfer.board;
+
+      if (board) {
+
+        if (
+          board.participation !== undefined &&
+          board.participation !== 'composition' &&
+          board.participation !== 'context'
+        ) {
+
+          errors.push(
+            `[${widgetId}] transfer.board.participation inválido: ${board.participation}`
+          );
+        }
+      }
     }
 
 

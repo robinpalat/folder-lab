@@ -573,6 +573,18 @@ onStatusChange: async (file: TFile, status: string) => {
       return;
     }
 
+    // Capturar el elemento movido y el destino ANTES del splice
+    // (tras el splice, targetIndex contiene el propio elemento movido)
+    const movedElement = items[fromIndex];
+    const movedPath =
+      movedElement?.getAttribute('data-path') ?? null;
+
+    const targetElementBefore =
+      items[targetIndex];
+
+    const targetPathBefore =
+      targetElementBefore?.getAttribute('data-path') ?? null;
+
     const [moved] =
       items.splice(
         fromIndex,
@@ -625,70 +637,313 @@ onStatusChange: async (file: TFile, status: string) => {
       }
     }
 
+    console.log('[FOLDERLAB-DROP-TRACE]', {
+      punto: 'handleDrop(rama properties)',
+      navigationType,
+      fromIndex,
+      targetIndex,
+      movedPath,
+      targetPath: targetPathBefore
+    });
+
+    try {
+      const diagTree =
+        this.controller.navigationService?.getTree?.() ?? null;
+
+      const estadoPrevio = items.map((diagEl, diagIndex) => {
+        const diagPath = diagEl.getAttribute('data-path') ?? '';
+        const diagNode = diagTree?.nodeMap.get(diagPath) ?? null;
+
+        return {
+          indice: diagIndex,
+          id: diagNode?.id ?? '(sin nodo)',
+          ruta: diagPath,
+          tipo: diagNode?.type ?? '(desconocido)',
+          parentPath: diagNode?.parentPath ?? '(sin padre)',
+          parentRef: diagNode?.metadata?.parentRef ?? '(sin parentRef)',
+          ordenProveedor: diagNode?.order ?? '(sin orden)'
+        };
+      });
+
+      console.log('[FOLDERLAB-DROP-TRACE]', {
+        punto: 'estado previo (lista visual completa)',
+        elementos: estadoPrevio
+      });
+    } catch (diagError) {
+      console.log('[FOLDERLAB-DROP-TRACE]', {
+        punto: 'estado previo NO disponible',
+        motivo: String(diagError)
+      });
+    }
+
     if (
       navigationType ===
       'properties'
     ) {
-      const files: TFile[] = [];
+      /*
+       * Reordenamiento por ÁMBITO DE HERMANOS (properties):
+       * - Solo se renumeran las notas del padre del elemento
+       *   movido (nunca se mezclan carpetas distintas).
+       * - Las páginas contenedoras hermanas se renumeran
+       *   después para evitar colisiones de nav_order con el
+       *   orden del árbol (que las ordena por hermanos).
+       * - Un drop hacia el ámbito de otra carpeta se ignora:
+       *   el reordenamiento no convierte en mover archivos.
+       */
+      const navigationService =
+        this.controller.navigationService;
 
-      for (
-        const path of newOrder
-      ) {
-        const file =
-          this.app.vault.getFileByPath(
-            path
-          );
+      const provider =
+        navigationService?.getProvider?.() ?? null;
 
-        if (file) {
-          files.push(file);
-        } else {
-          console.warn(
-            '[PROPERTY ORDER] Archivo no encontrado:',
-            path
-          );
-        }
-      }
+      const scopeOf = (path: string): string => {
+        if (!provider) return '';
 
-      if (files.length > 0) {
-        const orderProperty =
-          this.controller
-            .getPropertyOrderProperty();
+        return (
+          provider.getParent(`virtual:${path}`) ??
+          provider.getParent(path) ??
+          ''
+        );
+      };
 
-        if (!orderProperty) {
-          console.error(
-            '[PROPERTY ORDER] No se pudo determinar la propiedad de orden'
+      const targetPath =
+        targetPathBefore;
+
+      if (provider && movedPath) {
+        const movedScope = scopeOf(movedPath);
+
+        if (
+          targetPath &&
+          scopeOf(targetPath) !== movedScope
+        ) {
+          console.log(
+            '[FOLDERLAB-DROP-TRACE]',
+            {
+              punto: 'drop entre ámbitos DISTINTOS → operación ignorada',
+              movedPath,
+              movedScope,
+              targetPath,
+              ambitoDestino: scopeOf(targetPath)
+            }
           );
 
           return;
         }
 
-        await this.controller
-          .propertyOrderService
-          .reorder(
+        // Hojas del ámbito, en el nuevo orden visual
+        const scopeLeaves = newOrder.filter(
+          (path) =>
+            scopeOf(path) === movedScope
+        );
+
+        // Páginas contenedoras hermanas, en orden del árbol
+        const tree =
+          navigationService?.getTree?.() ?? null;
+
+        const parentNode =
+          tree?.nodeMap.get(movedScope || 'virtual:root');
+
+        const containerPages: string[] = [];
+
+        if (parentNode?.children) {
+          for (const child of parentNode.children) {
+            if (
+              child.metadata?.isOwnPage !== true &&
+              child.children &&
+              child.children.length > 0 &&
+              child.filePath
+            ) {
+              containerPages.push(child.filePath);
+            }
+          }
+        }
+
+        const sequence = [
+          ...scopeLeaves,
+          ...containerPages
+        ];
+
+        const files: TFile[] = [];
+
+        for (const path of sequence) {
+          const file =
+            this.app.vault.getFileByPath(path);
+
+          if (file) {
+            files.push(file);
+          } else {
+            console.warn(
+              '[PROPERTY ORDER] Archivo no encontrado:',
+              path
+            );
+          }
+        }
+
+        console.log('[FOLDERLAB-DROP-TRACE]', {
+          punto: 'antes de reorder',
+          ambito: movedScope,
+          secuencia: sequence,
+          contenedoras: containerPages,
+          archivos: files.map(f => f.path),
+          propiedad: this.controller.getPropertyOrderProperty()
+        });
+
+        if (files.length > 0) {
+          const orderProperty =
+            this.controller
+              .getPropertyOrderProperty();
+
+          if (!orderProperty) {
+            console.error(
+              '[PROPERTY ORDER] No se pudo determinar la propiedad de orden'
+            );
+
+            return;
+          }
+
+          await this.controller
+            .propertyOrderService
+            .reorder(
+              files,
+              orderProperty
+            );
+
+          console.log('[FOLDERLAB-DROP-TRACE]', {
+            punto: 'reorder completado',
+            ambito: movedScope
+          });
+        } else {
+          console.log('[FOLDERLAB-DROP-TRACE]', {
+            punto: 'reorder OMITIDO (sin archivos)',
+            ambito: movedScope
+          });
+        }
+
+        return;
+      }
+
+      // Sin provider: comportamiento histórico global (compatibilidad)
+      const files: TFile[] = [];
+
+      for (const path of newOrder) {
+        const file =
+          this.app.vault.getFileByPath(path);
+
+        if (file) {
+          files.push(file);
+        }
+      }
+
+      if (files.length > 0) {
+        const orderProperty =
+          this.controller.getPropertyOrderProperty();
+
+        if (orderProperty) {
+          await this.controller.propertyOrderService.reorder(
             files,
             orderProperty
           );
+        }
       }
 
       return;
     }
 
-    const currentPath =
-      this.controller.getCurrentPath();
+    /*
+     * Rama folders: el orden persistido corresponde EXCLUSIVAMENTE
+     * a los hermanos del mismo padre que el elemento movido
+     * (mismo contrato que OrderService.getOrderForFolder). Nunca se
+     * mezclan nombres de carpetas distintas en una sola lista.
+     * Comparación por carpeta padre exacta (dirname), nunca por
+     * prefijo de ruta: 'LIBRO2/X.md' no pertenece a 'LIBRO'.
+     */
+    const scopePath = movedPath && movedPath.includes('/')
+      ? movedPath.substring(0, movedPath.lastIndexOf('/'))
+      : '';
+
+    const scopeOrder: string[] = [];
+
+    for (const el of items) {
+      const path = el.getAttribute('data-path');
+
+      if (!path) continue;
+
+      const parentPath = path.includes('/')
+        ? path.substring(0, path.lastIndexOf('/'))
+        : '';
+
+      if (parentPath !== scopePath) continue;
+
+      const fileName = path.split('/').pop();
+
+      if (fileName) {
+        scopeOrder.push(fileName);
+      }
+    }
+
+    console.log('[FOLDERLAB-DROP-TRACE]', {
+      punto: 'handleDrop(rama folders)',
+      fromIndex,
+      targetIndex,
+      ambitoCarpeta: scopePath,
+      secuenciaCalculada: scopeOrder
+    });
 
     if (
-      currentPath &&
-      newOrder.length > 0
+      scopeOrder.length > 0
     ) {
-      await this.orderService
-        .updateFolderOrder(
-          currentPath,
-          newOrder
-        );
+      const existingOrder =
+        await this.orderService.getOrderForFolder(scopePath);
+
+      /*
+       * Fusión que preserva las entradas no afectadas (carpetas
+       * hermanas incluidas en la lista persistida): solo se
+       * sustituye, en su sitio, la subsecuencia de nombres del
+       * ámbito con el nuevo orden. Los sobrantes se añaden al
+       * final para no perder archivos nuevos.
+       */
+      const scopeNames = new Set(scopeOrder);
+      const mergedOrder: string[] = [];
+      let cursor = 0;
+
+      for (const name of existingOrder) {
+        if (scopeNames.has(name)) {
+          mergedOrder.push(scopeOrder[cursor++]);
+        } else {
+          mergedOrder.push(name);
+        }
+      }
+
+      while (cursor < scopeOrder.length) {
+        mergedOrder.push(scopeOrder[cursor++]);
+      }
+
+      const unchanged =
+        mergedOrder.length === existingOrder.length &&
+        mergedOrder.every((name, index) => name === existingOrder[index]);
+
+      if (!unchanged) {
+        await this.orderService
+          .updateFolderOrder(
+            scopePath,
+            mergedOrder
+          );
+      }
+
+      console.log('[FOLDERLAB-DROP-TRACE]', {
+        punto: 'updateFolderOrder completado (_folder_order.json)',
+        ambitoCarpeta: scopePath,
+        total: mergedOrder.length,
+        sinCambios: unchanged
+      });
 
       this.onReorder(
-        newOrder
+        mergedOrder
       );
+
+      console.log('[FOLDERLAB-DROP-TRACE]', {
+        punto: 'onReorder invocado (rama folders)'
+      });
     }
   }
 

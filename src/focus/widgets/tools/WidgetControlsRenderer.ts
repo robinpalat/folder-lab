@@ -299,31 +299,40 @@ private static renderSourceSelector(
         'aria-expanded': 'false'
       }
     });
-    
-    // Icono del widget
-// Icono del widget
-if (widget.icon) {
-  const iconSpan = btn.createEl('span', {
-    cls: 'fl-widget-selector-icon'
-  });
 
-applyWidgetIdentity(
-  iconSpan,
-  {
-    icon: widget.icon,
-    color: widget.color
-  }
-);
-}
+    /*
+     * Indicador de desplegable: chevron hacia abajo ANTES del
+     * icono ([chevron][icono][nombre]). Está dentro del MISMO
+     * botón: al pulsarlo se ejecuta el onclick existente que abre
+     * el menú de selección de widgets (sin menú duplicado ni
+     * lógica nueva). El estado abierto/cerrado se refleja en
+     * aria-expanded (rotación vía CSS).
+     */
+    const chevronSpan = btn.createEl('span', {
+      cls: 'fl-widget-selector-arrow fl-widget-selector-chevron'
+    });
+
+    setIcon(chevronSpan, 'chevron-down');
+
+    // Icono del widget
+    if (widget.icon) {
+      const iconSpan = btn.createEl('span', {
+        cls: 'fl-widget-selector-icon'
+      });
+
+      applyWidgetIdentity(
+        iconSpan,
+        {
+          icon: widget.icon,
+          color: widget.color
+        }
+      );
+    }
 
     // el botón muestra el nombre
     btn.createEl('span', {
       cls: 'fl-widget-selector-label',
       text: widget.label
-    });
-
-    const arrowSpan = btn.createEl('span', {
-      cls: 'fl-widget-selector-arrow'
     });
 
     btn.onclick = () => {
@@ -694,6 +703,16 @@ applyWidgetIdentity(
   ): void {
 
     const menu = new Menu();
+
+    /*
+     * Estado del indicador: al cerrarse el menú, el chevron
+     * vuelve a apuntar hacia abajo (aria-expanded=false).
+     */
+    if (typeof (menu as any).onHide === 'function') {
+      (menu as any).onHide(() => {
+        anchor.setAttribute('aria-expanded', 'false');
+      });
+    }
 
     for (const option of options) {
 

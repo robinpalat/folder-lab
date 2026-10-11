@@ -72,7 +72,9 @@ export class FolderLabState {
 	}
 	
 	setRecentNotesMode(): void {
+  const prev = this.navigationMode;
   this.navigationMode = NavigationMode.RECENT_NOTES;
+  FolderLabState.traceModeTransition('setRecentNotesMode', prev, this.navigationMode);
 }
 
 
@@ -83,27 +85,57 @@ export class FolderLabState {
 
   /** Cambia al modo "Todas las carpetas" */
   setFolderTreeMode(): void {
+    const prev = this.navigationMode;
     this.navigationMode = NavigationMode.FOLDER_TREE;
+    FolderLabState.traceModeTransition('setFolderTreeMode', prev, this.navigationMode);
   }
 
   /** Cambia al modo "Todas las notas" */
   setAllNotesMode(): void {
+    const prev = this.navigationMode;
     this.navigationMode = NavigationMode.ALL_NOTES;
+    FolderLabState.traceModeTransition('setAllNotesMode', prev, this.navigationMode);
   }
 
   /** Cambia al modo normal (carpeta específica) */
   setNormalMode(): void {
+    const prev = this.navigationMode;
     this.navigationMode = NavigationMode.NORMAL;
+    FolderLabState.traceModeTransition('setNormalMode', prev, this.navigationMode);
   }
 
   /** Salir de cualquier modo global y volver a normal */
   exitGlobalModes(): void {
+    const prev = this.navigationMode;
     this.navigationMode = NavigationMode.NORMAL;
+    FolderLabState.traceModeTransition('exitGlobalModes', prev, this.navigationMode);
   }
   
   // ============================================================
   // MÉTODOS DE RESET
   // ============================================================
+
+  /**
+   * TRAZA TEMPORAL DE INVESTIGACIÓN (no cambia comportamiento):
+   * registra toda transición de navigationMode con pila.
+   */
+  private static traceModeTransition(
+    caller: string,
+    anterior: NavigationMode,
+    nuevo: NavigationMode,
+    motivo?: string
+  ): void {
+    console.log('[FOLDERLAB-MODE-TRACE]', {
+      metodo: caller,
+      motivo: motivo ?? '',
+      anterior,
+      nuevo,
+      isAllNotesAntes: anterior === NavigationMode.ALL_NOTES,
+      isAllNotesDespues: nuevo === NavigationMode.ALL_NOTES,
+      pila: new Error().stack?.split('\n').slice(2, 7).join('\n')
+    });
+  }
+
   reset(): void {
     this.navigationMode = NavigationMode.NORMAL;
     this.isFocusMode = false;
@@ -114,41 +146,50 @@ export class FolderLabState {
     this.activeFilter = null;
     this.items = [];
     this.focusNotePath = "";
+    FolderLabState.traceModeTransition('reset', this.navigationMode, this.navigationMode, 'reset completo de estado');
     this.topPanelModule = "notes";
     this.bottomPanelModule = "resources";
     this.splitRatio = 50;
   }
 
   resetModes(): void {
+    const prev = this.navigationMode;
     this.navigationMode = NavigationMode.NORMAL;
     this.isFocusMode = false;
+    FolderLabState.traceModeTransition('resetModes', prev, this.navigationMode);
   }
 
   // ============================================================
   // MÉTODOS DE MODO (legacy para compatibilidad)
   // ============================================================
   toggleFolderMode(): void {
+    const prev = this.navigationMode;
     if (this.navigationMode === NavigationMode.FOLDER_TREE) {
       this.navigationMode = NavigationMode.NORMAL;
     } else {
       this.navigationMode = NavigationMode.FOLDER_TREE;
     }
+    FolderLabState.traceModeTransition('toggleFolderMode', prev, this.navigationMode);
   }
 
   toggleAllNotesMode(): void {
+    const prev = this.navigationMode;
     if (this.navigationMode === NavigationMode.ALL_NOTES) {
       this.navigationMode = NavigationMode.NORMAL;
     } else {
       this.navigationMode = NavigationMode.ALL_NOTES;
     }
+    FolderLabState.traceModeTransition('toggleAllNotesMode', prev, this.navigationMode);
   }
   
   toggleRecentNotesMode(): void {
+  const prev = this.navigationMode;
   if (this.navigationMode === NavigationMode.RECENT_NOTES) {
     this.navigationMode = NavigationMode.NORMAL;
   } else {
     this.navigationMode = NavigationMode.RECENT_NOTES;
   }
+  FolderLabState.traceModeTransition('toggleRecentNotesMode', prev, this.navigationMode);
 }
 
   toggleFocusMode(): void {

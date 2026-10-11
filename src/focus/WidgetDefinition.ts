@@ -124,6 +124,22 @@ export interface WidgetDefinition {
   transfer?: {
     inputs?: string[];
     outputs?: string[];
+
+    /**
+     * Participación declarada en el Board.
+     *
+     * Ausente → 'composition' (comportamiento histórico: los
+     * elementos pueden arrastrarse al Board como tarjetas).
+     */
+    board?: {
+      /**
+       * 'composition' → sus elementos se incorporan como tarjetas
+       *                 mediante drag-and-drop.
+       * 'context'     → aporta contexto al Board (indicadores);
+       *                 sus elementos NO se arrastran.
+       */
+      participation?: 'composition' | 'context';
+    };
   };
 
   metrics?: {

@@ -505,6 +505,11 @@ this.contextResolver = new ContextResolver(
   private renderResults(): void {
     if (!this.resultContainer) return;
 
+    for (const cleanup of this.resultDragCleanups.values()) {
+      cleanup();
+    }
+    this.resultDragCleanups.clear();
+
     this.resultContainer.empty();
 
     if (this.results.length === 0) {
@@ -560,6 +565,9 @@ this.contextResolver = new ContextResolver(
             );
 
             if (index < 0) return;
+
+            this.resultDragCleanups.get(result.id)?.();
+            this.resultDragCleanups.delete(result.id);
 
             this.results.splice(index, 1);
             this.resultElements.delete(result.id);
@@ -621,6 +629,41 @@ this.contextResolver = new ContextResolver(
         child.style.cursor = 'text';
       }
     }
+
+    // ----------------------------------------------------------
+    // DRAG HACIA EL BOARD (markdown crudo del resultado)
+    // ----------------------------------------------------------
+
+    const dragDrop =
+      FolderLabDragDrop.getInstance(this.app);
+
+    const cleanupDrag =
+      dragDrop.registerTextDragSource(
+        content,
+        () => result.content,
+        (active) => {
+          content.toggleClass(
+            'fl-dnd-drag-active',
+            active
+          );
+
+          if (active) {
+            dragDrop.setActiveDragSource({
+              widgetId: 'memory',
+              instanceId: 'memory',
+              itemId: result.id,
+              sessionId: 'today'
+            });
+          } else {
+            dragDrop.clearActiveDragSource();
+          }
+        }
+      );
+
+    this.resultDragCleanups.set(
+      result.id,
+      cleanupDrag
+    );
   }
 
   // ============================================================

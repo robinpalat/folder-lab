@@ -38,9 +38,21 @@ async reorder(
   }
 
   // 1. Persistir el nuevo orden en el frontmatter
+  const valoresAnteriores: Array<{ archivo: string; anterior: unknown }> =
+    [];
+
   for (let index = 0; index < files.length; index++) {
     const file = files[index];
     const order = index + 1;
+
+    const cachePrevio =
+      this.app.metadataCache.getFileCache(file);
+
+    valoresAnteriores.push({
+      archivo: file.name,
+      anterior:
+        cachePrevio?.frontmatter?.[orderProperty] ?? '(sin valor)'
+    });
 
     await this.app.fileManager.processFrontMatter(
       file,
@@ -49,6 +61,17 @@ async reorder(
       }
     );
   }
+
+  console.log('[FOLDERLAB-DROP-TRACE]', {
+    punto: 'persistencia solicitada (solo nombres de archivo y órdenes)',
+    propiedad: orderProperty,
+    valores: files.map((file, index) => ({
+      archivo: file.name,
+      anterior:
+        valoresAnteriores[index]?.anterior ?? '(desconocido)',
+      solicitado: index + 1
+    }))
+  });
 
   // 2. Esperar a que metadataCache refleje los nuevos valores.
   //
@@ -94,6 +117,23 @@ async reorder(
       window.setTimeout(resolve, delayMs)
     );
   }
+
+  const valoresConfirmados = files.map((file) => {
+    const cacheFinal =
+      this.app.metadataCache.getFileCache(file);
+
+    return {
+      archivo: file.name,
+      confirmado:
+        cacheFinal?.frontmatter?.[orderProperty] ?? '(sin valor)'
+    };
+  });
+
+  console.log('[FOLDERLAB-DROP-TRACE]', {
+    punto: 'persistencia confirmada en caché (solo nombres y órdenes)',
+    propiedad: orderProperty,
+    valores: valoresConfirmados
+  });
 
   // 3. Notificar SOLO después de que el cache esté sincronizado.
   (this.app.workspace as any).trigger(

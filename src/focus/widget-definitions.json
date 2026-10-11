@@ -242,9 +242,9 @@
         "inputs": [
           "text"
         ],
-        "outputs": [
-          "text"
-        ]
+        "board": {
+          "participation": "context"
+        }
       },
       "metrics": {
         "total": {
@@ -332,9 +332,9 @@
         "inputs": [
           "text"
         ],
-        "outputs": [
-          "text"
-        ]
+        "board": {
+          "participation": "context"
+        }
       },
       "metrics": {
         "total": {
@@ -423,9 +423,9 @@
         "inputs": [
           "text"
         ],
-        "outputs": [
-          "text"
-        ]
+        "board": {
+          "participation": "context"
+        }
       },
       "metrics": {
         "total": {

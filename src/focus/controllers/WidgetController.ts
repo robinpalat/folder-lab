@@ -1,4 +1,5 @@
 import { Plugin } from 'obsidian';
+import { PluginDataStore } from '../../storage/PluginDataStore';
 
 type WidgetRecord = Record<string, any>;
 
@@ -10,9 +11,17 @@ export class WidgetController {
   private readonly listeners =
     new Set<() => void>();
 
+  private readonly dataStore: PluginDataStore;
+
   constructor(
-    private readonly plugin: Plugin
-  ) { }
+    private readonly plugin: Plugin,
+    dataStore?: PluginDataStore
+  ) {
+
+    this.dataStore =
+      dataStore ??
+      new PluginDataStore(plugin);
+  }
 
   // ============================================================
   // EVENTS
@@ -73,18 +82,122 @@ export class WidgetController {
           storageKey
         );
 
+      if (!all[key]) {
+
+        /*
+         * Diagnóstico NO destructivo de claves huérfanas: si esta
+         * nota tiene registros del widget bajo OTRO instanceId
+         * (p. ej., una instancia recreada en el pasado), la lectura
+         * actual los ignora y el widget aparece vacío. Se registra
+         * en consola para poder identificar el caso sin migrar nada.
+         */
+        const prefix =
+          `${storageKey}::${notePath}::`;
+
+        const orphans = Object.keys(all).filter(
+          candidate =>
+            candidate.startsWith(prefix) &&
+            candidate !== key &&
+            Array.isArray(all[candidate]?.items) &&
+            all[candidate].items.length > 0
+        );
+
+        if (orphans.length > 0) {
+          console.warn(
+            `[FolderLab] ${storageKey}: sin datos para la instancia actual, ` +
+            `pero existen ${orphans.length} registro(s) bajo otra(s) instancia(s) ` +
+            `de esta nota:`,
+            orphans
+          );
+        }
+      }
+
       const data =
         all[key] || {
           notePath,
           items: []
         };
 
+      /*
+       * Solo se instala en caché si no hay una entrada más fresca
+       * (una escritura concurrente pudo cachear el registro ya
+       * mutado mientras este get leía el estado anterior).
+       */
+      if (!this.cache.has(key)) {
+        this.cache.set(
+          key,
+          data
+        );
+      }
+
+      return this.cache.get(key) ?? data;
+    },
+
+    /**
+     * Mutación ATÓMICA a nivel de ítem: lee el estado del disco
+     * DENTRO de la transacción serializada, aplica el mutador y
+     * escribe. La creación y la activación comparten así la misma
+     * garantía: ninguna ráfaga ni lectura concurrente puede
+     * reemplazar la clave con un registro divergente.
+     */
+    mutateItems: async (
+      storageKey: string,
+      notePath: string,
+      instanceId: string,
+      mutator: (
+        items: WidgetRecord[],
+        record: WidgetRecord
+      ) => void
+    ): Promise<WidgetRecord> => {
+
+      const key =
+        this.getStorageId(
+          storageKey,
+          notePath,
+          instanceId
+        );
+
+      let written: WidgetRecord = {
+        notePath,
+        items: []
+      };
+
+      await this.dataStore.transact((full) => {
+
+        const existing = full[storageKey];
+
+        const all: Record<string, WidgetRecord> =
+          existing && typeof existing === 'object'
+            ? existing
+            : {};
+
+        const stored = all[key];
+
+        const record: WidgetRecord =
+          stored && typeof stored === 'object'
+            ? stored
+            : { notePath, items: [] };
+
+        if (!Array.isArray(record.items)) {
+          record.items = [];
+        }
+
+        mutator(record.items, record);
+
+        all[key] = record;
+        full[storageKey] = all;
+
+        written = record;
+      });
+
       this.cache.set(
         key,
-        data
+        written
       );
 
-      return data;
+      this.notifyChange();
+
+      return written;
     },
 
     add: async (
@@ -95,30 +208,19 @@ export class WidgetController {
 
     ): Promise<void> => {
 
-      const data =
-        await this.storage.get(
-          storageKey,
-          notePath,
-          instanceId
-        );
-
-      if (!Array.isArray(data.items)) {
-        data.items = [];
-      }
-
       const normalizedItem = {
         ...item,
         id: item.id ?? this.generateId(storageKey),
         createdAt: item.createdAt ?? Date.now()
       };
 
-      data.items.push(normalizedItem);
-
-      await this.storage.save(
+      await this.storage.mutateItems(
         storageKey,
         notePath,
         instanceId,
-        data
+        (items) => {
+          items.push(normalizedItem);
+        }
       );
     },
 
@@ -130,40 +232,27 @@ export class WidgetController {
       changes: WidgetRecord
     ): Promise<WidgetRecord | null> => {
 
-      const data =
-        await this.storage.get(
-          storageKey,
-          notePath,
-          instanceId
-        );
+      let updated: WidgetRecord | null = null;
 
-      if (!Array.isArray(data.items)) {
-        return null;
-      }
-
-      const item =
-        data.items.find(
-          (entry: WidgetRecord) =>
-            entry.id === itemId
-        );
-
-      if (!item) {
-        return null;
-      }
-
-      Object.assign(
-        item,
-        changes
-      );
-
-      await this.storage.save(
+      await this.storage.mutateItems(
         storageKey,
         notePath,
         instanceId,
-        data
+        (items) => {
+
+          const item = items.find(
+            (entry: WidgetRecord) =>
+              entry.id === itemId
+          );
+
+          if (item) {
+            Object.assign(item, changes);
+            updated = item;
+          }
+        }
       );
 
-      return item;
+      return updated;
     },
 
     delete: async (
@@ -173,28 +262,21 @@ export class WidgetController {
       itemId: string
     ): Promise<void> => {
 
-      const data =
-        await this.storage.get(
-          storageKey,
-          notePath,
-          instanceId
-        );
-
-      if (!Array.isArray(data.items)) {
-        return;
-      }
-
-      data.items =
-        data.items.filter(
-          (entry: WidgetRecord) =>
-            entry.id !== itemId
-        );
-
-      await this.storage.save(
+      await this.storage.mutateItems(
         storageKey,
         notePath,
         instanceId,
-        data
+        (items) => {
+
+          const index = items.findIndex(
+            (entry: WidgetRecord) =>
+              entry.id === itemId
+          );
+
+          if (index >= 0) {
+            items.splice(index, 1);
+          }
+        }
       );
     },
 
@@ -204,20 +286,13 @@ export class WidgetController {
       instanceId: string
     ): Promise<void> => {
 
-      const data =
-        await this.storage.get(
-          storageKey,
-          notePath,
-          instanceId
-        );
-
-      data.items = [];
-
-      await this.storage.save(
+      await this.storage.mutateItems(
         storageKey,
         notePath,
         instanceId,
-        data
+        (items) => {
+          items.length = 0;
+        }
       );
     },
 
@@ -235,21 +310,29 @@ export class WidgetController {
           instanceId
         );
 
+      /*
+       * Lectura-modificación-escritura SERIALIZADA sobre el estado
+       * más reciente del disco (PluginDataStore). El fusionado
+       * ocurre DENTRO de la transacción: dos guardados concurrentes
+       * de widgets o instancias distintas ya no se pisan.
+       */
+      await this.dataStore.transact((full) => {
+
+        const existing = full[storageKey];
+
+        const all: Record<string, WidgetRecord> =
+          existing && typeof existing === 'object'
+            ? existing
+            : {};
+
+        all[key] = data;
+
+        full[storageKey] = all;
+      });
+
       this.cache.set(
         key,
         data
-      );
-
-      const all =
-        await this.loadStorage(
-          storageKey
-        );
-
-      all[key] = data;
-
-      await this.saveStorage(
-        storageKey,
-        all
       );
 
       this.notifyChange();
@@ -270,38 +353,31 @@ export class WidgetController {
       field: string
     ): Promise<boolean | null> => {
 
-      const data =
-        await this.storage.get(
-          storageKey,
-          notePath,
-          instanceId
-        );
+      let result: boolean | null = null;
 
-      if (!Array.isArray(data.items)) {
-        return null;
-      }
-
-      const item =
-        data.items.find(
-          (entry: WidgetRecord) =>
-            entry.id === itemId
-        );
-
-      if (!item) {
-        return null;
-      }
-
-      item[field] =
-        !Boolean(item[field]);
-
-      await this.storage.save(
+      await this.storage.mutateItems(
         storageKey,
         notePath,
         instanceId,
-        data
+        (items) => {
+
+          const item = items.find(
+            (entry: WidgetRecord) =>
+              entry.id === itemId
+          );
+
+          if (!item) {
+            return;
+          }
+
+          item[field] =
+            !Boolean(item[field]);
+
+          result = Boolean(item[field]);
+        }
       );
 
-      return Boolean(item[field]);
+      return result;
     }
   };
 
@@ -319,40 +395,33 @@ export class WidgetController {
       field: string
     ): Promise<boolean | null> => {
 
-      const data =
-        await this.storage.get(
-          storageKey,
-          notePath,
-          instanceId
-        );
+      let result: boolean | null = null;
 
-      if (!Array.isArray(data.items)) {
-        return null;
-      }
-
-      const target =
-        data.items.find(
-          (entry: WidgetRecord) =>
-            entry.id === itemId
-        );
-
-      if (!target) {
-        return null;
-      }
-
-      for (const item of data.items) {
-        item[field] =
-          item.id === itemId;
-      }
-
-      await this.storage.save(
+      await this.storage.mutateItems(
         storageKey,
         notePath,
         instanceId,
-        data
+        (items) => {
+
+          const target = items.find(
+            (entry: WidgetRecord) =>
+              entry.id === itemId
+          );
+
+          if (!target) {
+            return;
+          }
+
+          for (const item of items) {
+            item[field] =
+              item.id === itemId;
+          }
+
+          result = true;
+        }
       );
 
-      return true;
+      return result;
     }
   };
 
@@ -450,28 +519,20 @@ export class WidgetController {
     value: unknown
   ): Promise<void> {
 
-    const data =
-      await this.storage.get(
-        storageKey,
-        notePath,
-        instanceId
-      );
-
-    if (!Array.isArray(data.items)) {
-      return;
-    }
-
-    data.items =
-      data.items.filter(
-        (item: WidgetRecord) =>
-          item[field] !== value
-      );
-
-    await this.storage.save(
+    await this.storage.mutateItems(
       storageKey,
       notePath,
       instanceId,
-      data
+      (items) => {
+
+        const next = items.filter(
+          (item: WidgetRecord) =>
+            item[field] !== value
+        );
+
+        items.length = 0;
+        items.push(...next);
+      }
     );
   }
 
@@ -537,7 +598,7 @@ export class WidgetController {
     try {
 
       const data =
-        await this.plugin.loadData();
+        await this.dataStore.read();
 
       return data?.[storageKey] || {};
 
@@ -545,21 +606,5 @@ export class WidgetController {
 
       return {};
     }
-  }
-
-  private async saveStorage(
-    storageKey: string,
-    data: Record<string, WidgetRecord>
-  ): Promise<void> {
-
-    const fullData =
-      await this.plugin.loadData() || {};
-
-    fullData[storageKey] =
-      data;
-
-    await this.plugin.saveData(
-      fullData
-    );
   }
 }
