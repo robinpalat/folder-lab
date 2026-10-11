@@ -27,8 +27,7 @@ export class AddResourceModal extends Modal {
     this.contentEl.empty();
     this.contentEl.addClass('fl-resource-modal');
 
-    const header = this.contentEl.createEl('h2', { text: i18n.t('resources.modal.title') });
-    header.style.marginBottom = '16px';
+    this.contentEl.createEl('h2', { text: i18n.t('resources.modal.title') });
 
     // Tipo de recurso
     new Setting(this.contentEl)
@@ -77,7 +76,6 @@ export class AddResourceModal extends Modal {
     const actions = this.contentEl.createEl('div', {
       cls: 'fl-resource-actions'
     });
-    actions.style.cssText = 'display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--background-modifier-border);';
 
     const cancelBtn = actions.createEl('button', { text: i18n.t('common.cancel') });
     cancelBtn.onclick = () => this.close();
@@ -279,7 +277,6 @@ class FileSuggesterModal extends FuzzySuggestModal<TFile> {
 
     const extSpan = el.createEl('span', { cls: 'fl-suggestion-extension' });
     extSpan.textContent = file.extension.toUpperCase();
-    extSpan.style.cssText = 'font-size: 0.7em; color: var(--text-muted); opacity: 0.5; margin-left: 8px;';
   }
 
   onChooseItem(file: TFile): void {

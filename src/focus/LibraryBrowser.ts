@@ -110,10 +110,8 @@ export class LibraryBrowser extends Modal {
     // ========================================================
 
     this.widgetsContent = content.createEl('div', {
-      cls: 'fl-capability-browser-tab-content fl-widget-tab-content'
+      cls: 'fl-capability-browser-tab-content fl-widget-tab-content is-hidden'
     });
-
-    this.widgetsContent.style.display = 'none';
 
     this.renderWidgetsContent();
 
@@ -130,10 +128,8 @@ export class LibraryBrowser extends Modal {
     // ========================================================
 
     this.recipesContent = content.createEl('div', {
-      cls: 'fl-capability-browser-tab-content'
+      cls: 'fl-capability-browser-tab-content is-hidden'
     });
-
-    this.recipesContent.style.display = 'none';
 
     this.recipesContent.createEl('div', {
       cls: 'fl-capability-browser-empty',
@@ -208,18 +204,24 @@ export class LibraryBrowser extends Modal {
     }
 
     if (this.widgetsContent) {
-      this.widgetsContent.style.display =
-        tab === 'widgets' ? '' : 'none';
+      this.widgetsContent.toggleClass(
+        'is-hidden',
+        tab !== 'widgets'
+      );
     }
 
     if (this.assistantContent) {
-      this.assistantContent.style.display =
-        tab === 'assistant' ? '' : 'none';
+      this.assistantContent.toggleClass(
+        'is-hidden',
+        tab !== 'assistant'
+      );
     }
 
     if (this.recipesContent) {
-      this.recipesContent.style.display =
-        tab === 'recipes' ? '' : 'none';
+      this.recipesContent.toggleClass(
+        'is-hidden',
+        tab !== 'recipes'
+      );
     }
   }
 

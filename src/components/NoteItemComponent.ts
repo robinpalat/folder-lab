@@ -32,16 +32,6 @@ export class NoteItemComponent {
       cls: 'folder-order-item',
       attr: { 'data-index': index.toString(), 'data-filename': item.name }
     });
-    this.element.style.display = 'flex';
-    this.element.style.alignItems = 'center';
-    this.element.style.padding = '5px 10px 5px 6px';
-    this.element.style.borderRadius = '6px';
-    this.element.style.cursor = 'pointer';
-    this.element.style.gap = '10px';
-    this.element.style.transition = 'all 0.15s ease';
-    this.element.style.userSelect = 'none';
-    this.element.style.borderLeft = '3px solid transparent';
-    this.element.style.marginBottom = '1px';
 
     if (isEmpty) {
       this.element.addClass('folder-order-item-empty');
@@ -69,13 +59,6 @@ export class NoteItemComponent {
 
   private renderNumber(index: number, isSpecial: boolean): void {
     const numSpan = this.element.createEl('span', { cls: 'fo-number' });
-    numSpan.style.fontSize = '1.0em';
-    numSpan.style.fontWeight = '400';
-    numSpan.style.color = 'var(--text-muted)';
-    numSpan.style.minWidth = '30px';
-    numSpan.style.textAlign = 'right';
-    numSpan.style.opacity = '0.5';
-    numSpan.style.flexShrink = '0';
 
     const state = this.controller.getState();
     if (!isSpecial && state.settings.showNumbers) {
@@ -90,45 +73,23 @@ export class NoteItemComponent {
 
   private renderNormalNote(displayName: string, isEmpty: boolean, item: FolderLabItem): void {
     const nameSpan = this.element.createEl('span', { cls: 'folder-order-name' });
-    nameSpan.style.flex = '1';
-    nameSpan.style.fontSize = '0.88em';
-    nameSpan.style.color = 'var(--text-muted)';
-    nameSpan.style.transition = 'color 0.15s';
     nameSpan.textContent = displayName;
 
     // Icono de estado
     const statusContainer = this.element.createEl('span', { cls: 'folder-order-status' });
-    statusContainer.style.display = 'flex';
-    statusContainer.style.alignItems = 'center';
-    statusContainer.style.justifyContent = 'center';
-    statusContainer.style.marginLeft = 'auto';
-    statusContainer.style.cursor = 'pointer';
-    statusContainer.style.padding = '2px 6px';
-    statusContainer.style.borderRadius = '4px';
-    statusContainer.style.transition = 'all 0.2s';
-    statusContainer.style.minWidth = '20px';
-
-    const icon = statusContainer.createEl('span');
-    icon.style.width = '14px';
-    icon.style.height = '14px';
-    icon.style.display = 'flex';
+    const icon = statusContainer.createEl('span', { cls: 'folder-order-status-icon' });
 
     if (isEmpty) {
       setIcon(icon, 'alert-circle');
-      icon.style.color = 'var(--text-warning)';
       icon.title = i18n.t('notes.status.emptyTooltip');
-      statusContainer.style.cursor = 'default';
-      statusContainer.style.opacity = '0.8';
     } else {
       const status = item.status || '';
       if (status) {
         setIcon(icon, status);
-        icon.style.color = 'var(--text-muted)';
         icon.title = i18n.t('notes.status.changeHint');
       } else {
         setIcon(icon, 'more-vertical');
-        icon.style.color = 'var(--text-muted)';
-        icon.style.opacity = '0.4';
+        statusContainer.addClass('folder-order-status-unset');
         icon.title = i18n.t('notes.status.setHint');
       }
 
@@ -143,34 +104,12 @@ export class NoteItemComponent {
     const specialContainer = this.element.createEl('div', {
       cls: 'folder-order-special-container'
     });
-    specialContainer.style.display = 'flex';
-    specialContainer.style.alignItems = 'center';
-    specialContainer.style.gap = '8px';
-    specialContainer.style.width = '100%';
 
     const refreshIcon = specialContainer.createEl('span', {
       cls: 'folder-order-refresh-icon'
     });
     setIcon(refreshIcon, 'refresh-cw');
     refreshIcon.title = i18n.t('actions.regenerateCompile');
-    refreshIcon.style.cursor = 'pointer';
-    refreshIcon.style.color = 'var(--text-muted)';
-    refreshIcon.style.opacity = '0.6';
-    refreshIcon.style.fontSize = '0.9em';
-    refreshIcon.style.padding = '2px 4px';
-    refreshIcon.style.borderRadius = '4px';
-    refreshIcon.style.transition = 'all 0.2s';
-
-    refreshIcon.onmouseenter = () => {
-      refreshIcon.style.color = 'var(--text-accent)';
-      refreshIcon.style.opacity = '1';
-      refreshIcon.style.background = 'var(--background-modifier-hover)';
-    };
-    refreshIcon.onmouseleave = () => {
-      refreshIcon.style.color = 'var(--text-muted)';
-      refreshIcon.style.opacity = '0.6';
-      refreshIcon.style.background = 'transparent';
-    };
 
     refreshIcon.onclick = async (e) => {
       e.stopPropagation();
@@ -181,10 +120,6 @@ export class NoteItemComponent {
       cls: 'folder-order-special-title'
     });
     titleSpan.textContent = displayName;
-    titleSpan.style.fontSize = '0.88em';
-    titleSpan.style.color = 'var(--text-normal)';
-    titleSpan.style.fontWeight = '400';
-    titleSpan.style.flex = '1';
   }
 
   private setupDragEvents(index: number): void {

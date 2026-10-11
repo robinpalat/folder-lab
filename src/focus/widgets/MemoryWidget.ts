@@ -389,16 +389,6 @@ this.contextResolver = new ContextResolver(
       cls: 'fl-widget-content fl-widget-content-expanded fl-memory-content-wrapper'
     });
 
-    Object.assign(contentWrapper.style, {
-      flex: '1 1 0',
-      minHeight: '0',
-      width: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      boxSizing: 'border-box',
-      overflow: 'hidden'
-    });
-
     // ============================================================
     // PANEL CAPTURE
     // ============================================================
@@ -406,16 +396,10 @@ this.contextResolver = new ContextResolver(
     const capturePanel = contentWrapper.createEl('div', {
       cls: 'fl-memory-capture-panel'
     });
-
-    Object.assign(capturePanel.style, {
-      flex: '1 1 0',
-      minHeight: '0',
-      width: '100%',
-      display: this.sessionView === 'capture' ? 'flex' : 'none',
-      flexDirection: 'column',
-      boxSizing: 'border-box',
-      overflow: 'hidden'
-    });
+    capturePanel.toggleClass(
+      'is-hidden',
+      this.sessionView !== 'capture'
+    );
 
     // ------------------------------------------------------------
     // RESPUESTA ACTUAL
@@ -423,17 +407,6 @@ this.contextResolver = new ContextResolver(
 
     this.responseArea = capturePanel.createEl('div', {
       cls: 'fl-memory-response-area'
-    });
-
-    Object.assign(this.responseArea.style, {
-      flex: '1 1 0',
-      minHeight: '0',
-      width: '100%',
-      boxSizing: 'border-box',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      color: 'var(--text-normal)',
-      userSelect: 'text'
     });
 
     this.responseArea.setAttr('contenteditable', 'false');
@@ -471,30 +444,13 @@ this.contextResolver = new ContextResolver(
     const todayPanel = contentWrapper.createEl('div', {
       cls: 'fl-memory-today-panel'
     });
-
-    Object.assign(todayPanel.style, {
-      flex: '1 1 0',
-      minHeight: '0',
-      width: '100%',
-      display: this.sessionView === 'today' ? 'flex' : 'none',
-      flexDirection: 'column',
-      boxSizing: 'border-box',
-      overflow: 'hidden'
-    });
+    todayPanel.toggleClass(
+      'is-hidden',
+      this.sessionView !== 'today'
+    );
 
     this.resultContainer = todayPanel.createEl('div', {
       cls: 'fl-memory-results'
-    });
-
-    Object.assign(this.resultContainer.style, {
-      flex: '1 1 0',
-      minHeight: '0',
-      width: '100%',
-      overflowY: 'auto',
-      overflowX: 'hidden',
-      color: 'var(--text-normal)',
-      boxSizing: 'border-box',
-      paddingRight: '12px'
     });
 
     if (this.sessionView === 'today') {
@@ -516,12 +472,10 @@ this.contextResolver = new ContextResolver(
     this.resultContainer.empty();
 
     if (this.results.length === 0) {
-      const empty = this.resultContainer.createEl('div', {
+      this.resultContainer.createEl('div', {
         cls: 'fl-widget-empty-text',
         text: i18n.t('widgets.memory.empty.noSavedResponses')
       });
-
-      empty.style.padding = '12px';
       return;
     }
 
@@ -620,19 +574,6 @@ this.contextResolver = new ContextResolver(
       expandable.content
     );
 
-    expandable.content.style.userSelect = 'text';
-
-    const children = Array.from(
-      expandable.content.querySelectorAll('*')
-    );
-
-    for (const child of children) {
-      if (child instanceof HTMLElement) {
-        child.style.userSelect = 'text';
-        child.style.cursor = 'text';
-      }
-    }
-
     // ----------------------------------------------------------
     // DRAG HACIA EL BOARD (markdown crudo del resultado)
     // ----------------------------------------------------------
@@ -680,8 +621,12 @@ this.contextResolver = new ContextResolver(
     target.empty();
     target.setAttr('contenteditable', 'false');
 
-    target.style.userSelect = 'text';
-    target.style.cursor = 'text';
+    /*
+     * Selección de texto (Bloque 4): una clase en el objetivo
+     * reproduce el comportamiento anterior (objetivo + todos los
+     * descendientes tras renderizar) vía CSS .fl-memory-selectable.
+     */
+    target.addClass('fl-memory-selectable');
 
     if (!content.trim()) {
       return;
@@ -694,18 +639,6 @@ this.contextResolver = new ContextResolver(
         this.currentFile?.path || '',
         this.plugin
       );
-
-      const allChildren = Array.from(
-        target.querySelectorAll('*')
-      );
-
-      for (const child of allChildren) {
-        if (child instanceof HTMLElement) {
-          child.style.userSelect = 'text';
-          child.style.cursor = 'text';
-        }
-      }
-
     } catch (error) {
       console.warn(
         'Error rendering markdown:',
@@ -713,8 +646,6 @@ this.contextResolver = new ContextResolver(
       );
 
       target.textContent = content;
-      target.style.userSelect = 'text';
-      target.style.cursor = 'text';
     }
   }
 
@@ -722,15 +653,6 @@ this.contextResolver = new ContextResolver(
     const empty = this.container!.createEl('div', {
       cls: 'fl-widget-empty'
     });
-
-    empty.style.cssText = `
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: 20px;
-		text-align: center;
-	  `;
 
     empty.createEl('div', {
       cls: 'fl-widget-empty-text',
@@ -779,9 +701,6 @@ this.contextResolver = new ContextResolver(
         cls: 'fl-widget-result-placeholder fl-widget-loading-dots',
         text: i18n.t('widgets.memory.status.processing')
       });
-
-      loadingEl.style.userSelect = 'none';
-      loadingEl.style.cursor = 'default';
 
       // Llevar el scroll al indicador de procesamiento.
       requestAnimationFrame(() => {
@@ -921,12 +840,10 @@ this.contextResolver = new ContextResolver(
   private showResultMessage(message: string): void {
     if (!this.resultContainer) return;
 
-    const errorEl = this.resultContainer.createEl('div', {
+    this.resultContainer.createEl('div', {
       cls: 'fl-memory-result-error',
       text: message
     });
-
-    errorEl.style.userSelect = 'text';
   }
 
   // ============================================================

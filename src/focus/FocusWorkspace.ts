@@ -89,16 +89,6 @@ export class FocusWorkspace {
     this.mainArea = this.container.createEl('div', {
       cls: 'focus-main-area'
     });
-    this.mainArea.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 0;
-    height: 100%;
-    min-height: 0;
-    min-width: 0;
-    position: relative;
-    box-sizing: border-box;
-  `;
 
     // 2. Panel superior
     this.topContainer = this.mainArea.createEl('div', {
@@ -347,29 +337,13 @@ export class FocusWorkspace {
     const bottomHeight =
       availableHeight - topHeight;
 
-    Object.assign(top.style, {
-      flex: "0 0 auto",
-      width: "100%",
-      height: `${topHeight}px`,
-      minHeight: "0",
-      maxHeight: `${topHeight}px`,
-      boxSizing: "border-box",
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column"
-    });
+    // Alturas computadas del ratio (dinámico); el resto de la
+    // presentación vive en la regla .fl-widget-container.
+    top.style.height = `${topHeight}px`;
+    top.style.maxHeight = `${topHeight}px`;
 
-    Object.assign(bottom.style, {
-      flex: "0 0 auto",
-      width: "100%",
-      height: `${bottomHeight}px`,
-      minHeight: "0",
-      maxHeight: `${bottomHeight}px`,
-      boxSizing: "border-box",
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column"
-    });
+    bottom.style.height = `${bottomHeight}px`;
+    bottom.style.maxHeight = `${bottomHeight}px`;
   }
 
 

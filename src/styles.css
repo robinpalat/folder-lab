@@ -23,6 +23,23 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+.folder-lab-focus-mode {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+/* Conmutación de modos (Bloque 3, fase 6): la visibilidad de los
+   contenedores se controla con la clase is-hidden, con alcance
+   limitado para no afectar a otros componentes. */
+.folder-lab-explorer-mode.is-hidden,
+.folder-lab-focus-mode.is-hidden {
+  display: none;
 }
 
 /* ================================================================
@@ -39,6 +56,11 @@
   background: var(--background-primary-alt);
   border-radius: 8px;
   margin: 4px 6px 10px 6px;
+}
+
+/* Visibilidad de controles del header (Bloque 3, fase 6). */
+.folder-lab-header .is-hidden {
+  display: none;
 }
 
 .folder-lab-title-block {
@@ -360,6 +382,101 @@
 }
 
 /* ================================================================
+   05b - ÍTEM DE LISTA LEGACY (folder-order-item)
+   Presentación de NoteItemComponent (ítem del índice).
+   ================================================================ */
+
+.folder-order-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px 5px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  gap: 10px;
+  transition: all 0.15s ease;
+  user-select: none;
+  border-left: 3px solid transparent;
+  margin-bottom: 1px;
+}
+
+/* Valores efectivos del índice legacy (el inline los fijaba sobre
+   la regla compartida .fo-number de la lista principal). */
+.folder-order-item .fo-number {
+  min-width: 30px;
+  font-size: 1em;
+  font-weight: 400;
+}
+
+.folder-order-name {
+  flex: 1;
+  font-size: 0.88em;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.folder-order-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  margin-left: auto;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.folder-order-status-icon {
+  display: flex;
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+}
+
+.folder-order-item-empty .folder-order-status {
+  cursor: default;
+  opacity: 0.8;
+}
+
+.folder-order-item-empty .folder-order-status-icon {
+  color: var(--text-warning);
+}
+
+.folder-order-status-unset .folder-order-status-icon {
+  opacity: 0.4;
+}
+
+.folder-order-special-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.folder-order-refresh-icon {
+  cursor: pointer;
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-size: 0.9em;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.folder-order-refresh-icon:hover {
+  color: var(--text-accent);
+  opacity: 1;
+  background: var(--background-modifier-hover);
+}
+
+.folder-order-special-title {
+  flex: 1;
+  font-size: 0.88em;
+  font-weight: 400;
+  color: var(--text-normal);
+}
+
+/* ================================================================
    06 - CARPETAS (ENCABEZADO)
    ================================================================ */
 
@@ -401,14 +518,13 @@
   color: var(--text-normal);
 }
 
-.folder-lab-folder-header[data-level="2"] .folder-lab-folder-name,
-.folder-lab-folder-header[data-level="3"] .folder-lab-folder-name,
-.folder-lab-folder-header[data-level="4"] .folder-lab-folder-name,
-.folder-lab-folder-header[data-level="5"] .folder-lab-folder-name {
+/* El componente aplicaba además opacity 0.85 a los niveles ≥2
+   (y cubría cualquier nivel profundo, no solo 2–5). */
+.folder-lab-folder-header:not([data-level="0"]):not([data-level="1"]) .folder-lab-folder-name {
   font-weight: 500;
   font-style: italic;
-  color: var(--text-muted);
   opacity: 0.85;
+  color: var(--text-muted);
 }
 
 [data-indent="0"] { padding-left: 8px; }
@@ -599,9 +715,12 @@
 .focus-main-area {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 0;
+  height: 100%;
   min-height: 0;
+  min-width: 0;
   position: relative;
+  box-sizing: border-box;
   overflow: hidden;
 }
 
@@ -728,18 +847,24 @@
 }
 
 .fl-widget-container {
-  flex: 1;
+  flex: 0 0 auto;
+  width: 100%;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .fl-widget-frame {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 0;
+  height: 100%;
   min-height: 0;
+  min-width: 0;
+  box-sizing: border-box;
   background: var(--background-primary);
   border: none !important;
   border-radius: 0;
@@ -975,6 +1100,11 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  color: var(--text-normal);
+  box-sizing: border-box;
+  padding-right: 12px;
 }
 
 .fl-memory-result-content {
@@ -990,6 +1120,7 @@
 .fl-memory-result-error {
   padding: 8px;
   color: var(--text-error);
+  user-select: text;
 }
 
 .fl-memory-results .fl-widget-result-placeholder {
@@ -1440,6 +1571,12 @@ body.focus-splitter-dragging {
   overflow-x: hidden !important;
   scrollbar-width: auto !important;
   -ms-overflow-style: auto !important;
+  flex: 1 1 0;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  box-sizing: border-box;
+  resize: none;
 }
 
 
@@ -1879,6 +2016,36 @@ body.focus-splitter-dragging {
 
 .fl-resource-dynamic-fields {
   margin-top: 4px;
+}
+
+/* ----------------------------------------------------------------
+   Acciones y campos compartidos de modales (Bloque 1, fase 6)
+   ---------------------------------------------------------------- */
+
+.fl-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fl-modal-actions-confirm {
+  margin-top: 12px;
+}
+
+.fo-modal-input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.fl-resource-modal h2 {
+  margin-bottom: 16px;
+}
+
+.fl-suggestion-extension {
+  margin-left: 8px;
+  font-size: 0.7em;
+  color: var(--text-muted);
+  opacity: 0.5;
 }
 
 /* ================================================================
@@ -2380,7 +2547,7 @@ body.focus-splitter-dragging {
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
   background: var(--background-primary-alt);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .word-count-stat-item:hover {
@@ -2438,6 +2605,7 @@ body.focus-splitter-dragging {
   max-height: 250px;
   padding: 4px 0;
   margin-top: 8px;
+  overflow-x: auto;
   overflow-y: auto;
   border: 1px solid var(--background-modifier-border);
   border-radius: 6px;
@@ -2455,6 +2623,54 @@ body.focus-splitter-dragging {
 .word-count-details::-webkit-scrollbar-thumb {
   border-radius: 4px;
   background: var(--background-modifier-border);
+}
+
+.word-count-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.word-count-refresh-error {
+  font-size: 0.85em;
+  color: var(--text-error);
+}
+
+.word-count-goal-set {
+  margin-top: 8px;
+}
+
+.word-count-goal-box {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary-alt);
+}
+
+.word-count-goal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.word-count-goal-title {
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.word-count-goal-editor {
+  margin-top: 8px;
+}
+
+.word-count-goal-editor-actions {
+  margin-top: 8px;
+}
+
+.word-count-goal-value {
+  font-weight: 500;
 }
 
 /* ================================================================
@@ -4668,4 +4884,250 @@ body.focus-splitter-dragging {
 
 .fl-focus-list-item {
   flex-shrink: 0;
+}
+
+/* ================================================================
+   30 - AJUSTES Y SELECTOR DE CARPETA (Bloque 3, fase 6)
+   ================================================================ */
+
+.folder-lab-property-settings.is-hidden {
+  display: none;
+}
+
+.fl-settings-help {
+  padding: 8px 12px;
+  background: var(--background-primary-alt);
+  border-radius: 6px;
+  font-size: 0.85em;
+  color: var(--text-muted);
+}
+
+.fl-settings-info {
+  color: var(--text-muted);
+  font-size: 0.8em;
+}
+
+.folder-select-description {
+  color: var(--text-muted);
+  font-size: 0.85em;
+  margin-bottom: 12px;
+}
+
+.folder-select-list {
+  max-height: 300px;
+  overflow: auto;
+}
+
+.folder-select-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--background-modifier-border);
+  transition: background 0.15s;
+}
+
+.folder-select-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* ================================================================
+   31 - WIDGETS: VISIBILIDAD Y SELECCIÓN (Bloque 4, fase 6)
+   ================================================================ */
+
+/* --- NotesWidget: cadena de altura y paneles --- */
+
+.fl-widget-notes {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.fl-notes-scroll-surface {
+  flex: 1 1 0;
+  min-height: 0;
+  height: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.fl-notes-capture-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding-right: 12px;
+}
+
+.fl-notes-today-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  padding-right: 12px;
+}
+
+.fl-notes-capture-panel.is-hidden,
+.fl-notes-today-panel.is-hidden {
+  display: none;
+}
+
+.fl-widget-notes .is-hidden {
+  display: none;
+}
+
+.fl-notes-draft-proxy {
+  flex: 0 0 80px;
+  height: 80px;
+  min-height: 80px;
+  max-height: 80px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: text;
+}
+
+.fl-notes-draft-proxy-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: text;
+}
+
+.fl-notes-today-list {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* --- MemoryWidget: paneles, resultado y selección --- */
+
+.fl-memory-content-wrapper {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.fl-memory-capture-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.fl-memory-today-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.fl-memory-capture-panel.is-hidden,
+.fl-memory-today-panel.is-hidden {
+  display: none;
+}
+
+.fl-memory-response-area {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--text-normal);
+}
+
+/* Selección de texto de resultados IA: el código aplicaba
+   user-select/cursor al objetivo y a TODOS sus descendientes tras
+   renderizar el markdown; el selector descendiente reproduce el
+   mismo conjunto y se actualiza con futuros re-renderizados. */
+.fl-memory-selectable,
+.fl-memory-selectable * {
+  user-select: text;
+  cursor: text;
+}
+
+/* El indicador de carga conserva cursor neutral pese al selector
+   descendiente (especificidad 0,2,0 > 0,1,0). */
+.fl-memory-response-area .fl-widget-loading-dots {
+  user-select: none;
+  cursor: default;
+}
+
+.fl-widget-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+
+.fl-memory-results .fl-widget-empty-text {
+  padding: 12px;
+}
+
+/* --- LibraryBrowser: visibilidad de pestañas --- */
+
+.fl-capability-browser-tab-content.is-hidden {
+  display: none;
+}
+
+/* --- Widgets: lista/estado vacío (Bloque 4) ---
+   El inline anterior forzaba display:block sobre reglas con flex;
+   se preserva el render efectivo actual. */
+.fl-focus-list:not(.is-hidden),
+.fl-resources-empty:not(.is-hidden) {
+  display: block;
+}
+
+.fl-focus-list.is-hidden,
+.fl-resources-empty.is-hidden,
+.fl-widget-result-placeholder.is-hidden {
+  display: none;
+}
+
+/* --- Estadísticas del índice (Bloque 5, fase 6) --- */
+
+.folder-order-stats {
+  width: 100%;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  opacity: 0.8;
+  padding: 0 4px 12px 4px;
+  box-sizing: border-box;
+  text-align: left;
 }

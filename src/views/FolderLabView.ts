@@ -616,22 +616,10 @@ export class FolderLabView extends ItemView {
     this.explorerContainer = container.createEl('div', {
       cls: 'folder-lab-explorer-mode'
     });
-    this.explorerContainer.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      width: 100%;
-    `;
 
     this.focusContainer = container.createEl('div', {
-      cls: 'folder-lab-focus-mode'
+      cls: 'folder-lab-focus-mode is-hidden'
     });
-    this.focusContainer.style.cssText = `
-      display: none;
-      flex-direction: column;
-      height: 100%;
-      width: 100%;
-    `;
 
     this.buildExplorerMode(this.explorerContainer);
 
@@ -734,10 +722,10 @@ export class FolderLabView extends ItemView {
   private showExplorerMode(): void {
 
     if (this.explorerContainer) {
-      this.explorerContainer.style.display = 'flex';
+      this.explorerContainer.removeClass('is-hidden');
     }
     if (this.focusContainer) {
-      this.focusContainer.style.display = 'none';
+      this.focusContainer.addClass('is-hidden');
     }
 
     if (this.focusWorkspace) {
@@ -749,11 +737,11 @@ export class FolderLabView extends ItemView {
   private async showFocusMode(): Promise<void> {
 
     if (this.explorerContainer) {
-      this.explorerContainer.style.display = 'none';
+      this.explorerContainer.addClass('is-hidden');
     }
 
     if (this.focusContainer) {
-      this.focusContainer.style.display = 'flex';
+      this.focusContainer.removeClass('is-hidden');
 
       if (!this.focusWorkspace) {
 

@@ -252,18 +252,6 @@ onStatusChange: async (file: TFile, status: string) => {
 
     nameSpan.textContent = name;
 
-    if (level === 0) {
-      nameSpan.style.fontWeight = '700';
-      nameSpan.style.fontSize = '1.05em';
-    } else if (level === 1) {
-      nameSpan.style.fontWeight = '600';
-      nameSpan.style.fontStyle = 'italic';
-    } else {
-      nameSpan.style.fontWeight = '500';
-      nameSpan.style.fontStyle = 'italic';
-      nameSpan.style.opacity = '0.85';
-    }
-
     if (
       noteCount !== undefined &&
       noteCount > 0

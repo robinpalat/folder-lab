@@ -639,20 +639,14 @@ const item: WidgetRecord = {
 
         if (this.items.length === 0) {
 
-            this.listElement.style.display =
-                'none';
-
-            this.emptyElement.style.display =
-                'block';
+            this.listElement.addClass('is-hidden');
+            this.emptyElement.removeClass('is-hidden');
 
             return;
         }
 
-        this.listElement.style.display =
-            'block';
-
-        this.emptyElement.style.display =
-            'none';
+        this.listElement.removeClass('is-hidden');
+        this.emptyElement.addClass('is-hidden');
 
         const ordered =
             this.controller.ordering.sort(

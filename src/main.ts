@@ -72,8 +72,10 @@ class FolderSelectModal extends Modal {
 
     contentEl.createEl('h3', { text: i18n.t('modal.selectRoot.title') });
 
-    const p = contentEl.createEl('p', { text: i18n.t('modal.selectRoot.description') });
-    p.style.cssText = 'color: var(--text-muted); font-size: 0.85em; margin-bottom: 12px;';
+    const p = contentEl.createEl('p', {
+      text: i18n.t('modal.selectRoot.description'),
+      cls: 'folder-select-description'
+    });
 
     if (this.folders.length === 0) {
       contentEl.createEl('p', { text: i18n.t('empty.noRootFolders') });
@@ -81,18 +83,9 @@ class FolderSelectModal extends Modal {
     }
 
     const list = contentEl.createEl('div', { cls: 'folder-select-list' });
-    list.style.maxHeight = '300px';
-    list.style.overflow = 'auto';
 
     for (const folder of this.folders) {
       const item = list.createEl('div', { cls: 'folder-select-item' });
-      item.style.padding = '8px 12px';
-      item.style.cursor = 'pointer';
-      item.style.borderBottom = '1px solid var(--background-modifier-border)';
-      item.style.display = 'flex';
-      item.style.alignItems = 'center';
-      item.style.gap = '8px';
-      item.style.transition = 'background 0.15s';
 
       const icon = item.createEl('span');
       setIcon(icon, 'folder');
@@ -102,13 +95,6 @@ class FolderSelectModal extends Modal {
       item.onclick = () => {
         this.close();
         this.onSelect(folder);
-      };
-
-      item.onmouseenter = () => {
-        item.style.background = 'var(--background-modifier-hover)';
-      };
-      item.onmouseleave = () => {
-        item.style.background = 'transparent';
       };
     }
   }
@@ -772,7 +758,10 @@ class FolderLabSettingTab extends PluginSettingTab {
 
           // Actualizar visibilidad de las opciones de properties
           if (propertySettingsContainer) {
-            propertySettingsContainer.style.display = value === 'properties' ? 'block' : 'none';
+            propertySettingsContainer.toggleClass(
+              'is-hidden',
+              value !== 'properties'
+            );
           }
 
           // Una sola declaración de view
@@ -794,7 +783,10 @@ class FolderLabSettingTab extends PluginSettingTab {
     propertySettingsContainer = containerEl.createEl('div', {
       cls: 'folder-lab-property-settings'
     });
-    propertySettingsContainer.style.display = this.plugin.settings.navigationType === 'properties' ? 'block' : 'none';
+    propertySettingsContainer.toggleClass(
+      'is-hidden',
+      this.plugin.settings.navigationType !== 'properties'
+    );
 
     new Setting(propertySettingsContainer)
       .setName(i18n.t('settings.properties.preset.name'))
@@ -1092,8 +1084,7 @@ class FolderLabSettingTab extends PluginSettingTab {
     containerEl.createEl('hr');
     containerEl.createEl('h4', { text: i18n.t('settings.ai.help.heading') });
 
-    const helpDiv = containerEl.createEl('div');
-    helpDiv.style.cssText = 'padding: 8px 12px; background: var(--background-primary-alt); border-radius: 6px; font-size: 0.85em; color: var(--text-muted);';
+    const helpDiv = containerEl.createEl('div', { cls: 'fl-settings-help' });
 
     const provider = this.plugin.settings.aiProvider || 'openai';
     const helpLinks: Record<string, string> = {
@@ -1114,14 +1105,14 @@ class FolderLabSettingTab extends PluginSettingTab {
       text: i18n.t('settings.info.orderStorage')
     });
 
-    const infoText = containerEl.createEl('p', {
-      text: i18n.t('settings.info.emptyNotes')
+    containerEl.createEl('p', {
+      text: i18n.t('settings.info.emptyNotes'),
+      cls: 'fl-settings-info'
     });
-    infoText.style.cssText = 'color: var(--text-muted); font-size: 0.8em;';
 
-    const infoText2 = containerEl.createEl('p', {
-      text: i18n.t('settings.info.wordCountExclusions')
+    containerEl.createEl('p', {
+      text: i18n.t('settings.info.wordCountExclusions'),
+      cls: 'fl-settings-info'
     });
-    infoText2.style.cssText = 'color: var(--text-muted); font-size: 0.8em;';
   }
 }

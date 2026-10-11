@@ -42,13 +42,10 @@ export class InputModal extends Modal {
       value: this.defaultValue,
       cls: 'fo-modal-input'
     });
-    input.style.width = '100%';
-    input.style.marginBottom = '12px';
 
-    const buttonContainer = contentEl.createEl('div');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.gap = '8px';
-    buttonContainer.style.justifyContent = 'flex-end';
+    const buttonContainer = contentEl.createEl('div', {
+      cls: 'fl-modal-actions'
+    });
 
     const cancelBtn = buttonContainer.createEl('button', { text: i18n.t('common.cancel') });
     cancelBtn.onclick = () => {
@@ -102,11 +99,9 @@ export class ConfirmModal extends Modal {
 
     contentEl.createEl('p', { text: this.message });
 
-    const buttonContainer = contentEl.createEl('div');
-    buttonContainer.style.display = 'flex';
-    buttonContainer.style.gap = '8px';
-    buttonContainer.style.justifyContent = 'flex-end';
-    buttonContainer.style.marginTop = '12px';
+    const buttonContainer = contentEl.createEl('div', {
+      cls: 'fl-modal-actions fl-modal-actions-confirm'
+    });
 
     const cancelBtn = buttonContainer.createEl('button', { text: i18n.t('common.cancel') });
     cancelBtn.onclick = () => {

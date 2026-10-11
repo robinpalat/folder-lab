@@ -72,10 +72,6 @@ export class WordCountModal extends Modal {
 
     // Estadísticas principales
     const stats = contentEl.createEl('div', { cls: 'word-count-stats' });
-    stats.style.display = 'grid';
-    stats.style.gridTemplateColumns = 'repeat(3, 1fr)';
-    stats.style.gap = '12px';
-    stats.style.marginBottom = '20px';
 
     this.createStatItem(stats, this.result.totalWords.toLocaleString(), i18n.t('modal.wordCount.stat.totalWords'));
     this.createStatItem(stats, this.result.totalNotes.toLocaleString(), i18n.t('modal.wordCount.stat.notes'));
@@ -94,26 +90,15 @@ export class WordCountModal extends Modal {
       contentEl.createEl('h4', { text: i18n.t('modal.wordCount.detailsHeading') });
 
       const detailList = contentEl.createEl('div', { cls: 'word-count-details' });
-      detailList.style.maxHeight = '250px';
-      detailList.style.overflow = 'auto';
-      detailList.style.marginTop = '8px';
-      detailList.style.border = '1px solid var(--background-modifier-border)';
-      detailList.style.borderRadius = '6px';
-      detailList.style.padding = '4px 0';
 
       for (const item of this.result.details) {
         const row = detailList.createEl('div', { cls: 'word-count-row' });
-        row.style.display = 'flex';
-        row.style.justifyContent = 'space-between';
-        row.style.padding = '6px 10px';
-        row.style.borderBottom = '1px solid var(--background-modifier-border)';
-        row.style.fontSize = '0.9em';
-        row.style.color = 'var(--text-normal)';
 
         row.createEl('span', { text: item.name });
-        const countSpan = row.createEl('span', { text: item.words.toLocaleString() });
-        countSpan.style.fontWeight = '600';
-        countSpan.style.color = 'var(--text-accent)';
+        row.createEl('span', {
+          text: item.words.toLocaleString(),
+          cls: 'word-count-count'
+        });
       }
     }
   }
@@ -127,10 +112,6 @@ export class WordCountModal extends Modal {
     const row = parent.createEl('div', {
       cls: 'word-count-refresh'
     });
-    row.style.display = 'flex';
-    row.style.alignItems = 'center';
-    row.style.gap = '8px';
-    row.style.marginBottom = '16px';
 
     const button = row.createEl('button', {
       text: i18n.t('modal.wordCount.refreshButton'),
@@ -140,8 +121,6 @@ export class WordCountModal extends Modal {
     const errorSpan = row.createEl('span', {
       cls: 'word-count-refresh-error'
     });
-    errorSpan.style.color = 'var(--text-error)';
-    errorSpan.style.fontSize = '0.85em';
 
     button.onclick = async () => {
       button.disabled = true;
@@ -185,7 +164,6 @@ export class WordCountModal extends Modal {
         text: i18n.t('modal.wordCount.setGoal'),
         cls: 'word-count-goal-set'
       });
-      setButton.style.marginTop = '8px';
       setButton.onclick = () => this.renderGoalEditor(null);
       return;
     }
@@ -193,21 +171,15 @@ export class WordCountModal extends Modal {
     const goalBox = section.createEl('div', {
       cls: 'word-count-goal-box'
     });
-    goalBox.style.marginTop = '12px';
-    goalBox.style.padding = '8px 10px';
-    goalBox.style.border = '1px solid var(--background-modifier-border)';
-    goalBox.style.borderRadius = '8px';
-    goalBox.style.background = 'var(--background-primary-alt)';
 
-    const headerRow = goalBox.createEl('div');
-    headerRow.style.display = 'flex';
-    headerRow.style.alignItems = 'center';
-    headerRow.style.justifyContent = 'space-between';
-    headerRow.style.marginBottom = '4px';
+    const headerRow = goalBox.createEl('div', {
+      cls: 'word-count-goal-header'
+    });
 
-    const titleEl = headerRow.createEl('span', { text: i18n.t('modal.wordCount.goalTitle') });
-    titleEl.style.fontWeight = '600';
-    titleEl.style.fontSize = '0.9em';
+    const titleEl = headerRow.createEl('span', {
+      text: i18n.t('modal.wordCount.goalTitle'),
+      cls: 'word-count-goal-title'
+    });
 
     const gear = headerRow.createEl('button', {
       cls: 'clickable-icon',
@@ -242,7 +214,6 @@ export class WordCountModal extends Modal {
     const editor = section.createEl('div', {
       cls: 'word-count-goal-editor'
     });
-    editor.style.marginTop = '8px';
 
     const input = editor.createEl('input', {
       cls: 'fl-folder-goal-input',
@@ -261,11 +232,9 @@ export class WordCountModal extends Modal {
       input.value = String(currentGoal);
     }
 
-    const actions = editor.createEl('div');
-    actions.style.display = 'flex';
-    actions.style.justifyContent = 'flex-end';
-    actions.style.gap = '8px';
-    actions.style.marginTop = '8px';
+    const actions = editor.createEl('div', {
+      cls: 'fl-modal-actions word-count-goal-editor-actions'
+    });
 
     const cancelButton = actions.createEl('button', { text: i18n.t('common.cancel') });
     cancelButton.onclick = () => this.renderGoalSection();
@@ -308,38 +277,16 @@ export class WordCountModal extends Modal {
 
   private createStatItem(parent: HTMLElement, number: string, label: string): void {
     const div = parent.createEl('div', { cls: 'word-count-stat-item' });
-    div.style.padding = '14px 10px';
-    div.style.textAlign = 'center';
-    div.style.border = '1px solid var(--background-modifier-border)';
-    div.style.borderRadius = '8px';
-    div.style.background = 'var(--background-primary-alt)';
-    div.style.transition = 'transform 0.2s ease';
 
-    const numEl = div.createEl('div', { text: number });
-    numEl.style.fontSize = '2em';
-    numEl.style.fontWeight = '700';
-    numEl.style.color = 'var(--text-accent)';
-    numEl.style.marginBottom = '4px';
-
-    const labelEl = div.createEl('div', { text: label });
-    labelEl.style.fontSize = '0.75em';
-    labelEl.style.textTransform = 'uppercase';
-    labelEl.style.color = 'var(--text-muted)';
-    labelEl.style.letterSpacing = '0.2px';
+    div.createEl('div', { text: number, cls: 'word-count-number' });
+    div.createEl('div', { text: label, cls: 'word-count-label' });
   }
 
   private createStatRow(parent: HTMLElement, label: string, value: string): void {
     const row = parent.createEl('div', { cls: 'word-count-row' });
-    row.style.display = 'flex';
-    row.style.justifyContent = 'space-between';
-    row.style.padding = '6px 10px';
-    row.style.borderBottom = '1px solid var(--background-modifier-border)';
-    row.style.fontSize = '0.9em';
-    row.style.color = 'var(--text-normal)';
 
     row.createEl('span', { text: label });
-    const valueSpan = row.createEl('span', { text: value });
-    valueSpan.style.fontWeight = '500';
+    row.createEl('span', { text: value, cls: 'word-count-goal-value' });
   }
 
   onClose() {

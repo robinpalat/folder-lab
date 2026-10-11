@@ -166,11 +166,6 @@ export class NoteItemRenderer {
 
     nameSpan.textContent = displayName;
 
-
-    if (isSpecial) {
-      nameSpan.style.opacity = '0.7';
-    }
-
     // ============================================================
     // ESTADO / MENÚ (SOLO PARA NOTAS REGULARES)
     // ============================================================
@@ -183,7 +178,6 @@ export class NoteItemRenderer {
         setIcon(icon, 'alert-circle');
         statusContainer.addClass('status-empty');
         icon.setAttribute('title', i18n.t('notes.status.emptyTooltip'));
-        statusContainer.style.cursor = 'default';
       } else if (hasStatus) {
         const iconName = getStatusIcon(item.status);
         setIcon(icon, iconName);

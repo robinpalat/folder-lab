@@ -91,7 +91,7 @@ export class HeaderComponent {
     });
 
     this.iconWrapper = this.rightControl.createEl('span', {
-      cls: 'folder-lab-title-icon'
+      cls: 'folder-lab-title-icon is-hidden'
     });
     setIcon(this.iconWrapper, 'book-open');
 
@@ -250,8 +250,10 @@ this.wordCountBtn = wordBtn;
   public updateWordCountVisibility(): void {
   if (!this.wordCountBtn) return;
 
-  this.wordCountBtn.style.display =
-    this.isMasterOrRoot() ? '' : 'none';
+  this.wordCountBtn.toggleClass(
+    'is-hidden',
+    !this.isMasterOrRoot()
+  );
 }
 
 
@@ -309,12 +311,10 @@ private isMasterOrRoot(): boolean {
 
 
     if (canGoBack) {
-      this.iconWrapper.style.display = 'none';
-      this.backBtn.style.display = 'flex';
+      this.backBtn.removeClass('is-hidden');
       this.backBtn.setAttr('aria-label', i18n.t('actions.back'));
     } else {
-      this.iconWrapper.style.display = 'none';
-      this.backBtn.style.display = 'none';
+      this.backBtn.addClass('is-hidden');
     }
   }
 

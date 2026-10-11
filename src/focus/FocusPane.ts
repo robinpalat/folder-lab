@@ -65,30 +65,12 @@ export class FocusPane {
     // El contenedor del pane ya tiene la geometría asignada por
     // FocusWorkspace. El frame debe heredarla sin introducir otra
     // dimensión independiente.
-    Object.assign(this.element.style, {
-      height: "100%",
-      minHeight: "0",
-      minWidth: "0",
-      display: "flex",
-      flexDirection: "column",
-      boxSizing: "border-box",
-      overflow: "hidden"
-    });
+    // (Presentación estática en CSS: .fl-widget-container y
+    // .fl-widget-frame.)
 
     // Crear únicamente la superficie visual del widget.
     this.widgetContainer = this.container.createEl('div', {
       cls: `fl-widget-frame fl-widget-frame-${this.position}`
-    });
-
-    Object.assign(this.widgetContainer.style, {
-      height: "100%",
-      minHeight: "0",
-      minWidth: "0",
-      flex: "1 1 0",
-      display: "flex",
-      flexDirection: "column",
-      boxSizing: "border-box",
-      overflow: "hidden"
     });
 
     this.createAndRenderWidget(this.widgetInstanceId);

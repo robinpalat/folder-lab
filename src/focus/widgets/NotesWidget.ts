@@ -88,13 +88,7 @@ export class NotesWidget implements FocusWidget {
 
     // El FocusSplitter ya gobierna la altura del frame.
     // Esta cadena hace que el contenido interno herede esa altura.
-    Object.assign(this.container.style, {
-      height: "100%",
-      minHeight: "0",
-      display: "flex",
-      flexDirection: "column",
-      boxSizing: "border-box"
-    });
+    // (Presentación en CSS: reglas .fl-widget-notes.)
 
     /*
      * La posición sigue siendo responsabilidad del widget/frame.
@@ -299,7 +293,7 @@ export class NotesWidget implements FocusWidget {
       const controlId = button.getAttribute('data-control-id');
 
       if (controlId === "save") {
-        button.style.display = hasText ? "" : "none";
+        button.toggleClass("is-hidden", !hasText);
       }
     });
   }
@@ -321,8 +315,8 @@ export class NotesWidget implements FocusWidget {
 
     if (!capturePanel || !todayPanel) return;
 
-    todayPanel.style.display = "none";
-    capturePanel.style.display = "flex";
+    todayPanel.addClass("is-hidden");
+    capturePanel.removeClass("is-hidden");
 
     const editor = capturePanel.querySelector(
       ".fl-notes-capture-editor"
@@ -349,16 +343,7 @@ export class NotesWidget implements FocusWidget {
     // Este es el ÚNICO propietario del scroll del widget.
     // La sesión no decide si existe scrollbar: el navegador lo determina
     // según el tamaño real del contenido.
-    Object.assign(contentWrapper.style, {
-      flex: "1 1 0",
-      minHeight: "0",
-      height: "0",
-      overflow: "hidden",
-      overscrollBehavior: "contain",
-      display: "flex",
-      flexDirection: "column",
-      boxSizing: "border-box"
-    });
+    // (Presentación en CSS: regla .fl-notes-scroll-surface.)
 
     if (!this.currentFile) {
       contentWrapper.createEl("div", {
@@ -381,54 +366,24 @@ export class NotesWidget implements FocusWidget {
     const capturePanel = contentWrapper.createEl("div", {
       cls: "fl-notes-capture-panel"
     });
-
-    Object.assign(capturePanel.style, {
-      flex: "1 1 0",
-      minHeight: "0",
-      width: "100%",
-      display: this.sessionView === "capture" ? "flex" : "none",
-      flexDirection: "column",
-      overflow: "hidden",
-      boxSizing: "border-box",
-      paddingRight: "12px"
-    });
+    capturePanel.toggleClass(
+      "is-hidden",
+      this.sessionView !== "capture"
+    );
 
     const todayPanel = contentWrapper.createEl("div", {
       cls: "fl-notes-today-panel"
     });
-
-    Object.assign(todayPanel.style, {
-      flex: "1 1 0",
-      minHeight: "0",
-      width: "100%",
-      display: this.sessionView === "today" ? "flex" : "none",
-      flexDirection: "column",
-      overflowY: "auto",
-      overflowX: "hidden",
-      boxSizing: "border-box",
-      paddingRight: "12px"
-    });
+    todayPanel.toggleClass(
+      "is-hidden",
+      this.sessionView !== "today"
+    );
 
 
 
     const draftProxy = todayPanel.createEl("div", {
       cls: "fl-notes-draft-proxy"
     });
-
-    Object.assign(draftProxy.style, {
-      flex: "0 0 80px",
-      height: "80px",
-      minHeight: "80px",
-      maxHeight: "80px",
-      width: "100%",
-      boxSizing: "border-box",
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column",
-      cursor: "text"
-    });
-
-
 
     const draftProxyText = draftProxy.createEl("div", {
       cls: "fl-notes-draft-proxy-text"
@@ -446,18 +401,6 @@ export class NotesWidget implements FocusWidget {
       draftProxyText.addClass("fl-notes-draft-proxy-placeholder");
     }
 
-    Object.assign(draftProxyText.style, {
-      flex: "1 1 auto",
-      minHeight: "0",
-      width: "100%",
-      padding: "8px 10px",
-      boxSizing: "border-box",
-      overflow: "hidden",
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
-      cursor: "text"
-    });
-
     draftProxy.addEventListener("click", () => {
       this.enterCaptureView();
     });
@@ -468,34 +411,11 @@ export class NotesWidget implements FocusWidget {
       cls: "fl-notes-today-list"
     });
 
-    Object.assign(todayList.style, {
-      flex: "0 1 auto",
-      minHeight: "0",
-      width: "100%",
-      display: "flex",
-      flexDirection: "column",
-      boxSizing: "border-box"
-    });
-
-
     const captureEditor = capturePanel.createEl("textarea", {
       cls: "fl-widget-textarea fl-notes-draft-editor fl-notes-capture-editor",
       attr: {
         placeholder: i18n.t('widgets.notesWidget.placeholder.draft')
       }
-    });
-
-
-    Object.assign(captureEditor.style, {
-      flex: "1 1 0",
-      width: "100%",
-      height: "100%",
-      minHeight: "0",
-      maxHeight: "none",
-      boxSizing: "border-box",
-      resize: "none",
-      overflowY: "auto",
-      overflowX: "hidden"
     });
 
     // El estado visual del editor es la fuente de verdad.
