@@ -6,7 +6,7 @@ import {
 import { i18n } from '../../i18n/I18nService';
 
 import { FocusContext } from "../FocusContext";
-import { Notice, TFile } from "obsidian";
+import { App, Notice, TFile } from "obsidian";
 
 import { FocusListItem } from "../FocusListItem";
 import {
@@ -35,7 +35,7 @@ export class NotesWidget implements FocusWidget {
   private currentFile: TFile | null = null;
   private saveTimeout: number | null = null;
 
-  private app: any;
+  private app: App;
   private blocksStorageKey: string = "";
 
   private dropCleanup: (() => void) | null = null;
@@ -51,7 +51,7 @@ export class NotesWidget implements FocusWidget {
 
   private callbacks: WidgetCallbacks = {};
 
-  constructor(app: any) {
+  constructor(app: App) {
     this.app = app;
   }
 
@@ -605,32 +605,40 @@ export class NotesWidget implements FocusWidget {
         localStorage.getItem(this.blocksStorageKey);
 
       if (serialized) {
-        const parsed = JSON.parse(serialized);
+        /*
+         * 3E-2 (W4): datos externos de localStorage tipados como
+         * unknown; la validación de forma es la misma que la
+         * anterior, ahora explícita (object + text/active).
+         */
+        const parsed: unknown = JSON.parse(serialized);
 
         if (Array.isArray(parsed)) {
+          const items: unknown[] = parsed;
+
           // Formato actual: [{ text, active }]
-          if (
-            parsed.every(
-              value =>
-                value &&
-                typeof value.text === "string" &&
-                typeof value.active === "boolean"
-            )
-          ) {
-            return parsed as NoteBlock[];
+          const validBlocks = items.filter(
+            (value): value is NoteBlock =>
+              !!value &&
+              typeof value === 'object' &&
+              typeof (value as { text?: unknown }).text === 'string' &&
+              typeof (value as { active?: unknown }).active === 'boolean'
+          );
+
+          if (validBlocks.length === items.length) {
+            return validBlocks;
           }
 
           // Migración del formato anterior string[].
-          if (
-            parsed.every(
-              value => typeof value === "string"
-            )
-          ) {
-            const migrated: NoteBlock[] = parsed.map(
+          const texts = items.filter(
+            (value): value is string => typeof value === 'string'
+          );
+
+          if (texts.length === items.length) {
+            const migrated: NoteBlock[] = texts.map(
               (text, index) => ({
                 text,
                 // Solo el último bloque queda activo al migrar.
-                active: index === parsed.length - 1
+                active: index === texts.length - 1
               })
             );
 
@@ -1138,9 +1146,9 @@ export class NotesWidgetFactory
 
   readonly widgetId = "notes";
 
-  private app: any;
+  private app: App;
 
-  constructor(app: any) {
+  constructor(app: App) {
     this.app = app;
   }
 

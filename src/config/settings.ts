@@ -68,6 +68,18 @@ export interface FolderOrderSettings {
    * ni porcentaje propios.
    */
   bookWordGoal: number;
+  /**
+   * Estado privado del Asistente (fuentes/dominio/capacidad).
+   * Clave persistida fuera de DEFAULT_SETTINGS (incluida en
+   * ownedKeys de main.saveSettings); la forma es la real que
+   * leen y escriben MemoryWidget.loadState/saveState (3E-1/W3).
+   */
+  _widgetState?: {
+    sources?: string[];
+    source?: string;
+    domain?: string;
+    capability?: string;
+  };
 }
 
 export const DEFAULT_SETTINGS: FolderOrderSettings = {

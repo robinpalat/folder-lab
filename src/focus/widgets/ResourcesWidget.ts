@@ -1,6 +1,6 @@
 import { FocusWidget, FocusWidgetFactory, WidgetCallbacks } from "../FocusWidget";
 import { FocusContext } from "../FocusContext";
-import { TFile, TFolder, Notice, setIcon } from "obsidian";
+import { App, TFile, TFolder, Notice, setIcon, Menu, MenuItem } from "obsidian";
 import { ResourceService } from "../resources/ResourceService";
 import { AddResourceModal } from "../resources/AddResourceModal";
 import { Resource } from "../resources/Resource";
@@ -24,7 +24,7 @@ export class ResourcesWidget implements FocusWidget {
 
   private container: HTMLElement | null = null;
   private currentFile: TFile | null = null;
-  private app: any;
+  private app: App;
   private position: 'top' | 'bottom' = 'top';
   private callbacks: WidgetCallbacks = {};
   private resourceService: ResourceService;
@@ -34,7 +34,7 @@ export class ResourcesWidget implements FocusWidget {
   private emptyElement: HTMLElement | null = null;
   private dropCleanup: (() => void) | null = null;
 
-  constructor(app: any) {
+  constructor(app: App) {
     this.app = app;
     this.resourceService = new ResourceService(app);
   }
@@ -442,9 +442,9 @@ export class ResourcesWidget implements FocusWidget {
   }
 
   private showResourceMenu(resource: Resource): void {
-    const menu = new (this.app as any).Menu();
+    const menu = new Menu();
 
-    menu.addItem((item: any) => {
+    menu.addItem((item: MenuItem) => {
       item
         .setTitle(i18n.t('widgets.resourcesWidget.action.delete'))
         .setIcon('trash-2')
@@ -618,9 +618,9 @@ export class ResourcesWidget implements FocusWidget {
 
 export class ResourcesWidgetFactory implements FocusWidgetFactory {
   readonly widgetId = "resources";
-  private app: any;
+  private app: App;
 
-  constructor(app: any) {
+  constructor(app: App) {
     this.app = app;
   }
 

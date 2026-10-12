@@ -169,18 +169,20 @@ export class WidgetController {
 
       await this.dataStore.transact((full) => {
 
-        const existing = full[storageKey];
+        // Frontera data.json (3E-6): unknown + guard de objeto;
+        // el casting queda respaldado por el propio guard.
+        const existing: unknown = full[storageKey];
 
         const all: Record<string, WidgetRecord> =
           existing && typeof existing === 'object'
-            ? existing
+            ? (existing as Record<string, WidgetRecord>)
             : {};
 
-        const stored = all[key];
+        const stored: unknown = all[key];
 
         const record: WidgetRecord =
           stored && typeof stored === 'object'
-            ? stored
+            ? (stored as WidgetRecord)
             : { notePath, items: [] };
 
         if (!Array.isArray(record.items)) {
@@ -323,11 +325,13 @@ export class WidgetController {
        */
       await this.dataStore.transact((full) => {
 
-        const existing = full[storageKey];
+        // Frontera data.json (3E-6): unknown + guard; casting
+        // respaldado por el guard (mismo patrón que mutateItems).
+        const existing: unknown = full[storageKey];
 
         const all: Record<string, WidgetRecord> =
           existing && typeof existing === 'object'
-            ? existing
+            ? (existing as Record<string, WidgetRecord>)
             : {};
 
         all[key] = data;
@@ -605,11 +609,27 @@ export class WidgetController {
       const data =
         await this.dataStore.read();
 
-      return data?.[storageKey] || {};
+      /*
+       * 3E-6: frontera con data.json (datos externos). El valor
+       * por clave se estrecha tras validar que es un objeto; cada
+       * valor es un registro de widget de forma abierta ( WidgetRecord,
+       * justificado en 3C1) cuyos campos valida cada widget en sus
+       * bordes de lectura.
+       */
+      const raw: unknown = data?.[storageKey];
 
+      if (!isPlainObject(raw)) {
+        return {};
+      }
+
+      return raw as Record<string, WidgetRecord>;
     } catch {
 
       return {};
     }
   }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

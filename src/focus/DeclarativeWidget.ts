@@ -26,7 +26,7 @@ import {
     createExpandableText
 } from './FocusWidgetsUtils';
 
-import { Notice } from 'obsidian';
+import { App, Notice } from 'obsidian';
 type WidgetRecord = Record<string, any>;
 
 
@@ -79,7 +79,7 @@ export class DeclarativeWidget
     constructor(
         private readonly definition: WidgetDefinition,
         private readonly controller: WidgetController,
-        private readonly app: any,
+        private readonly app: App,
         private instanceId?: string
     ) {
         this.id = definition.id;
@@ -1117,7 +1117,7 @@ export class DeclarativeWidgetFactory
     constructor(
         private readonly definition: WidgetDefinition,
         private readonly controller: WidgetController,
-        private readonly app: any
+        private readonly app: App
     ) {
         this.widgetId =
             definition.id;

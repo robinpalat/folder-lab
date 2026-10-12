@@ -1,5 +1,10 @@
-import { MarkdownRenderer, Notice } from 'obsidian';
+import { MarkdownRenderer, Notice, TFile } from 'obsidian';
 import { i18n } from '../../i18n/I18nService';
+/* 3E-1 (W3): el plugin se obtiene de app.plugins.plugins['folder-lab']
+ * (origen any); el campo se tipa con el tipo real del proyecto
+ * (type-only, sin dependencia de runtime). El acceso a
+ * settings._widgetState ya está declarado en FolderOrderSettings. */
+import type FolderLabPlugin from '../../main';
 
 import { WidgetControls } from './tools/WidgetControls';
 import { WidgetControlsRenderer } from './tools/WidgetControlsRenderer';
@@ -35,9 +40,15 @@ export class MemoryWidget implements FocusWidget {
   readonly icon = "cpu";
 
   private container: HTMLElement | null = null;
-  private currentFile: any = null;
+  private currentFile: TFile | null = null;
+  /*
+   * 3E-3 (W5, conservado como any): el widget necesita
+   * app.plugins.plugins['folder-lab'] (registro de plugins de
+   * escritorio) que no está declarado en el tipo `App` de
+   * obsidian; tiparlo obligaría a aserciones forzadas.
+   */
   private app: any;
-  private plugin: any;
+  private plugin: FolderLabPlugin;
   private position: 'top' | 'bottom' = 'top';
   private sessionView: 'capture' | 'today' = 'capture';
   private callbacks: WidgetCallbacks = {};
@@ -896,19 +907,35 @@ this.contextResolver = new ContextResolver(
         return [];
       }
 
-      const parsed = JSON.parse(serialized);
+      /*
+       * 3E-2 (W4): JSON de localStorage (datos externos) tipado
+       * como unknown; la validación de forma es la misma que la
+       * anterior (array + tipos de id/content/active), ahora
+       * explícita sobre unknown en lugar de implícita sobre any.
+       */
+      const parsed: unknown = JSON.parse(serialized);
 
       if (!Array.isArray(parsed)) {
         return [];
       }
 
-      return parsed.filter(
-        (value): value is MemoryResult =>
-          value &&
-          typeof value.id === 'string' &&
-          typeof value.content === 'string' &&
-          typeof value.active === 'boolean'
-      );
+      const items: unknown[] = parsed;
+
+      return items.filter((value): value is MemoryResult => {
+        if (!value || typeof value !== 'object') {
+          return false;
+        }
+        const candidate = value as {
+          id?: unknown;
+          content?: unknown;
+          active?: unknown;
+        };
+        return (
+          typeof candidate.id === 'string' &&
+          typeof candidate.content === 'string' &&
+          typeof candidate.active === 'boolean'
+        );
+      });
     } catch (error) {
       console.warn(
         '[MemoryWidget] Error cargando respuestas:',
