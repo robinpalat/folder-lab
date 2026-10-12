@@ -1372,16 +1372,6 @@
   user-select: none;
 }
 
-.focus-splitter {
-  width: 100%;
-  height: 100%;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  cursor: row-resize;
-}
 
 .focus-splitter-handle {
   width: 50px;
@@ -3352,12 +3342,6 @@ body.focus-splitter-dragging {
   gap: 6px;
   box-sizing: border-box;
 }
-.fl-context-close {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-}
 
 
 .fl-notes-draft-compact {
@@ -3369,6 +3353,12 @@ body.focus-splitter-dragging {
 .fl-notes-draft-compact .fl-notes-draft-textarea {
   min-height: 0;
   height: 100%;
+}
+
+/* Estado «listo para editar» del texto expandible (5A/C5-1):
+   cursor de acción; la clase ya se aplica al crear y al contraer. */
+.fl-expandable-text-editable-ready {
+  cursor: pointer;
 }
 
 .fl-expandable-text-collapse-action {

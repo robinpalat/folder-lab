@@ -280,9 +280,6 @@ export function createExpandableText(
       content.setAttr('contenteditable', 'false');
       content.removeClass('is-editing');
       content.addClass('fl-expandable-text-editable-ready');
-
-      // Vuelve a ser una acción al quedar contraído.
-      content.style.cursor = 'pointer';
     }
 
     setExpanded(false, false);
