@@ -6,6 +6,7 @@ import {
   PromptDomainDefinition,
   ExternalCapabilityDefinition
 } from '../types';
+import type { ResolvedWidgetSource } from '../context/ContextResolver';
 
 // Importar el manifiesto generado (resolveJsonModule + loader JSON de esbuild)
 import manifestJson from '../prompts/generated/manifest.json';
@@ -85,11 +86,22 @@ buildUser(): string {
   switch (this.context.contextType) {
 
     case 'snips': {
-      const snips = this.context.additional?.snips || [];
+      /*
+       * 3A: las fuentes llegan como envoltorios por instancia
+       * ({ instanceId, name, items }) producidos por
+       * ContextResolver.resolveWidgetSource; el contenido real
+       * está en `items[].text`. No existen productores del formato
+       * plano heredado (additional.snips solo se construye en
+       * resolve), por lo que no se mantiene compatibilidad con él.
+       */
+      const sources = this.context.additional?.snips;
 
-      content = snips
-        .map((snip: any) => snip.text)
-        .filter((text: string) => !!text?.trim())
+      content = (Array.isArray(sources) ? sources : [])
+        .flatMap((entry: ResolvedWidgetSource) =>
+          Array.isArray(entry?.items) ? entry.items : []
+        )
+        .map((item) => (typeof item?.text === 'string' ? item.text : ''))
+        .filter((text: string) => !!text.trim())
         .join('\n\n---\n\n');
 
       target = 'Snips seleccionados:';
@@ -103,22 +115,29 @@ buildUser(): string {
     }
 
     case 'tasks': {
-      const tasks = this.context.additional?.tasks || [];
+      /*
+       * 3A: ídem snips — envoltorios por instancia; el texto de
+       * cada tarea está en `items[].text` (con `title` como
+       * alternativa heredada de formas de ítem). Sin productores
+       * de string o plano, esas ramas se retiran.
+       */
+      const sources = this.context.additional?.tasks;
 
-      if (Array.isArray(tasks)) {
-        content = tasks
-          .map((task: any) => {
-            if (typeof task === 'string') {
-              return task;
-            }
-
-            return task?.text || task?.content || task?.title || '';
-          })
-          .filter((text: string) => !!text?.trim())
-          .join('\n');
-      } else if (typeof tasks === 'string') {
-        content = tasks;
-      }
+      content = (Array.isArray(sources) ? sources : [])
+        .flatMap((entry: ResolvedWidgetSource) =>
+          Array.isArray(entry?.items) ? entry.items : []
+        )
+        .map((item) => {
+          if (typeof item?.text === 'string' && item.text) {
+            return item.text;
+          }
+          if (typeof item?.title === 'string' && item.title) {
+            return item.title;
+          }
+          return '';
+        })
+        .filter((text: string) => !!text.trim())
+        .join('\n');
 
       target = 'Tareas:';
       break;

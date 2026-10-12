@@ -746,7 +746,7 @@ this.contextResolver = new ContextResolver(
         );
       }
 
-      (context as any).aiService = this.aiService;
+      context.aiService = this.aiService;
 
 
       const result =

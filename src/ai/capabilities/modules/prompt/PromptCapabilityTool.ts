@@ -41,8 +41,10 @@ export class PromptCapabilityTool implements Tool {
       const builder = new PromptBuilder(context, template);
       const { system, user } = builder.build();
 
-      // 3. Obtener AIService del contexto
-      const aiService = (context as any).aiService;
+      // 3. Obtener AIService del contexto (campo tipado; la
+      // comprobación de runtime se conserva: el tipado no la
+      // sustituye).
+      const aiService = context.aiService;
       if (!aiService) {
         return {
           success: false,

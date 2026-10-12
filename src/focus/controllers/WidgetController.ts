@@ -1,7 +1,12 @@
 import { Plugin } from 'obsidian';
 import { PluginDataStore } from '../../storage/PluginDataStore';
 
-type WidgetRecord = Record<string, any>;
+/**
+ * Registro de ítem/contenido de un widget (3C1: exportado para
+ * reutilizarse en los contratos de contexto; forma intencionalmente
+ * abierta, la widget dueña de sus campos).
+ */
+export type WidgetRecord = Record<string, any>;
 
 export class WidgetController {
 

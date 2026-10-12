@@ -1,8 +1,35 @@
 import { App, TFile } from 'obsidian';
 import { UserRequest, ExecutableContext } from '../types';
-import { WidgetController } from '../../focus/controllers/WidgetController';
+import { WidgetController, type WidgetRecord } from '../../focus/controllers/WidgetController';
 import { WidgetManager } from '../../focus/WidgetManager';
 import { NotesController } from '../../focus/controllers/NotesController';
+import type { WidgetSemanticDefinition } from '../../focus/WidgetDefinition';
+/*
+ * 3B: se usa el tipo del plugin del proyecto (type-only, sin
+ * import en runtime) porque NotesController exige `Plugin` en su
+ * constructor y una interfaz local mínima no satisfaría ese
+ * contrato sin modificar consumidores. Los miembros usados aquí
+ * son `settings` (FolderOrderSettings) y `aiService` (AIService
+ * | null en el plugin; el flujo actual ya lo transportaba sin
+ * comprobar nulidad).
+ */
+import type FolderLabPlugin from '../../main';
+
+/**
+ * Fuente de widget resuelta para el contexto ejecutable (3A).
+ *
+ * Es la forma que produce `ContextResolver.resolveWidgetSource` y
+ * la que consumen `PromptBuilder` y las capacidades: un envoltorio
+ * por instancia de widget con sus ítems persistidos. Los ítems
+ * son registros heterogéneos (el widget dueña de su forma); las
+ * fuentes de texto leen `text` con tolerancia.
+ */
+export interface ResolvedWidgetSource {
+  instanceId: string;
+  name: string;
+  semantic?: WidgetSemanticDefinition;
+  items: WidgetRecord[];
+}
 
 
 export interface WorkspaceContext {
@@ -49,22 +76,16 @@ export interface AIContext {
   user: UserContext;
 }
 
-/**
- * Contexto genérico para el Executor.
- * Es un objeto plano que transporta datos sin estructura fija.
- */
-export type GenericContext = Record<string, any>;
-
 export class ContextResolver {
   private app: App;
-  private plugin: any;
+  private plugin: FolderLabPlugin;
   private widgetManager: WidgetManager;
   private widgetController: WidgetController;
   private notesController: NotesController;
 
   constructor(
     app: App,
-    plugin: any,
+    plugin: FolderLabPlugin,
     widgetController: WidgetController,
     widgetManager: WidgetManager
   ) {
@@ -155,7 +176,7 @@ export class ContextResolver {
   }
 
   async resolveAll(options: {
-    note: any;
+    note: TFile;
     content: string;
     selection?: string;
     settings: { temperature: number; maxTokens: number };
@@ -176,45 +197,6 @@ export class ContextResolver {
     const user = this.resolveUser();
 
     return { workspace, session, execution, user };
-  }
-
-  /**
-   * Resuelve un contexto genérico para el Executor.
-   *
-   * Este método devuelve un objeto plano que puede ser extendido
-   * por cualquier capacidad sin necesidad de modificar el resolver.
-   */
-  async resolveGeneric(params: {
-    note: any;
-    content: string;
-    selection?: string;
-    temperature?: number;
-    maxTokens?: number;
-  }): Promise<GenericContext> {
-    const context: GenericContext = {
-      aiService: this.plugin.aiService,
-      noteContent: params.content,
-      noteName: params.note.basename,
-      notePath: params.note.path,
-      folderName: params.note.parent?.name || '',
-      selection: params.selection,
-      temperature:
-        params.temperature ??
-        this.plugin?.settings?.aiTemperature ??
-        0.3,
-      maxTokens:
-        params.maxTokens ??
-        this.plugin?.settings?.aiMaxTokens ??
-        500
-    };
-
-    const rootPath = this.plugin?.settings?.bookRootPath;
-
-    if (rootPath && params.note.path.startsWith(rootPath)) {
-      context.bookName = rootPath.split('/').pop();
-    }
-
-    return context;
   }
 
   // ============================================================
@@ -410,7 +392,7 @@ export class ContextResolver {
   private async resolveWidgetSource(
     widgetId: string,
     notePath: string
-  ): Promise<any[]> {
+  ): Promise<ResolvedWidgetSource[]> {
 
     if (!notePath) {
       return [];
@@ -429,7 +411,7 @@ export class ContextResolver {
         widgetId
       );
 
-    const resolved: any[] = [];
+    const resolved: ResolvedWidgetSource[] = [];
 
     for (const instance of instances) {
 

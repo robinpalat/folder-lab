@@ -1,3 +1,5 @@
+import type { AIService } from '../AIService';
+
 export interface AISettings {
   provider: "openai" | "gemini" | "anthropic";
   apiKey: string;
@@ -25,12 +27,14 @@ export interface AIResponse {
 }
 
 // Re-exportar tipos de contexto (existentes)
+// (3C3: la reexportación de AIContext se retiró por no tener
+// consumidores; el tipo sigue exportado desde ContextResolver
+// y lo usa resolveAll.)
 export type { 
   WorkspaceContext, 
   SessionContext, 
   ExecutionContext, 
-  UserContext, 
-  AIContext 
+  UserContext 
 } from '../context/ContextResolver';
 
 // ============================================================
@@ -94,6 +98,15 @@ export interface ExecutableContext {
     temperature: number;
     maxTokens: number;
   };
+
+  /**
+   * Servicio de IA adjuntado por el Asistente antes de ejecutar
+   * una capacidad (3C2). Opcional porque el contexto puede
+   * construirse sin él (p. ej. el comando de prueba de fuentes);
+   * el productor real siempre adjunta una instancia no nula, y
+   * las herramientas mantienen su comprobación de runtime.
+   */
+  aiService?: AIService;
 
   additional?: Record<string, any>;
 }
