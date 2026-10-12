@@ -1,5 +1,11 @@
 import { LLMProvider } from './LLMProvider';
 import { AIRequest, AIResponse } from '../types';
+import {
+  OpenAIChatResponse,
+  buildDirectUsage,
+  extractHttpErrorMessage,
+  readJsonOrNull
+} from './httpJson';
 
 export class OpenAIProvider implements LLMProvider {
   id = "openai";
@@ -34,21 +40,28 @@ export class OpenAIProvider implements LLMProvider {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const body = await readJsonOrNull(response);
         return {
           content: "",
-          error: error.error?.message || `Error HTTP: ${response.status}`
+          error: extractHttpErrorMessage(body, response.status)
         };
       }
 
-      const data = await response.json();
+      /*
+       * La aserción documenta el contrato del cable; los valores
+       * que se usan se comprueban en tiempo de ejecución.
+       */
+      const data = (await response.json()) as OpenAIChatResponse;
+
+      const text = data.choices?.[0]?.message?.content;
+
       return {
-        content: data.choices?.[0]?.message?.content?.trim() || "",
-        usage: data.usage ? {
-          promptTokens: data.usage.prompt_tokens,
-          completionTokens: data.usage.completion_tokens,
-          totalTokens: data.usage.total_tokens
-        } : undefined
+        content: typeof text === "string" ? text.trim() : "",
+        usage: buildDirectUsage(
+          data.usage?.prompt_tokens,
+          data.usage?.completion_tokens,
+          data.usage?.total_tokens
+        )
       };
     } catch (error) {
       return {

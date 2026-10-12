@@ -1,5 +1,11 @@
 import { LLMProvider } from './LLMProvider';
 import { AIRequest, AIResponse } from '../types';
+import {
+  GeminiGenerateResponse,
+  buildDirectUsage,
+  extractHttpErrorMessage,
+  readJsonOrNull
+} from './httpJson';
 
 export class GeminiProvider implements LLMProvider {
   id = "gemini";
@@ -37,21 +43,28 @@ export class GeminiProvider implements LLMProvider {
       );
 
       if (!response.ok) {
-        const error = await response.json();
+        const body = await readJsonOrNull(response);
         return {
           content: "",
-          error: error.error?.message || `Error HTTP: ${response.status}`
+          error: extractHttpErrorMessage(body, response.status)
         };
       }
 
-      const data = await response.json();
+      /*
+       * La aserción documenta el contrato del cable; los valores
+       * que se usan se comprueban en tiempo de ejecución.
+       */
+      const data = (await response.json()) as GeminiGenerateResponse;
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
       return {
-        content: data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "",
-        usage: data.usageMetadata ? {
-          promptTokens: data.usageMetadata.promptTokenCount,
-          completionTokens: data.usageMetadata.candidatesTokenCount,
-          totalTokens: data.usageMetadata.totalTokenCount
-        } : undefined
+        content: typeof text === "string" ? text.trim() : "",
+        usage: buildDirectUsage(
+          data.usageMetadata?.promptTokenCount,
+          data.usageMetadata?.candidatesTokenCount,
+          data.usageMetadata?.totalTokenCount
+        )
       };
     } catch (error) {
       return {

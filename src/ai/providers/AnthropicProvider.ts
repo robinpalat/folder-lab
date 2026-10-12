@@ -1,5 +1,11 @@
 import { LLMProvider } from './LLMProvider';
 import { AIRequest, AIResponse } from '../types';
+import {
+  AnthropicMessagesResponse,
+  buildAnthropicUsage,
+  extractHttpErrorMessage,
+  readJsonOrNull
+} from './httpJson';
 
 export class AnthropicProvider implements LLMProvider {
   id = "anthropic";
@@ -35,21 +41,27 @@ export class AnthropicProvider implements LLMProvider {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const body = await readJsonOrNull(response);
         return {
           content: "",
-          error: error.error?.message || `Error HTTP: ${response.status}`
+          error: extractHttpErrorMessage(body, response.status)
         };
       }
 
-      const data = await response.json();
+      /*
+       * La aserción documenta el contrato del cable; los valores
+       * que se usan se comprueban en tiempo de ejecución.
+       */
+      const data = (await response.json()) as AnthropicMessagesResponse;
+
+      const text = data.content?.[0]?.text;
+
       return {
-        content: data.content?.[0]?.text?.trim() || "",
-        usage: data.usage ? {
-          promptTokens: data.usage.input_tokens,
-          completionTokens: data.usage.output_tokens,
-          totalTokens: data.usage.input_tokens + data.usage.output_tokens
-        } : undefined
+        content: typeof text === "string" ? text.trim() : "",
+        usage: buildAnthropicUsage(
+          data.usage?.input_tokens,
+          data.usage?.output_tokens
+        )
       };
     } catch (error) {
       return {
