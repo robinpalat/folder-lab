@@ -31,7 +31,8 @@ export class ResourceService {
 
   async loadMetadata(folderPath: string): Promise<ResourceMetadata | null> {
     const path = this.getMetadataPath(folderPath);
-    const file = this.app.vault.getFileByPath(path);
+    const abstractFile = this.app.vault.getAbstractFileByPath(path);
+    const file = abstractFile instanceof TFile ? abstractFile : null;
     
     if (!file) {
       return null;
@@ -53,7 +54,8 @@ export class ResourceService {
     const content = JSON.stringify(metadata, null, 2);
     
     try {
-      const file = this.app.vault.getFileByPath(path);
+      const abstractFile = this.app.vault.getAbstractFileByPath(path);
+    const file = abstractFile instanceof TFile ? abstractFile : null;
       if (file) {
         await this.app.vault.modify(file, content);
       } else {
@@ -183,7 +185,8 @@ export class ResourceService {
       if (!resource.source) {
         return { valid: false, error: 'La ruta del archivo es requerida' };
       }
-      const file = this.app.vault.getFileByPath(resource.source);
+      const abstractFile = this.app.vault.getAbstractFileByPath(resource.source);
+      const file = abstractFile instanceof TFile ? abstractFile : null;
       if (!file) {
         return { valid: false, error: 'El archivo no existe en el vault' };
       }

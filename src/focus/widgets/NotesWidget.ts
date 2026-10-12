@@ -993,8 +993,9 @@ export class NotesWidget implements FocusWidget {
           ".notes.md"
         );
 
-      const file =
-        this.app.vault.getFileByPath(notesFilePath);
+      const abstractFile =
+        this.app.vault.getAbstractFileByPath(notesFilePath);
+      const file = abstractFile instanceof TFile ? abstractFile : null;
 
       if (!file) return "";
 
@@ -1083,8 +1084,9 @@ export class NotesWidget implements FocusWidget {
             ".notes.md"
           );
 
-        const file =
-          this.app.vault.getFileByPath(notesFilePath);
+        const abstractFile =
+          this.app.vault.getAbstractFileByPath(notesFilePath);
+        const file = abstractFile instanceof TFile ? abstractFile : null;
 
         if (file) {
           const content =

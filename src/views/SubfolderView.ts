@@ -1,6 +1,6 @@
 // src/views/SubfolderView.ts
 
-import { App, TFolder } from 'obsidian';
+import { App, TFolder, TFile } from 'obsidian';
 import { FolderLabState } from '../core/FolderLabState';
 import { OrderService } from '../services/OrderService';
 import { NoteService } from '../services/NoteService';
@@ -99,9 +99,10 @@ export class SubfolderView {
         // ------------------------------------------------------------
         // Nota directa del contexto actual
         // ------------------------------------------------------------
-        const file = child.filePath
-          ? this.app.vault.getFileByPath(child.filePath)
+        const abstractFile = child.filePath
+          ? this.app.vault.getAbstractFileByPath(child.filePath)
           : null;
+        const file = abstractFile instanceof TFile ? abstractFile : null;
 
         if (file) {
           items.push({
@@ -158,7 +159,8 @@ export class SubfolderView {
           this.walkNavigationContainer(child, items, level + 1);
         } else {
           // Nota: renderizar como nota
-          const file = child.filePath ? this.app.vault.getFileByPath(child.filePath) : null;
+          const abstractFile = child.filePath ? this.app.vault.getAbstractFileByPath(child.filePath) : null;
+          const file = abstractFile instanceof TFile ? abstractFile : null;
           if (file) {
             items.push({
               type: 'note',

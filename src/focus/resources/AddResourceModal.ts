@@ -167,7 +167,8 @@ export class AddResourceModal extends Modal {
         return;
       }
       // Verificar que el archivo existe
-      const file = this.app.vault.getFileByPath(this.sourcePath);
+      const abstractFile = this.app.vault.getAbstractFileByPath(this.sourcePath);
+      const file = abstractFile instanceof TFile ? abstractFile : null;
       if (!file) {
         new Notice(i18n.t('resources.validation.fileMissingInVault'));
         return;

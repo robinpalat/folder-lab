@@ -1570,7 +1570,7 @@ export class FolderLabView extends ItemView {
 
     for (const recent of recentNotes) {
       const file =
-        this.app.vault.getFileByPath(recent.path);
+        this.app.vault.getAbstractFileByPath(recent.path);
 
       if (!(file instanceof TFile)) {
         continue;
@@ -1658,9 +1658,10 @@ export class FolderLabView extends ItemView {
     // 1. OWN PAGE (si existe y no es virtual root)
     const ownPage = this.getOwnPage(contextNode);
     if (ownPage && contextNode.id !== 'virtual:root') {
-      const file = ownPage.filePath
-        ? this.app.vault.getFileByPath(ownPage.filePath)
+      const abstractFile = ownPage.filePath
+        ? this.app.vault.getAbstractFileByPath(ownPage.filePath)
         : null;
+      const file = abstractFile instanceof TFile ? abstractFile : null;
       const status = file
         ? await this.controller.noteService.getNoteStatusByFile(file)
         : '';
@@ -1688,9 +1689,10 @@ export class FolderLabView extends ItemView {
     const directNotes = this.getDirectNotes(contextNode);
 
     for (const note of directNotes) {
-      const file = note.filePath
-        ? this.app.vault.getFileByPath(note.filePath)
+      const abstractFile = note.filePath
+        ? this.app.vault.getAbstractFileByPath(note.filePath)
         : null;
+      const file = abstractFile instanceof TFile ? abstractFile : null;
       const status = file
         ? await this.controller.noteService.getNoteStatusByFile(file)
         : '';
@@ -1806,7 +1808,8 @@ export class FolderLabView extends ItemView {
       (!node.children || node.children.length === 0)
     ) {
       if (node.filePath) {
-        const file = this.app.vault.getFileByPath(node.filePath);
+        const abstractFile = this.app.vault.getAbstractFileByPath(node.filePath);
+        const file = abstractFile instanceof TFile ? abstractFile : null;
         if (file) {
           await this.app.workspace.getLeaf().openFile(file);
           return;

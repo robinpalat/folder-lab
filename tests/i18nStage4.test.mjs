@@ -261,7 +261,10 @@ test('createNote sigue con un único escritor de orden (evento vault:create)', (
   assert.ok(!createNoteSection.includes('getFolderOrder'));
   assert.ok(createNoteSection.includes('vault.create('));
   // Las validaciones siguen existiendo antes de crear.
-  assert.ok(createNoteSection.includes('getFileByPath(filePath)'));
+  // La comprobación de duplicados sigue resolviendo el fichero
+  // por ruta (L5a: API compatible getAbstractFileByPath +
+  // comprobación TFile, equivalente a getFileByPath).
+  assert.ok(createNoteSection.includes('getAbstractFileByPath(filePath) instanceof TFile'));
 });
 
 test('InputModal conserva el guard de envío único', () => {

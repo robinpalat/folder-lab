@@ -44,7 +44,7 @@ export class NoteService {
     const fileName = name.endsWith('.md') ? name.trim() : `${name.trim()}.md`;
     const filePath = `${folderPath}/${fileName}`;
 
-    if (this.app.vault.getFileByPath(filePath)) {
+    if (this.app.vault.getAbstractFileByPath(filePath) instanceof TFile) {
       new Notice(i18n.t('errors.note.duplicateName', { name: fileName }));
       return null;
     }

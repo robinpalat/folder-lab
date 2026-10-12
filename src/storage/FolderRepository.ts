@@ -584,7 +584,7 @@ export class FolderRepository {
         result.push(...subNotes);
       } else {
         const filePath = `${folderPath}/${itemName}`;
-        const file = this.app.vault.getFileByPath(filePath);
+        const file = this.app.vault.getAbstractFileByPath(filePath);
         if (file instanceof TFile) {
           // Excluir archivos ocultos
           if (!isHiddenFolderName(file.name)) {

@@ -430,7 +430,8 @@ export class ResourcesWidget implements FocusWidget {
     if (resource.type === 'link' && resource.url) {
       window.open(resource.url, '_blank');
     } else if (resource.type === 'file' && resource.source) {
-      const file = this.app.vault.getFileByPath(resource.source);
+      const abstractFile = this.app.vault.getAbstractFileByPath(resource.source);
+      const file = abstractFile instanceof TFile ? abstractFile : null;
 
       if (file) {
         this.app.workspace.getLeaf().openFile(file);

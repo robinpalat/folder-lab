@@ -253,7 +253,7 @@ async renderNavigation(
   for (const node of directNotes) {
 
 const file = node.filePath
-  ? this.app.vault.getFileByPath(node.filePath)
+  ? this.app.vault.getAbstractFileByPath(node.filePath)
   : null;
 
 if (!(file instanceof TFile)) continue;
@@ -299,9 +299,10 @@ status: status || undefined
 
     if (ownPage && ownPage.filePath) {
 
-      const file = this.app.vault.getFileByPath(
+      const abstractFile = this.app.vault.getAbstractFileByPath(
         ownPage.filePath
       );
+      const file = abstractFile instanceof TFile ? abstractFile : null;
 
       if (file) {
         items.push({
@@ -351,7 +352,8 @@ status: status || undefined
   ): Promise<void> {
     // 1. Propia página (sin número)
     if (node.filePath) {
-      const file = this.app.vault.getFileByPath(node.filePath);
+      const abstractFile = this.app.vault.getAbstractFileByPath(node.filePath);
+      const file = abstractFile instanceof TFile ? abstractFile : null;
       if (file) {
         items.push({
           type: 'note',

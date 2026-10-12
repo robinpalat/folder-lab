@@ -133,7 +133,8 @@ constructor(
       let hasContent = false;
 
       for (const name of orderedFiles) {
-        const file = this.app.vault.getFileByPath(`${folderPath}/${name}`);
+        const abstractFile = this.app.vault.getAbstractFileByPath(`${folderPath}/${name}`);
+        const file = abstractFile instanceof TFile ? abstractFile : null;
         if (!file) continue;
 
         const isEmpty = await this.noteService.isNoteEmpty(file);
@@ -164,7 +165,8 @@ constructor(
       }
 
       const outputPath = `${folderPath}/${folder.name}.md`;
-      const existing = this.app.vault.getFileByPath(outputPath);
+      const existingAbstract = this.app.vault.getAbstractFileByPath(outputPath);
+      const existing = existingAbstract instanceof TFile ? existingAbstract : null;
       
       if (existing) {
         await this.app.vault.modify(existing, content);

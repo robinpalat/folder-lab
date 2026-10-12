@@ -727,8 +727,9 @@ onStatusChange: (file: TFile, status: string) => {
         const files: TFile[] = [];
 
         for (const path of sequence) {
-          const file =
-            this.app.vault.getFileByPath(path);
+          const abstractFile =
+            this.app.vault.getAbstractFileByPath(path);
+          const file = abstractFile instanceof TFile ? abstractFile : null;
 
           if (file) {
             files.push(file);
@@ -768,8 +769,9 @@ onStatusChange: (file: TFile, status: string) => {
       const files: TFile[] = [];
 
       for (const path of newOrder) {
-        const file =
-          this.app.vault.getFileByPath(path);
+        const abstractFile =
+          this.app.vault.getAbstractFileByPath(path);
+        const file = abstractFile instanceof TFile ? abstractFile : null;
 
         if (file) {
           files.push(file);

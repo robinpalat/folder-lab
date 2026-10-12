@@ -1,4 +1,4 @@
-import { App } from 'obsidian';
+import { App, TFile } from 'obsidian';
 import { UserRequest, ExecutableContext } from '../types';
 import { WidgetController } from '../../focus/controllers/WidgetController';
 import { WidgetManager } from '../../focus/WidgetManager';
@@ -229,7 +229,8 @@ export class ContextResolver {
     let noteMetadata: Record<string, any> = {};
 
     if (request.activeNotePath) {
-      const file = this.app.vault.getFileByPath(request.activeNotePath);
+      const abstractFile = this.app.vault.getAbstractFileByPath(request.activeNotePath);
+      const file = abstractFile instanceof TFile ? abstractFile : null;
 
       if (file) {
         noteContent = await this.app.vault.read(file);
