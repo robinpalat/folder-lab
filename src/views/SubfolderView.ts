@@ -52,7 +52,9 @@ export class SubfolderView {
   ): { totalFolders: number } {
     const folder = this.app.vault.getAbstractFileByPath(folderPath);
     if (!(folder instanceof TFolder)) {
-      this.listComponent.render([]);
+      void this.listComponent.render([]).catch((error) => {
+        console.error('[FolderLab] Error renderizando la lista:', error);
+      });
       return {
         totalFolders: 0
       };
@@ -61,7 +63,9 @@ export class SubfolderView {
     const items: ListItem[] = [];
     this.walkTree(folder, 0, items);
 
-    this.listComponent.render(items);
+    void this.listComponent.render(items).catch((error) => {
+      console.error('[FolderLab] Error renderizando la lista:', error);
+    });
 
     // Conteo derivado del MISMO modelo que se acaba de
     // renderizar: carpetas de la lista visible.
@@ -117,7 +121,9 @@ export class SubfolderView {
       }
     }
 
-    this.listComponent.render(items);
+    void this.listComponent.render(items).catch((error) => {
+      console.error('[FolderLab] Error renderizando la lista:', error);
+    });
 
     return {
       totalFolders: items.filter(item => item.type === 'folder').length

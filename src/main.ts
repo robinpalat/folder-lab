@@ -385,7 +385,9 @@ export default class FolderLabPlugin extends Plugin {
               .setTitle(i18n.t('folders.contextMenu.openInFolderLab'))
               .setIcon('folder-sync')
               .onClick(() => {
-                this.openFolderLabForFolder(file);
+                void this.openFolderLabForFolder(file).catch((error) => {
+                  console.error('[FolderLab] Error abriendo Folder Lab para la carpeta:', error);
+                });
               });
           });
         }
@@ -479,7 +481,9 @@ export default class FolderLabPlugin extends Plugin {
     setTimeout(() => {
       const view = this.getViewInstance();
       if (view) {
-        view.loadFolderOrder(folder.path);
+        void view.loadFolderOrder(folder.path).catch((error) => {
+          console.error('[FolderLab] Error cargando la última carpeta:', error);
+        });
       } else {
         new Notice(i18n.t('errors.loadView'));
       }
@@ -489,6 +493,8 @@ export default class FolderLabPlugin extends Plugin {
   refreshView(): void {
     const view = this.getViewInstance();
     if (view) {
+      // refresh() es síncrono y gestiona internamente su
+      // recarga asíncrona (con manejo de errores en la vista).
       view.refresh();
       new Notice(i18n.t('notices.viewRefreshed'));
     }
@@ -500,13 +506,19 @@ export default class FolderLabPlugin extends Plugin {
   toggleFocusMode(): void {
     const view = this.getViewInstance();
     if (view) {
-      view.toggleFocusMode();
+      void view.toggleFocusMode().catch((error) => {
+        console.error('[FolderLab] Error alternando el modo Contexto:', error);
+      });
     } else {
-      this.openFolderLabView();
+      void this.openFolderLabView().catch((error) => {
+        console.error('[FolderLab] Error abriendo Folder Lab:', error);
+      });
       setTimeout(() => {
         const newView = this.getViewInstance();
         if (newView) {
-          newView.toggleFocusMode();
+          newView.toggleFocusMode().catch((error) => {
+            console.error('[FolderLab] Error alternando el modo Contexto:', error);
+          });
         }
       }, 200);
     }
@@ -715,12 +727,21 @@ class FolderLabSettingTab extends PluginSettingTab {
           return;
         }
 
-        const modal = new FolderSelectModal(this.app, folders, async (selected: string) => {
-          await this.plugin.setBookRootPath(selected);
+        const modal = new FolderSelectModal(this.app, folders, (selected: string) => {
+          // L3b: el callback del modal devuelve void; el aviso de
+          // éxito solo se emite cuando la configuración termina.
+          void this.plugin.setBookRootPath(selected)
+            .then(() => {
+              if (rootPathInput) rootPathInput.value = selected;
 
-          if (rootPathInput) rootPathInput.value = selected;
-
-          new Notice(i18n.t('settings.bookRoot.configuredNotice', { path: selected }));
+              new Notice(i18n.t('settings.bookRoot.configuredNotice', { path: selected }));
+            })
+            .catch((error) => {
+              console.error(
+                '[FolderLab] Error configurando la carpeta raíz:',
+                error
+              );
+            });
         });
         modal.open();
       }));

@@ -146,7 +146,7 @@ export class NoteItemComponent {
       this.element.removeClass('drag-over');
     });
 
-    this.element.addEventListener('drop', async (e) => {
+    this.element.addEventListener('drop', (e) => {
       e.preventDefault();
       this.element.removeClass('drag-over');
 
@@ -167,7 +167,11 @@ export class NoteItemComponent {
         menu.addItem((item) => {
           item.setTitle(i18n.t('actions.regenerateCompile'))
             .setIcon('refresh-cw')
-            .onClick(() => this.controller.exportAllNotes());
+            .onClick(() => {
+            void this.controller.exportAllNotes().catch((error) => {
+              console.error('[FolderLab] Error compilando la carpeta:', error);
+            });
+          });
         });
         menu.showAtPosition({ x: e.clientX, y: e.clientY });
         return;

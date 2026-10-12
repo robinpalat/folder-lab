@@ -118,7 +118,7 @@ export class NotesWidget implements FocusWidget {
       return;
     }
 
-    this.save();
+    void this.save();
     this.sessionView = "capture";
 
 
@@ -145,7 +145,7 @@ export class NotesWidget implements FocusWidget {
       this.saveTimeout = null;
     }
 
-    this.save();
+    void this.save();
 
     if (this.container) {
       this.container.empty();
@@ -266,7 +266,7 @@ export class NotesWidget implements FocusWidget {
           }
 
           if (controlId === "copy") {
-            this.copyNotes();
+            void this.copyNotes();
             return;
           }
         }
@@ -685,7 +685,7 @@ export class NotesWidget implements FocusWidget {
           label: block.active
             ? i18n.t('widgets.notesWidget.action.deactivate')
             : i18n.t('widgets.notesWidget.action.activate'),
-          onClick: async () => {
+          onClick: () => {
             const nextActive = !block.active;
 
             // Actualización inmediata del modelo en memoria.
@@ -726,22 +726,36 @@ export class NotesWidget implements FocusWidget {
             );
 
             // Persistimos sin reconstruir el widget.
-            await this.saveBlocks(
-              await this.loadBlocks().then(blocks => {
-                if (index >= 0 && index < blocks.length) {
-                  blocks[index].active = nextActive;
-                }
-                return blocks;
-              })
-            );
+            // L3b: el callback devuelve void; los errores del
+            // guardado se registran.
+            void (async () => {
+              await this.saveBlocks(
+                await this.loadBlocks().then(blocks => {
+                  if (index >= 0 && index < blocks.length) {
+                    blocks[index].active = nextActive;
+                  }
+                  return blocks;
+                })
+              );
+            })().catch((error) => {
+              console.error(
+                "[FolderLab] Error guardando bloques:",
+                error
+              );
+            });
           }
         },
 
         deleteAction: {
           id: "delete",
           label: i18n.t('widgets.notesWidget.action.delete'),
-          onClick: async () => {
-            await this.deleteBlock(index);
+          onClick: () => {
+            void this.deleteBlock(index).catch((error) => {
+              console.error(
+                "[FolderLab] Error eliminando bloque:",
+                error
+              );
+            });
           }
         }
       });
@@ -1048,7 +1062,7 @@ export class NotesWidget implements FocusWidget {
     }
 
     this.saveTimeout = window.setTimeout(() => {
-      this.save();
+      void this.save();
     }, 500);
   }
 

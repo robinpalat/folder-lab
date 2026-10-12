@@ -367,7 +367,7 @@ this.contextResolver = new ContextResolver(
           }
 
           if (controlId === 'execute') {
-            this.execute();
+            void this.execute();
           }
         }
       }
@@ -500,14 +500,16 @@ this.contextResolver = new ContextResolver(
             ? i18n.t('widgets.memory.action.deactivateResponse')
             : i18n.t('widgets.memory.action.activateResponse'),
 
-          onClick: async () => {
+          onClick: () => {
             result.active = !result.active;
 
             listItem.setState(
               result.active ? 'active' : 'inactive'
             );
 
-            await this.saveResults();
+            // L3b: saveResults es síncrono (localStorage) y ya
+            // gestiona sus errores internamente.
+            this.saveResults();
           }
         },
 
@@ -515,7 +517,7 @@ this.contextResolver = new ContextResolver(
           id: 'delete',
           label: i18n.t('widgets.memory.action.deleteResponse'),
 
-          onClick: async () => {
+          onClick: () => {
             const index = this.results.findIndex(
               item => item.id === result.id
             );
@@ -528,7 +530,9 @@ this.contextResolver = new ContextResolver(
             this.results.splice(index, 1);
             this.resultElements.delete(result.id);
 
-            await this.saveResults();
+            // L3b: saveResults es síncrono; se llama sin await
+            // (el await sobre void era la advertencia original).
+            this.saveResults();
 
             listItem.destroy();
           }

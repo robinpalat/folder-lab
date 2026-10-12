@@ -549,7 +549,7 @@ const item = {
 
         input.addEventListener(
             'keydown',
-            async event => {
+            event => {
 
                 if (event.key !== 'Enter') {
                     return;
@@ -581,16 +581,25 @@ const item: WidgetRecord = {
         : {})
 };
 
-                await this.controller.storage.add(
-                    this.getStorageKey(),
-                    this.context.activeFile.path,
-                    this.getInstanceId(),
-                    item
-                );
+                // L3b: el listener devuelve void; la persistencia y
+                // la recarga se ejecutan y sus errores se registran.
+                void (async () => {
+                    await this.controller.storage.add(
+                        this.getStorageKey(),
+                        this.context!.activeFile!.path,
+                        this.getInstanceId(),
+                        item
+                    );
 
-                await this.reload();
+                    await this.reload();
 
-                input.focus();
+                    input.focus();
+                })().catch((error) => {
+                    console.error(
+                        '[FolderLab] Error añadiendo elemento:',
+                        error
+                    );
+                });
             }
         );
     }
@@ -743,33 +752,42 @@ const item: WidgetRecord = {
                                         : i18n.t('widgets.declarative.action.activate')
                                 ),
 
-                        onClick: async () => {
+                        onClick: () => {
 
-                            if (
-                                selection?.mode === 'single' &&
-                                selection.field
-                            ) {
-
-                                await this.controller.selection.select(
-                                    this.getStorageKey(),
-                                    this.context!.activeFile!.path,
-                                    this.getInstanceId(),
-                                    itemData.id,
+                            // L3b: el callback de control devuelve
+                            // void; se gestiona el rechazo.
+                            void (async () => {
+                                if (
+                                    selection?.mode === 'single' &&
                                     selection.field
+                                ) {
+
+                                    await this.controller.selection.select(
+                                        this.getStorageKey(),
+                                        this.context!.activeFile!.path,
+                                        this.getInstanceId(),
+                                        itemData.id,
+                                        selection.field
+                                    );
+
+                                } else if (stateField) {
+
+                                    await this.controller.state.toggle(
+                                        this.getStorageKey(),
+                                        this.context!.activeFile!.path,
+                                        this.getInstanceId(),
+                                        itemData.id,
+                                        stateField
+                                    );
+                                }
+
+                                await this.reload();
+                            })().catch((error) => {
+                                console.error(
+                                    '[FolderLab] Error actualizando elemento:',
+                                    error
                                 );
-
-                            } else if (stateField) {
-
-                                await this.controller.state.toggle(
-                                    this.getStorageKey(),
-                                    this.context!.activeFile!.path,
-                                    this.getInstanceId(),
-                                    itemData.id,
-                                    stateField
-                                );
-                            }
-
-                            await this.reload();
+                            });
                         }
                     },
 
@@ -781,16 +799,23 @@ const item: WidgetRecord = {
                         label:
                             i18n.t('actions.deleteElement'),
 
-                        onClick: async () => {
+                        onClick: () => {
 
-                            await this.controller.storage.delete(
-                                this.getStorageKey(),
-                                this.context!.activeFile!.path,
-                                this.getInstanceId(),
-                                itemData.id
-                            );
+                            void (async () => {
+                                await this.controller.storage.delete(
+                                    this.getStorageKey(),
+                                    this.context!.activeFile!.path,
+                                    this.getInstanceId(),
+                                    itemData.id
+                                );
 
-                            await this.reload();
+                                await this.reload();
+                            })().catch((error) => {
+                                console.error(
+                                    '[FolderLab] Error eliminando elemento:',
+                                    error
+                                );
+                            });
                         }
                     }
 

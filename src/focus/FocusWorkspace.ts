@@ -152,7 +152,14 @@ export class FocusWorkspace {
       this.widgetManager,
       this.context,
       this.app,
-      (instanceId) => this.onWidgetChange('top', instanceId)
+      (instanceId) => {
+        void this.onWidgetChange('top', instanceId).catch((error) => {
+          console.error(
+            '[FolderLab] Error guardando la distribución de widgets:',
+            error
+          );
+        });
+      }
     );
     this.topPane.render();
 
@@ -164,7 +171,14 @@ export class FocusWorkspace {
       this.widgetManager,
       this.context,
       this.app,
-      (instanceId) => this.onWidgetChange('bottom', instanceId)
+      (instanceId) => {
+        void this.onWidgetChange('bottom', instanceId).catch((error) => {
+          console.error(
+            '[FolderLab] Error guardando la distribución de widgets:',
+            error
+          );
+        });
+      }
     );
     this.bottomPane.render();
 

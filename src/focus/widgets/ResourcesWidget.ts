@@ -71,7 +71,9 @@ export class ResourcesWidget implements FocusWidget {
       this.renderControls();
     }
 
-    this.loadResources();
+    void this.loadResources().catch((error) => {
+      console.error('[FolderLab] Error cargando recursos:', error);
+    });
   }
 
   // ============================================================
@@ -332,8 +334,13 @@ export class ResourcesWidget implements FocusWidget {
         label: isActive
           ? i18n.t('widgets.resourcesWidget.action.deactivate')
           : i18n.t('widgets.resourcesWidget.action.activate'),
-        onClick: async () => {
-          await this.toggleResourceActive(resource);
+        onClick: () => {
+          void this.toggleResourceActive(resource).catch((error) => {
+            console.error(
+              '[FolderLab] Error alternando recurso:',
+              error
+            );
+          });
         }
       },
 
@@ -341,7 +348,9 @@ export class ResourcesWidget implements FocusWidget {
         id: 'delete',
         label: i18n.t('widgets.resourcesWidget.action.delete'),
         onClick: () => {
-          this.deleteResource(resource);
+          void this.deleteResource(resource).catch((error) => {
+            console.error('[FolderLab] Error eliminando el recurso:', error);
+          });
         }
       }
     });
@@ -439,7 +448,9 @@ export class ResourcesWidget implements FocusWidget {
         .setTitle(i18n.t('widgets.resourcesWidget.action.delete'))
         .setIcon('trash-2')
         .onClick(() => {
-          this.deleteResource(resource);
+          void this.deleteResource(resource).catch((error) => {
+            console.error('[FolderLab] Error eliminando el recurso:', error);
+          });
         });
     });
 
@@ -522,7 +533,9 @@ export class ResourcesWidget implements FocusWidget {
 
         this.resourceService.addResource(folderPath, resource)
           .then(() => {
-            this.loadResources();
+            void this.loadResources().catch((error) => {
+      console.error('[FolderLab] Error cargando recursos:', error);
+    });
             new Notice(i18n.t('resources.notice.added'));
           })
           .catch((error) => {

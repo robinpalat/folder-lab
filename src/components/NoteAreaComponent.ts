@@ -55,7 +55,11 @@ export class NoteAreaComponent {
       }
 
       this.saveTimer = window.setTimeout(
-        () => this.saveNote(),
+        () => {
+          void this.saveNote().catch((error) => {
+            console.error('[FolderLab] Error guardando la nota:', error);
+          });
+        },
         500
       );
     });
@@ -66,10 +70,14 @@ export class NoteAreaComponent {
         this.saveTimer = null;
       }
 
-      this.saveNote();
+      void this.saveNote().catch((error) => {
+        console.error('[FolderLab] Error guardando la nota:', error);
+      });
     });
 
-    this.loadNote();
+    void this.loadNote().catch((error) => {
+      console.error('[FolderLab] Error cargando la nota:', error);
+    });
   }
 
   async loadNote(): Promise<void> {

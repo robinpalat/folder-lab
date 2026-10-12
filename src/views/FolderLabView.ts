@@ -158,7 +158,9 @@ export class FolderLabView extends ItemView {
     if (this._isDisposed) return;
     const currentPath = this.controller.getCurrentPath();
     if (currentPath) {
-      this.controller.loadFolder(currentPath);
+      void this.controller.loadFolder(currentPath).catch((error) => {
+        console.error('[FolderLab] Error cargando la carpeta:', error);
+      });
     }
   }
 
@@ -196,14 +198,18 @@ export class FolderLabView extends ItemView {
     if (navType === 'properties') {
             this.state.toggleFolderMode();
       this.updateToolbarButtons();
-      this.renderPropertyNavigation();
+      void this.renderPropertyNavigation().catch((error) => {
+        console.error('[FolderLab] Error renderizando la navegación:', error);
+      });
     } else {
       this.state.toggleFolderMode();
       this.updateToolbarButtons();
 
       const currentPath = this.controller.getCurrentPath();
       if (currentPath) {
-        this.loadFolder(currentPath);
+        void this.loadFolder(currentPath).catch((error) => {
+          console.error('[FolderLab] Error cargando la carpeta:', error);
+        });
       }
     }
   }
@@ -232,14 +238,18 @@ export class FolderLabView extends ItemView {
       this.navigationService?.getNavigationType() || 'folders';
 
     if (navType === 'properties') {
-      void this.renderPropertyNavigation();
+      void this.renderPropertyNavigation().catch((error) => {
+        console.error('[FolderLab] Error renderizando la navegación:', error);
+      });
       return;
     }
 
     const currentPath = this.controller.getCurrentPath();
 
     if (currentPath !== null) {
-      void this.loadFolder(currentPath);
+      void this.loadFolder(currentPath).catch((error) => {
+        console.error('[FolderLab] Error cargando la carpeta:', error);
+      });
     }
   }
 
@@ -251,14 +261,18 @@ export class FolderLabView extends ItemView {
     if (navType === 'properties') {
             this.state.toggleAllNotesMode();
       this.updateToolbarButtons();
-      this.renderPropertyNavigation();
+      void this.renderPropertyNavigation().catch((error) => {
+        console.error('[FolderLab] Error renderizando la navegación:', error);
+      });
     } else {
       this.state.toggleAllNotesMode();
       this.updateToolbarButtons();
 
       const currentPath = this.controller.getCurrentPath();
       if (currentPath) {
-        this.loadFolder(currentPath);
+        void this.loadFolder(currentPath).catch((error) => {
+          console.error('[FolderLab] Error cargando la carpeta:', error);
+        });
       }
     }
   }
@@ -394,7 +408,9 @@ export class FolderLabView extends ItemView {
           4
         );
 
-        this.showFocusMode();
+        void this.showFocusMode().catch((error) => {
+          console.error('[FolderLab] Error abriendo el modo Contexto:', error);
+        });
       } else {
         new Notice(i18n.t('errors.focus.noActiveNote'));
         state.toggleFocusMode();
@@ -509,7 +525,9 @@ export class FolderLabView extends ItemView {
 
         this.state.currentNoteType = 'general';
         if (this.noteArea) {
-          this.noteArea.loadNote();
+          void this.noteArea.loadNote().catch((error) => {
+            console.error('[FolderLab] Error cargando la nota:', error);
+          });
         }
         break;
 
@@ -659,7 +677,9 @@ export class FolderLabView extends ItemView {
     }
 
     if (this.state.isFocusMode) {
-      this.showFocusMode();
+      void this.showFocusMode().catch((error) => {
+        console.error('[FolderLab] Error abriendo el modo Contexto:', error);
+      });
     } else {
       this.showExplorerMode();
     }
@@ -754,7 +774,9 @@ export class FolderLabView extends ItemView {
 
           // Cerrar Contexto
           () => {
-            this.toggleFocusMode();
+            void this.toggleFocusMode().catch((error) => {
+              console.error('[FolderLab] Error alternando el modo Contexto:', error);
+            });
           },
 
           // Actividad de widgets
@@ -798,7 +820,9 @@ export class FolderLabView extends ItemView {
 
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
-          this.focusWorkspace.updateNote(activeFile);
+          void this.focusWorkspace.updateNote(activeFile).catch((error) => {
+            console.error('[FolderLab] Error actualizando el Contexto a la nueva nota:', error);
+          });
           this.state.setFocusNote(activeFile.path);
         }
       }
@@ -1034,7 +1058,9 @@ export class FolderLabView extends ItemView {
           // intermedias NO provocan recarga: el refresco definitivo
           // llega vía order-changed tras sincronizar metadatos.
           if (!this.shouldSkipReloadDuringReorder()) {
-            this.controller.loadFolder(currentPath);
+            void this.controller.loadFolder(currentPath).catch((error) => {
+              console.error('[FolderLab] Error cargando la carpeta:', error);
+            });
           }
         }
       })
@@ -1047,7 +1073,9 @@ export class FolderLabView extends ItemView {
         const currentPath = this.controller.getCurrentPath();
         if (currentPath && file.path.startsWith(currentPath)) {
           await this.controller.orderService.updateOrderOnCreate(file.path);
-          this.controller.loadFolder(currentPath);
+          void this.controller.loadFolder(currentPath).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         }
       })
     );
@@ -1059,7 +1087,9 @@ export class FolderLabView extends ItemView {
         const currentPath = this.controller.getCurrentPath();
         if (currentPath && file.path.startsWith(currentPath)) {
           await this.controller.orderService.updateOrderOnDelete(file.path);
-          this.controller.loadFolder(currentPath);
+          void this.controller.loadFolder(currentPath).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         }
       })
     );
@@ -1071,7 +1101,9 @@ export class FolderLabView extends ItemView {
         const currentPath = this.controller.getCurrentPath();
         if (currentPath && (file.path.startsWith(currentPath) || oldPath.startsWith(currentPath))) {
           await this.controller.orderService.updateOrderOnRename(oldPath, file.path);
-          this.controller.loadFolder(currentPath);
+          void this.controller.loadFolder(currentPath).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         }
       })
     );
@@ -1437,8 +1469,16 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) => this.handleVirtualItemClick(item),
-        (path: string) => this.navigateToVirtualNodeByPath(path),
+        (item: FolderLabItem) => {
+          void this.handleVirtualItemClick(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo el elemento:', error);
+          });
+        },
+        (path: string) => {
+          void this.navigateToVirtualNodeByPath(path).catch((error) => {
+            console.error('[FolderLab] Error abriendo la carpeta:', error);
+          });
+        },
         (newOrder: string[]) => {
           // El refresco de Properties lo gestiona
           // NavigationService mediante order-changed.
@@ -1455,9 +1495,21 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) => this.handleVirtualItemClick(item),
-        (path: string) => this.navigateToVirtualNodeByPath(path),
-        (newOrder: string[]) => this.controller.reorderItems(newOrder)
+        (item: FolderLabItem) => {
+          void this.handleVirtualItemClick(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo el elemento:', error);
+          });
+        },
+        (path: string) => {
+          void this.navigateToVirtualNodeByPath(path).catch((error) => {
+            console.error('[FolderLab] Error abriendo la carpeta:', error);
+          });
+        },
+        (newOrder: string[]) => {
+          void this.controller.reorderItems(newOrder).catch((error) => {
+            console.error('[FolderLab] Error reordenando elementos:', error);
+          });
+        }
       );
     }
 
@@ -1470,9 +1522,21 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) => this.handleVirtualItemClick(item),
-        (path: string) => this.navigateToVirtualNodeByPath(path),
-        (newOrder: string[]) => this.controller.reorderItems(newOrder)
+        (item: FolderLabItem) => {
+          void this.handleVirtualItemClick(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo el elemento:', error);
+          });
+        },
+        (path: string) => {
+          void this.navigateToVirtualNodeByPath(path).catch((error) => {
+            console.error('[FolderLab] Error abriendo la carpeta:', error);
+          });
+        },
+        (newOrder: string[]) => {
+          void this.controller.reorderItems(newOrder).catch((error) => {
+            console.error('[FolderLab] Error reordenando elementos:', error);
+          });
+        }
       );
     }
 
@@ -1559,14 +1623,22 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) =>
-          this.controller.openNote(item),
+        (item: FolderLabItem) => {
+          void this.controller.openNote(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo la nota:', error);
+          });
+        },
         (path: string) => {
           this.exitGlobalModes();
-          this.controller.loadFolder(path);
+          void this.controller.loadFolder(path).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         },
-        (newOrder: string[]) =>
-          this.controller.reorderItems(newOrder)
+        (newOrder: string[]) => {
+          void this.controller.reorderItems(newOrder).catch((error) => {
+            console.error('[FolderLab] Error reordenando elementos:', error);
+          });
+        }
       );
     }
 
@@ -2078,12 +2150,22 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) => this.controller.openNote(item),
+        (item: FolderLabItem) => {
+          void this.controller.openNote(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo la nota:', error);
+          });
+        },
         (path: string) => {
           this.exitGlobalModes();
-          this.controller.loadFolder(path);
+          void this.controller.loadFolder(path).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         },
-        (newOrder: string[]) => this.controller.reorderItems(newOrder)
+        (newOrder: string[]) => {
+          void this.controller.reorderItems(newOrder).catch((error) => {
+            console.error('[FolderLab] Error reordenando elementos:', error);
+          });
+        }
       );
     }
 
@@ -2104,12 +2186,22 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) => this.controller.openNote(item),
+        (item: FolderLabItem) => {
+          void this.controller.openNote(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo la nota:', error);
+          });
+        },
         (path: string) => {
           this.exitGlobalModes();
-          this.controller.loadFolder(path);
+          void this.controller.loadFolder(path).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         },
-        (newOrder: string[]) => this.controller.reorderItems(newOrder)
+        (newOrder: string[]) => {
+          void this.controller.reorderItems(newOrder).catch((error) => {
+            console.error('[FolderLab] Error reordenando elementos:', error);
+          });
+        }
       );
     }
 
@@ -2137,12 +2229,22 @@ export class FolderLabView extends ItemView {
         this.controller.orderService,
         this.controller.noteService,
         this.listContainer,
-        (item: FolderLabItem) => this.controller.openNote(item),
+        (item: FolderLabItem) => {
+          void this.controller.openNote(item).catch((error) => {
+            console.error('[FolderLab] Error abriendo la nota:', error);
+          });
+        },
         (path: string) => {
           this.exitGlobalModes();
-          this.controller.loadFolder(path);
+          void this.controller.loadFolder(path).catch((error) => {
+            console.error('[FolderLab] Error cargando la carpeta:', error);
+          });
         },
-        (newOrder: string[]) => this.controller.reorderItems(newOrder)
+        (newOrder: string[]) => {
+          void this.controller.reorderItems(newOrder).catch((error) => {
+            console.error('[FolderLab] Error reordenando elementos:', error);
+          });
+        }
       );
     }
 

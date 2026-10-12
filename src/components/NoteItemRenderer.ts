@@ -376,7 +376,9 @@ public updateStatus(
         itemMenu.setTitle(i18n.t('actions.openNoteContext'))
           .setIcon('target')
           .onClick(() => {
-            this.openInFocusMode(item.file!);
+            void this.openInFocusMode(item.file!).catch((error) => {
+              console.error('[FolderLab] Error abriendo en Contexto:', error);
+            });
           });
       });
     }
@@ -407,7 +409,7 @@ public updateStatus(
 
     const view = this.getFolderLabView();
     if (view) {
-      view.toggleFocusMode();
+      await view.toggleFocusMode();
     } else {
       new Notice(i18n.t('errors.viewNotOpen'));
     }

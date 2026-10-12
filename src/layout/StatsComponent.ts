@@ -26,7 +26,9 @@ export class StatsComponent {
     this.element = this.container.createEl('div', { cls: 'folder-order-stats' });
 
     // Actualizar stats asincrónicamente
-    this.updateStats();
+    void this.updateStats().catch((error) => {
+      console.error('[FolderLab] Error actualizando estadísticas:', error);
+    });
   }
 
   async updateStats(): Promise<void> {

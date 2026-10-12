@@ -85,24 +85,47 @@ this.controller = controller;
       noteService,
       onNoteSelect,
       {
-onStatusChange: async (file: TFile, status: string) => {
-  await noteService.setNoteStatusByFile(file, status);
+onStatusChange: (file: TFile, status: string) => {
+  // L3b: el callback devuelve void; el indicador se actualiza
+  // cuando la persistencia termina (mismo orden que el await).
+  void noteService
+    .setNoteStatusByFile(file, status)
+    .then(() => {
+      const element =
+        this.noteElementsCache.get(file.path);
 
-  const element =
-    this.noteElementsCache.get(file.path);
-
-  if (element) {
-    this.noteRenderer.updateStatus(
-      element,
-      status
-    );
-  }
+      if (element) {
+        this.noteRenderer.updateStatus(
+          element,
+          status
+        );
+      }
+    })
+    .catch((error) => {
+      console.error(
+        '[FolderLab] Error guardando el estado de la nota:',
+        error
+      );
+    });
 },
 
         onDelete: (file: TFile) => {
           const folderPath = this.controller.getCurrentPath() || '';
-          noteService.deleteNote(folderPath, file);
-          this.refreshCurrentView();
+          /*
+           * L3a: el refresco debe esperar a que termine el
+           * borrado; el callback sigue devolviendo void.
+           */
+          void noteService
+            .deleteNote(folderPath, file)
+            .then(() => {
+              this.refreshCurrentView();
+            })
+            .catch((error) => {
+              console.error(
+                '[FolderLab] Error eliminando la nota:',
+                error
+              );
+            });
         }
       }
     );
@@ -474,7 +497,7 @@ onStatusChange: async (file: TFile, status: string) => {
 
     el.addEventListener(
       'drop',
-      async (e) => {
+      (e) => {
         e.preventDefault();
 
         el.removeClass(
@@ -488,9 +511,15 @@ onStatusChange: async (file: TFile, status: string) => {
             ) || '0'
           );
 
-        await this.handleDrop(
-          e,
-          targetIndex
+        // L3b: el drop devuelve void; los errores del handler
+        // asíncrono se registran de forma explícita.
+        void this.handleDrop(e, targetIndex).catch(
+          (error) => {
+            console.error(
+              '[FolderLab] Error procesando drop:',
+              error
+            );
+          }
         );
       }
     );
@@ -966,7 +995,7 @@ onStatusChange: async (file: TFile, status: string) => {
     el: HTMLElement,
     item: FolderLabItem
   ): void {
-    el.onclick = async (e) => {
+    el.onclick = (e) => {
       if (
         (
           e.target as HTMLElement

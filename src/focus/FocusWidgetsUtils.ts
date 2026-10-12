@@ -672,16 +672,25 @@ export class FolderLabDragDrop {
       }
     };
 
+    /*
+     * L3b: `drop` ya gestiona sus errores internamente; el
+     * envoltorio síncrono evita entregar una promesa al DOM y
+     * se registra una única referencia para add/remove.
+     */
+    const dropSync = (event: DragEvent) => {
+      void drop(event);
+    };
+
     element.addEventListener('dragover', dragOver);
     element.addEventListener('dragenter', dragEnter);
     element.addEventListener('dragleave', dragLeave);
-    element.addEventListener('drop', drop);
+    element.addEventListener('drop', dropSync);
 
     return () => {
       element.removeEventListener('dragover', dragOver);
       element.removeEventListener('dragenter', dragEnter);
       element.removeEventListener('dragleave', dragLeave);
-      element.removeEventListener('drop', drop);
+      element.removeEventListener('drop', dropSync);
       this.targets.delete(element);
       options.onDragState?.(false);
     };
