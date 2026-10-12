@@ -274,7 +274,7 @@ export class NotesWidget implements FocusWidget {
     );
 
     // Usar setTimeout o requestAnimationFrame para asegurar que el DOM se ha renderizado
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.updateSaveActionVisibility();
     }, 0);
   }
@@ -323,7 +323,7 @@ export class NotesWidget implements FocusWidget {
     ) as HTMLTextAreaElement | null;
 
     if (editor) {
-      requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         editor.focus({ preventScroll: true });
       });
     }
@@ -821,7 +821,7 @@ export class NotesWidget implements FocusWidget {
       expandable.content.addEventListener("click", () => {
         if (!expandable.expanded()) return;
 
-        requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
           this.alignBlockToViewport(
             content,
             listElement

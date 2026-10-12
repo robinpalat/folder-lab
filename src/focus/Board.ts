@@ -1334,7 +1334,7 @@ export class Board
 
     input.value = group.label;
 
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       input.focus();
       input.select?.();
     });
@@ -1674,7 +1674,7 @@ export class Board
       card.toggleClass('is-expanded', expanded);
       content.toggleClass('is-compact', !expanded);
       expandToggle.setText(expanded ? i18n.t('board.card.action.showLess') : i18n.t('board.card.action.showMore'));
-      requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         this.updateCanvasSize();
         this.renderConnections();
         this.scheduleSave();
@@ -1726,7 +1726,7 @@ export class Board
       this.addConnection(source, { kind: 'block', id: block.id });
     });
 
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       if (!card.isConnected) return;
       card.toggleClass(
         'is-expandable',

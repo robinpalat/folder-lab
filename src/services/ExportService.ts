@@ -175,7 +175,7 @@ constructor(
       }
 
       // Esperar y recargar
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => window.setTimeout(r, 300));
       
     } catch (error: any) {
       console.error('Error al exportar:', error);

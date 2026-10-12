@@ -70,7 +70,6 @@ export class FolderLabView extends ItemView {
   // ============================================================
   // TRAZADO DE RENDER
   // ============================================================
-  private renderSequence: number = 0;
 
   /**
    * Garantiza una sola patada del conteo automático de palabras
@@ -139,9 +138,6 @@ export class FolderLabView extends ItemView {
     return this.controller.navigationService;
   }
 
-  private logRender(source: 'properties' | 'folders' | 'unknown', details?: any): void {
-      }
-
   async loadFolderOrder(folderPath: string): Promise<void> {
     if (this._isDisposed) return;
     /*
@@ -182,8 +178,7 @@ export class FolderLabView extends ItemView {
       await this.renderPropertyNavigation(
         this.navigationService.getTree() ?? undefined
       );
-    } else {
-          }
+    }
   }
 
   // ============================================================
@@ -1432,7 +1427,6 @@ export class FolderLabView extends ItemView {
     // Limpiar contenedor
     this.listContainer.empty();
 
-    this.logRender('properties', { method: 'renderPropertyNavigation' });
 
     const tree = prebuiltTree ?? await this.navigationService.build();
 
@@ -2108,7 +2102,6 @@ export class FolderLabView extends ItemView {
   // ============================================================
 
   private async renderNormalMode(folder: TFolder): Promise<void> {
-        this.logRender('folders', { folder: folder.path });
 
     /*
      * Navegación normal: modelo EXPLÍCITO según el ámbito.
@@ -2174,7 +2167,6 @@ export class FolderLabView extends ItemView {
   }
 
   private async renderFolderMode(folder: TFolder): Promise<void> {
-    this.logRender('folders', { folder: folder.path });
 
     this.listContainer.empty();
 
@@ -2217,7 +2209,6 @@ export class FolderLabView extends ItemView {
   }
 
   private async renderAllNotesMode(folder: TFolder): Promise<void> {
-        this.logRender('folders', { folder: folder.path });
 
     this.listContainer.empty();
 

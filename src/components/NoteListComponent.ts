@@ -648,10 +648,6 @@ onStatusChange: (file: TFile, status: string) => {
       }
     }
 
-    try {
-          } catch {
-          }
-
     if (
       navigationType ===
       'properties'
@@ -763,9 +759,7 @@ onStatusChange: (file: TFile, status: string) => {
               files,
               orderProperty
             );
-
-                  } else {
-                  }
+        }
 
         return;
       }

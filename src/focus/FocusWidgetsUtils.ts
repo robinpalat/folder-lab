@@ -439,7 +439,11 @@ export class FolderLabDragDrop {
       const dt = e.dataTransfer;
       if (!dt) return;
 
-      const target = e.target instanceof HTMLElement ? e.target : null;
+      // Comprobación entre ventanas (popouts): Node.instanceOf
+      // es el sustituto oficial de `instanceof HTMLElement`.
+      const target = (e.target as Node | null)?.instanceOf(HTMLElement)
+        ? (e.target as Node) as HTMLElement
+        : null;
       if (!target) return;
 
       // Solo intervenir en el Reading View de Obsidian.

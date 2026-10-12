@@ -265,7 +265,7 @@ export class WordCountModal extends Modal {
       this.renderGoalSection();
     };
 
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       input.focus();
       input.select();
     });

@@ -75,7 +75,7 @@ export class FocusPane {
 
     this.createAndRenderWidget(this.widgetInstanceId);
 
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       const measure = (el: HTMLElement | null) => {
         if (!el) return null;
         const r = el.getBoundingClientRect();
@@ -285,7 +285,7 @@ export class FocusPane {
       characterData: true
     });
 
-    requestAnimationFrame(scan);
+    window.requestAnimationFrame(scan);
   }
 
   private clearScrollFades(): void {

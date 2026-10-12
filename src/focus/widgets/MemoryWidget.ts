@@ -706,7 +706,7 @@ this.contextResolver = new ContextResolver(
       });
 
       // Llevar el scroll al indicador de procesamiento.
-      requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         this.responseArea?.scrollTo({
           top: this.responseArea.scrollHeight,
           behavior: 'smooth'

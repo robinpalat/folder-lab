@@ -63,7 +63,7 @@ export class BoardPolishModal extends Modal {
     });
     this.textarea.value = this.currentText;
 
-    requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       this.textarea?.focus();
       this.textarea?.setSelectionRange(
         this.textarea.value.length,

@@ -478,7 +478,7 @@ export default class FolderLabPlugin extends Plugin {
   async openFolderLabForFolder(folder: TFolder) {
     await this.openFolderLabView();
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       const view = this.getViewInstance();
       if (view) {
         void view.loadFolderOrder(folder.path).catch((error) => {
@@ -513,7 +513,7 @@ export default class FolderLabPlugin extends Plugin {
       void this.openFolderLabView().catch((error) => {
         console.error('[FolderLab] Error abriendo Folder Lab:', error);
       });
-      setTimeout(() => {
+      window.setTimeout(() => {
         const newView = this.getViewInstance();
         if (newView) {
           newView.toggleFocusMode().catch((error) => {
@@ -1089,11 +1089,11 @@ class FolderLabSettingTab extends PluginSettingTab {
             if (result.success) {
               new Notice(`✅ ${result.message}`);
               button.setButtonText(i18n.t('settings.ai.testConnection.connected'));
-              setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
+              window.setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
             } else {
               new Notice(`❌ ${result.message}`);
               button.setButtonText(i18n.t('settings.ai.testConnection.error'));
-              setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
+              window.setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
             }
           });
       });
