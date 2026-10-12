@@ -43,14 +43,13 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Lee el cuerpo JSON de una respuesta con error HTTP tolerando
+ * Parsea el cuerpo de texto de una respuesta HTTP tolerando
  * cuerpos vacíos o no JSON (devuelve null en ese caso).
+ * Se usa con `requestUrl(...).text` (bloque 4-1).
  */
-export async function readJsonOrNull(
-  response: Response
-): Promise<unknown> {
+export function parseJsonText(text: string): unknown {
   try {
-    return await response.json();
+    return JSON.parse(text);
   } catch {
     return null;
   }

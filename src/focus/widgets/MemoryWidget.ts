@@ -647,7 +647,10 @@ this.contextResolver = new ContextResolver(
     }
 
     try {
-      await MarkdownRenderer.renderMarkdown(
+      // 4-2: API actual (renderMarkdown está obsoleta); el
+      // argumento `app` explícito es el que exige la firma nueva.
+      await MarkdownRenderer.render(
+        this.app,
         content,
         target,
         this.currentFile?.path || '',

@@ -1,5 +1,5 @@
 // ============================================================
-// PRUEBAS: proveedores de IA con fetch stubbeado (Fase 3D-1)
+// PRUEBAS: proveedores de IA con requestUrl stubbeado (Fase 4-1)
 // ============================================================
 // Ejecutar con: npm test
 //
@@ -21,13 +21,37 @@ import { build } from 'esbuild';
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
 
+// Stub de obsidian: requestUrl delega en un handler global
+// que cada prueba instala (bloque 4-1).
+const OBSIDIAN_STUB = `
+export function requestUrl(params) {
+  return globalThis.__requestUrlStub(params);
+}
+export default {};
+`;
+
 async function loadProvider(entry) {
   const result = await build({
     entryPoints: [join(root, entry)],
     bundle: true,
     write: false,
     format: 'esm',
-    platform: 'neutral'
+    platform: 'neutral',
+    plugins: [
+      {
+        name: 'obsidian-stub',
+        setup(b) {
+          b.onResolve({ filter: /^obsidian$/ }, () => ({
+            path: 'obsidian',
+            namespace: 'obsidian-stub'
+          }));
+          b.onLoad({ filter: /.*/, namespace: 'obsidian-stub' }, () => ({
+            contents: OBSIDIAN_STUB,
+            loader: 'js'
+          }));
+        }
+      }
+    ]
   });
   const url =
     'data:text/javascript;base64,' +
@@ -40,34 +64,28 @@ const { AnthropicProvider } = await loadProvider('src/ai/providers/AnthropicProv
 const { GeminiProvider } = await loadProvider('src/ai/providers/GeminiProvider.ts');
 
 // ------------------------------------------------------------
-// Stub de fetch (aislado y restaurado)
+// Stub de requestUrl (aislado y restaurado en after)
 // ------------------------------------------------------------
 
-const originalFetch = globalThis.fetch;
-
-function stubFetch(handler) {
-  globalThis.fetch = async (url, init) => handler(String(url), init);
+function stubRequestUrl(handler) {
+  globalThis.__requestUrlStub = handler;
 }
 
 after(() => {
-  globalThis.fetch = originalFetch;
+  delete globalThis.__requestUrlStub;
 });
 
-function jsonResponse(body, status = 200) {
+function response(status, body) {
   return {
-    ok: status >= 200 && status < 300,
     status,
-    json: async () => body
+    text: typeof body === 'string' ? body : JSON.stringify(body)
   };
 }
 
-function brokenJsonResponse(status) {
+function nonJsonErrorResponse(status) {
   return {
-    ok: false,
     status,
-    json: async () => {
-      throw new SyntaxError('Unexpected token < in JSON at position 0');
-    }
+    text: '<html>502 Bad Gateway</html>'
   };
 }
 
@@ -155,7 +173,7 @@ function assertValidUsage(usage) {
 
 for (const p of providers) {
   test(`${p.name}: éxito con contenido y métricas válidas`, async () => {
-    stubFetch(async () => jsonResponse(p.success));
+    stubRequestUrl(async () => response(200, p.success));
     const result = await p.create().chat(request());
 
     assert.equal(result.error, undefined);
@@ -165,7 +183,7 @@ for (const p of providers) {
   });
 
   test(`${p.name}: usage ausente no se emite`, async () => {
-    stubFetch(async () => jsonResponse(p.successNoUsage));
+    stubRequestUrl(async () => response(200, p.successNoUsage));
     const result = await p.create().chat(request());
 
     assert.equal(result.content.length > 0, true);
@@ -173,7 +191,7 @@ for (const p of providers) {
   });
 
   test(`${p.name}: usage con valores no finitos no se emite`, async () => {
-    stubFetch(async () => jsonResponse(p.successBadUsage));
+    stubRequestUrl(async () => response(200, p.successBadUsage));
     const result = await p.create().chat(request());
 
     assert.equal(result.usage, undefined, 'nunca usage con NaN/no-numéricos');
@@ -181,8 +199,8 @@ for (const p of providers) {
   });
 
   test(`${p.name}: error HTTP con cuerpo JSON conserva el mensaje`, async () => {
-    stubFetch(async () =>
-      jsonResponse({ error: { message: 'rate limited by provider' } }, 429)
+    stubRequestUrl(async () =>
+      response(429, { error: { message: 'rate limited by provider' } })
     );
     const result = await p.create().chat(request());
 
@@ -191,7 +209,7 @@ for (const p of providers) {
   });
 
   test(`${p.name}: error HTTP sin JSON utilizable usa el fallback con estado`, async () => {
-    stubFetch(async () => brokenJsonResponse(503));
+    stubRequestUrl(async () => nonJsonErrorResponse(503));
     const result = await p.create().chat(request());
 
     assert.equal(result.content, '');
@@ -199,7 +217,7 @@ for (const p of providers) {
   });
 
   test(`${p.name}: excepción de red produce error legible`, async () => {
-    stubFetch(async () => {
+    stubRequestUrl(async () => {
       throw new TypeError('Network request failed');
     });
     const result = await p.create().chat(request());
@@ -208,11 +226,6 @@ for (const p of providers) {
     assert.equal(result.error, 'Network request failed');
   });
 }
-
-test('el stub de fetch se restaura tras la suite', () => {
-  // after() restaura; dentro de las pruebas se re-stubbea por test.
-  assert.equal(typeof globalThis.fetch, 'function');
-});
 
 test('buildAnthropicUsage: la suma desbordada no emite métricas inválidas', async () => {
   const result = await loadProvider('src/ai/providers/httpJson.ts');

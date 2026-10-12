@@ -1,6 +1,9 @@
 import esbuild from "esbuild";
 import process from "process";
-import builtins from "builtin-modules";
+// 4-3: API nativa (Node >= 16). El conjunto es un superconjunto
+// del antiguo paquete builtin-modules: ningún módulo del paquete
+// falta, por lo que la lista de externals cubre lo mismo o más.
+import { builtinModules } from "node:module";
 import { readFileSync } from "fs";
 
 const banner = `/*
@@ -54,7 +57,7 @@ const context = await esbuild.context({
     "@lezer/common",
     "@lezer/highlight",
     "@lezer/lr",
-    ...builtins,
+    ...builtinModules,
   ],
   format: "cjs",
   target: "es2018",
