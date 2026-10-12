@@ -4,11 +4,11 @@
 // Renderiza la vista. SOLO CONSUME estado de navegación.
 // ============================================================
 
-import { ItemView, WorkspaceLeaf, TFolder, TFile, Notice, setIcon, MarkdownView } from 'obsidian';
+import { ItemView, WorkspaceLeaf, TFolder, TFile, Notice, MarkdownView } from 'obsidian';
 import FolderLabPlugin from '../main';
 import { VIEW_TYPE_FOLDER_ORDER, INTERNAL_FOLDER } from '../constants/view-types';
 import { FolderLabController, FolderLabEvent } from '../core/FolderLabController';
-import { FolderLabState, NavigationMode } from '../core/FolderLabState';
+import { FolderLabState } from '../core/FolderLabState';
 import { FolderRepository } from '../storage/FolderRepository';
 import { HeaderComponent } from '../layout/HeaderComponent';
 import { NoteListComponent, ListItem } from '../components/NoteListComponent';
@@ -32,10 +32,7 @@ import { WidgetManager } from '../focus/WidgetManager';
 // ============================================================
 import { FocusWorkspace } from '../focus/FocusWorkspace';
 import { FocusWidgetRegistry } from '../focus/FocusWidgetRegistry';
-import {
-  BoardView,
-  BOARD_VIEW_TYPE
-} from '../focus/BoardView';
+import { BOARD_VIEW_TYPE } from '../focus/BoardView';
 
 export class FolderLabView extends ItemView {
   private plugin: FolderLabPlugin;
@@ -143,8 +140,6 @@ export class FolderLabView extends ItemView {
   }
 
   private logRender(source: 'properties' | 'folders' | 'unknown', details?: any): void {
-    const renderId = ++this.renderSequence;
-    const navType = this.navigationService?.getNavigationType() || 'folders';
       }
 
   async loadFolderOrder(folderPath: string): Promise<void> {
@@ -530,7 +525,7 @@ export class FolderLabView extends ItemView {
         }
         break;
 
-      case 'modeChanged':
+      case 'modeChanged': {
 
 
         const navType2 = this.navigationService?.getNavigationType() || 'folders';
@@ -559,7 +554,8 @@ export class FolderLabView extends ItemView {
         }
         break;
 
-      case 'itemsChanged':
+      }
+      case 'itemsChanged': {
 
 
         const navTypeItems =
@@ -576,7 +572,8 @@ export class FolderLabView extends ItemView {
         }
         break;
 
-      case 'filterChanged':
+      }
+      case 'filterChanged': {
         this.updateToolbarButtons();
 
         const navTypeFilter = this.navigationService?.getNavigationType() || 'folders';
@@ -592,6 +589,7 @@ export class FolderLabView extends ItemView {
         }
         break;
 
+      }
       default:
         console.warn('Evento desconocido:', event);
     }

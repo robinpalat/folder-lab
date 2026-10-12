@@ -16,7 +16,6 @@ import { StatsService } from '../services/StatsService';
 import { FilterService } from '../services/FilterService';
 import { FolderLabItem } from '../models/FolderLabItem';
 
-import { WordCountModal } from '../modals/WordCountModal';
 import { WordCountService, WordCountResult } from '../services/WordCountService';
 import { InputModal } from '../utils/ModalUtils';
 import { PropertyOrderService } from '../services/navigation/PropertyOrderService';

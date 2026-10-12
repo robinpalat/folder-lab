@@ -218,36 +218,6 @@ export class FocusWorkspace {
     };
     this.updatePaneHeights(initialRatio);
 
-    // Diagnóstico: mide la cadena real sin modificar ninguna geometría.
-    requestAnimationFrame(() => {
-      const measure = (el: HTMLElement | null) => {
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        return {
-          height: Math.round(r.height * 100) / 100,
-          cssHeight: cs.height,
-          minHeight: cs.minHeight,
-          maxHeight: cs.maxHeight,
-          flex: cs.flex,
-          display: cs.display,
-          overflowY: cs.overflowY
-        };
-      };
-
-      const frame =
-        this.topContainer?.querySelector(".fl-widget-frame") as HTMLElement | null;
-      const widget =
-        this.topContainer?.querySelector(".fl-widget-notes") as HTMLElement | null;
-      const surface =
-        this.topContainer?.querySelector(".fl-notes-scroll-surface") as HTMLElement | null;
-      const draft =
-        this.topContainer?.querySelector(".fl-notes-draft-list-item") as HTMLElement | null;
-      const textarea =
-        this.topContainer?.querySelector(".fl-notes-draft-textarea") as HTMLElement | null;
-
-          });
-
     // Si cambia el tamaño del panel de Obsidian, recalcular la geometría.
     this.layoutObserver?.disconnect();
     this.layoutObserver = new ResizeObserver(() => {
@@ -377,7 +347,6 @@ export class FocusWorkspace {
   }
 
   async updateNote(activeFile: TFile): Promise<void> {
-    console.trace("UPDATE NOTE");
     if (this.context) {
       updateFocusContext(this.context, activeFile);
     }

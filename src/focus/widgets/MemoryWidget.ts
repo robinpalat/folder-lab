@@ -113,7 +113,6 @@ this.contextResolver = new ContextResolver(
     this.container.addClass('fl-widget-memory');
 
     const configured = this.aiService.getStatus().configured;
-    const assistantControlsAvailable = configured && !!this.currentFile;
 
     // El selector de widgets debe permanecer disponible aunque
     // el Asistente no esté configurado o no haya una nota activa.
@@ -875,7 +874,7 @@ this.contextResolver = new ContextResolver(
         this.selectedDomain = data.domain || this.registry.getDefaultGroup() || 'Memoria';
         this.selectedCapability = data.capability || '';
       }
-    } catch (e) { /* ignorar */ }
+    } catch { /* ignorar */ }
   }
 
 
@@ -944,7 +943,7 @@ this.contextResolver = new ContextResolver(
         };
         this.plugin.saveSettings();
       }
-    } catch (e) { /* ignorar */ }
+    } catch { /* ignorar */ }
   }
 }
 

@@ -1,5 +1,5 @@
 // src/ai/capabilities/executor.ts
-import { Tool, ExecutableContext, ToolResult } from '../types';
+import { ExecutableContext, ToolResult } from '../types';
 import { CapabilityRegistry } from './CapabilityRegistry';
 
 export class CapabilityExecutor {

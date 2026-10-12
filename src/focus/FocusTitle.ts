@@ -26,12 +26,12 @@ export class FocusTitle {
     });
 
     if (!activeFile) {
-      const title = leftContainer.createEl('span', {
+      leftContainer.createEl('span', {
         cls: 'focus-title-text focus-title-empty',
         text: i18n.t('focus.title.noActiveNote')
       });
     } else {
-      const title = leftContainer.createEl('span', {
+      leftContainer.createEl('span', {
         cls: 'focus-title-text',
         text: activeFile.basename
       });

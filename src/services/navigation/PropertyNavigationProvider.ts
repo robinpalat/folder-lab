@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App } from 'obsidian';
 import { NavigationProvider, NavigationTree, NavigationNode } from '../../models/Navigation';
 import { NavigationPropertyMapping, DEFAULT_JEKYLL_MAPPING } from '../../config/settings';
 import { i18n } from '../../i18n/I18nService';

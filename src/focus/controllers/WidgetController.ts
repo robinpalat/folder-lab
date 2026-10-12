@@ -370,10 +370,10 @@ export class WidgetController {
             return;
           }
 
-          item[field] =
-            !Boolean(item[field]);
+          const toggled = !item[field];
+          item[field] = toggled;
 
-          result = Boolean(item[field]);
+          result = toggled;
         }
       );
 

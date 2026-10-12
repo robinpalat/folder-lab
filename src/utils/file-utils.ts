@@ -4,7 +4,7 @@
 // Utilidades para manipulación de archivos
 // ============================================================
 
-import { App, TFile, TFolder, Notice } from 'obsidian';
+import { App, TFile } from 'obsidian';
 
 /**
  * Obtiene la ruta relativa de un archivo con respecto a una carpeta base

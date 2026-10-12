@@ -5,9 +5,8 @@
 // NO mantiene estado del árbol.
 // ============================================================
 
-import { App, TFolder, TFile } from 'obsidian';
-import { INTERNAL_FOLDER, ORDER_FILE } from '../constants/view-types';
-import { FolderRepository, FolderOrderData, GlobalOrderData } from '../storage/FolderRepository';
+import { App, TFolder } from 'obsidian';
+import { FolderRepository } from '../storage/FolderRepository';
 import { FolderOrderSettings } from '../config/settings';
 import { isHiddenFolderName, isIgnoredFolderName } from '../utils/folderUtils';
 

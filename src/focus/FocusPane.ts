@@ -1,5 +1,5 @@
 import { Menu } from 'obsidian';
-import { FocusWidget, WidgetCallbacks } from './FocusWidget';
+import { FocusWidget } from './FocusWidget';
 import { FocusContext } from './FocusContext';
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
 import { WidgetManager } from './WidgetManager';

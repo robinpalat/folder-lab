@@ -63,7 +63,6 @@ export class NoteItemRenderer {
       index,
       showNumber = true,
       numberingStyle = 'arabic',
-      isActive = false,
       indentLevel = 0
     } = options;
 

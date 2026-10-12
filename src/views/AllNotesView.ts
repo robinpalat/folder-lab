@@ -4,7 +4,7 @@ import { App, TFolder, TFile } from 'obsidian';
 import { FolderLabState } from '../core/FolderLabState';
 import { OrderService } from '../services/OrderService';
 import { NoteService } from '../services/NoteService';
-import { NoteListComponent, ListItem, FolderHeaderData } from '../components/NoteListComponent';
+import { NoteListComponent, ListItem } from '../components/NoteListComponent';
 import { FolderLabItem } from '../models/FolderLabItem';
 import { INTERNAL_FOLDER } from '../constants/view-types';
 import { FolderLabController } from '../core/FolderLabController';
@@ -349,8 +349,6 @@ status: status || undefined
     node: NavigationNode,
     items: ListItem[]
   ): Promise<void> {
-    let localNumber = 1;
-
     // 1. Propia página (sin número)
     if (node.filePath) {
       const file = this.app.vault.getFileByPath(node.filePath);

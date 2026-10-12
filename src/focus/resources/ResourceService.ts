@@ -1,6 +1,6 @@
 // src/focus/resources/ResourceService.ts
 
-import { App, TFile, TFolder, Notice } from 'obsidian';
+import { App, TFile, TFolder } from 'obsidian';
 import { Resource, ResourceMetadata } from './Resource';
 
 const RESOURCES_FOLDER = '_resources';

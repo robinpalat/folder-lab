@@ -328,7 +328,7 @@ export class ContextResolver {
           // La nota ya está disponible en context.note.
           break;
 
-        case 'snips':
+        case 'snips': {
           context.additional!.snips =
             await this.resolveWidgetSource(
               'snips',
@@ -353,7 +353,8 @@ export class ContextResolver {
           break;
 
 
-        case 'tasks':
+        }
+        case 'tasks': {
 
           context.additional!.tasks =
             await this.resolveWidgetSource(
@@ -379,6 +380,7 @@ export class ContextResolver {
 
           break;
 
+        }
         case 'notes':
           context.additional!.notes =
             await this.resolveNotes(notePath);

@@ -4,7 +4,7 @@
 // Gestiona todas las operaciones relacionadas con notas
 // ============================================================
 
-import { App, TFile, TFolder, Notice } from 'obsidian';
+import { App, TFile, Notice } from 'obsidian';
 import { FolderRepository } from '../storage/FolderRepository';
 import { FolderOrderSettings } from '../config/settings';
 import { INTERNAL_FOLDER } from '../constants/view-types';

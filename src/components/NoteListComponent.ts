@@ -620,25 +620,7 @@ onStatusChange: async (file: TFile, status: string) => {
     }
 
     try {
-      const diagTree =
-        this.controller.navigationService?.getTree?.() ?? null;
-
-      const estadoPrevio = items.map((diagEl, diagIndex) => {
-        const diagPath = diagEl.getAttribute('data-path') ?? '';
-        const diagNode = diagTree?.nodeMap.get(diagPath) ?? null;
-
-        return {
-          indice: diagIndex,
-          id: diagNode?.id ?? '(sin nodo)',
-          ruta: diagPath,
-          tipo: diagNode?.type ?? '(desconocido)',
-          parentPath: diagNode?.parentPath ?? '(sin padre)',
-          parentRef: diagNode?.metadata?.parentRef ?? '(sin parentRef)',
-          ordenProveedor: diagNode?.order ?? '(sin orden)'
-        };
-      });
-
-          } catch (diagError) {
+          } catch {
           }
 
     if (

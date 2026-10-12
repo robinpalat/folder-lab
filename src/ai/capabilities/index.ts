@@ -44,8 +44,6 @@ export function createCapabilityRegistry(): CapabilityRegistry {
   // 3. CAPACIDADES EXTERNAS (desde JSON + Markdown empaquetados)
   // ============================================================
   
-  const externalDefs = PromptLoader.loadAllExternalCapabilities();
-  
 // Registrar dominios
 for (const domain of PromptLoader.loadAllDomains()) {
   registry.registerGroup(domain.id, domain.label);

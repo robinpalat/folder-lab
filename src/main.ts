@@ -7,20 +7,17 @@ import {
   PluginSettingTab,
   Setting,
   Notice,
-  TFile,
   TFolder,
   Modal,
-  setIcon,
-  Menu
+  setIcon
 } from 'obsidian';
 
 import { VIEW_TYPE_FOLDER_ORDER } from './constants/view-types';
 import { FolderLabView } from './views/FolderLabView';
 import { FolderRepository } from './storage/FolderRepository';
 import { parseIgnoredFolders } from './utils/folderUtils';
-import { FolderOrderSettings, DEFAULT_SETTINGS, DEFAULT_JEKYLL_MAPPING, NavigationPropertyMapping } from './config/settings';
+import { FolderOrderSettings, DEFAULT_SETTINGS, DEFAULT_JEKYLL_MAPPING } from './config/settings';
 
-import { FocusWorkspace } from "./focus/FocusWorkspace";
 import { FocusWidgetRegistry } from "./focus/FocusWidgetRegistry";
 import { ActiveNoteWidgetFactory } from "./focus/widgets/ActiveNoteWidget";
 import { NotesWidgetFactory } from "./focus/widgets/NotesWidget";
@@ -35,11 +32,9 @@ import { WidgetManager } from "./focus/WidgetManager";
 import { NoteRepository } from './storage/NoteRepository';
 import { BoardRepository } from './storage/BoardRepository';
 import { PluginDataStore } from './storage/PluginDataStore';
-import type { WidgetDefinition } from './focus/WidgetDefinition';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
 import { WidgetController } from './focus/controllers/WidgetController';
-import type { UserRequest } from './ai/types';
 
 import {
   DeclarativeRuntime
@@ -49,8 +44,6 @@ import {
   BoardView,
   BOARD_VIEW_TYPE
 } from './focus/BoardView';
-
-const GLOBAL_SNIPS_INSTANCE = 'global';
 
 // ============================================================
 // 2. MODAL: FolderSelectModal
@@ -72,7 +65,7 @@ class FolderSelectModal extends Modal {
 
     contentEl.createEl('h3', { text: i18n.t('modal.selectRoot.title') });
 
-    const p = contentEl.createEl('p', {
+    contentEl.createEl('p', {
       text: i18n.t('modal.selectRoot.description'),
       cls: 'folder-select-description'
     });
@@ -731,7 +724,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       }));
 
     if (this.plugin.settings.bookRootPath) {
-      const info = containerEl.createEl('p', {
+      containerEl.createEl('p', {
         text: i18n.t('settings.bookRoot.currentFolderInfo', { path: this.plugin.settings.bookRootPath }),
         cls: 'folder-lab-info-text'
       });

@@ -111,17 +111,6 @@ async reorder(
     );
   }
 
-  const valoresConfirmados = files.map((file) => {
-    const cacheFinal =
-      this.app.metadataCache.getFileCache(file);
-
-    return {
-      archivo: file.name,
-      confirmado:
-        cacheFinal?.frontmatter?.[orderProperty] ?? '(sin valor)'
-    };
-  });
-
   // 3. Notificar SOLO después de que el cache esté sincronizado.
   (this.app.workspace as any).trigger(
     'folder-lab:order-changed'

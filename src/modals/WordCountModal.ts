@@ -176,7 +176,7 @@ export class WordCountModal extends Modal {
       cls: 'word-count-goal-header'
     });
 
-    const titleEl = headerRow.createEl('span', {
+    headerRow.createEl('span', {
       text: i18n.t('modal.wordCount.goalTitle'),
       cls: 'word-count-goal-title'
     });

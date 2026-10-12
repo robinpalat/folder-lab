@@ -4,12 +4,20 @@ import {
   ExecutableContext,
   PromptTemplate,
   PromptDomainDefinition,
-  PromptCapabilityDefinition,
   ExternalCapabilityDefinition
 } from '../types';
 
-// Importar el manifiesto generado
-const MANIFEST = require('../prompts/generated/manifest.json');
+// Importar el manifiesto generado (resolveJsonModule + loader JSON de esbuild)
+import manifestJson from '../prompts/generated/manifest.json';
+
+/*
+ * El JSON importado tipa `templates` como objeto literal cerrado;
+ * el acceso por id dinámico (toolId) necesita un índice abierto.
+ * `domains` conserva su tipado original.
+ */
+const MANIFEST = manifestJson as Omit<typeof manifestJson, 'templates'> & {
+  templates: Record<string, { system: string; user: string }>;
+};
 
 // ============================================================
 // PROMPT BUILDER

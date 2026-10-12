@@ -1,4 +1,3 @@
-import { AIContext } from '../context/ContextResolver';
 
 export interface CapabilityMetadata {
   id: string;

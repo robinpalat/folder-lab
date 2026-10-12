@@ -736,10 +736,9 @@ export class DeclarativeRuntime {
       of this.getDefinitions()
     ) {
 
-      const result =
-        this.validateDefinition(
-          definition
-        );
+      this.validateDefinition(
+        definition
+      );
 
 
           }
