@@ -630,7 +630,9 @@ class FolderLabSettingTab extends PluginSettingTab {
     containerEl.empty();
 
 
-    containerEl.createEl('h2', { text: i18n.t('settings.title') });
+    new Setting(containerEl)
+      .setName(i18n.t('settings.title'))
+      .setHeading();
 
     // ===== ORDEN MANUAL =====
     new Setting(containerEl)
@@ -734,7 +736,9 @@ class FolderLabSettingTab extends PluginSettingTab {
     // SECCIÓN: NAVEGACIÓN
     // ============================================================
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: i18n.t('settings.navigation.heading') });
+    new Setting(containerEl)
+      .setName(i18n.t('settings.navigation.heading'))
+      .setHeading();
 
     let propertySettingsContainer: HTMLElement | null = null;
 
@@ -935,7 +939,9 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // ===== SECCIÓN DE IA =====
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: i18n.t('settings.ai.heading') });
+    new Setting(containerEl)
+      .setName(i18n.t('settings.ai.heading'))
+      .setHeading();
 
     // Proveedor
     new Setting(containerEl)
@@ -1022,7 +1028,6 @@ class FolderLabSettingTab extends PluginSettingTab {
       .addSlider(slider => slider
         .setLimits(0, 2, 0.1)
         .setValue(this.plugin.settings.aiTemperature ?? 0.3)
-        .setDynamicTooltip()
         .onChange(async (value) => {
           this.plugin.settings.aiTemperature = value;
           await this.plugin.saveSettings();
@@ -1035,7 +1040,6 @@ class FolderLabSettingTab extends PluginSettingTab {
       .addSlider(slider => slider
         .setLimits(50, 2000, 10)
         .setValue(this.plugin.settings.aiMaxTokens ?? 500)
-        .setDynamicTooltip()
         .onChange(async (value) => {
           this.plugin.settings.aiMaxTokens = value;
           await this.plugin.saveSettings();
@@ -1075,7 +1079,9 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // Ayuda: cómo obtener API Key
     containerEl.createEl('hr');
-    containerEl.createEl('h4', { text: i18n.t('settings.ai.help.heading') });
+    new Setting(containerEl)
+      .setName(i18n.t('settings.ai.help.heading'))
+      .setHeading();
 
     const helpDiv = containerEl.createEl('div', { cls: 'fl-settings-help' });
 
@@ -1092,7 +1098,9 @@ class FolderLabSettingTab extends PluginSettingTab {
 
     // ===== INFORMACIÓN =====
     containerEl.createEl('hr');
-    containerEl.createEl('h3', { text: i18n.t('settings.info.heading') });
+    new Setting(containerEl)
+      .setName(i18n.t('settings.info.heading'))
+      .setHeading();
 
     containerEl.createEl('p', {
       text: i18n.t('settings.info.orderStorage')

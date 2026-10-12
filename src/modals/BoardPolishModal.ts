@@ -82,7 +82,7 @@ export class BoardPolishModal extends Modal {
     if (this.hasOverride && this.onDiscard) {
       const discardButton = new ButtonComponent(actions);
       discardButton.setButtonText(i18n.t('modal.polish.discard'));
-      discardButton.setWarning();
+      discardButton.setDestructive();
       discardButton.onClick(() => {
         this.onDiscard?.();
         this.close();
