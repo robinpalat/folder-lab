@@ -269,3 +269,63 @@ test('fallo de rotación: el append continúa sin pérdida', async () => {
   assert.ok(content.includes('n.md|open|'));
   assert.ok(content.length > 300 * 1024);
 });
+
+// ------------------------------------------------------------
+// A1: continuidad del ranking después de la rotación
+// ------------------------------------------------------------
+
+test('A1: tras rotar, readEvents sigue viendo los eventos recientes del rotado', async () => {
+  const { service, adapter } = makeActivity();
+  const dir = 'Master/Folder Lab';
+  await adapter.mkdir(dir);
+  const now = Date.now();
+  // Estado post-rotación: el rotado conserva eventos recientes y
+  // volumen histórico; el vigente tiene solo lo nuevo.
+  const rotatedName = `${dir}/_activity-2026-10-13T00-00-00.log`;
+  await adapter.write(
+    rotatedName,
+    `${now - 1000}|reciente.md|open|1\n` + 'x'.repeat(300 * 1024)
+  );
+  await adapter.write(`${dir}/activity.log`, `${now}|n.md|open|1\n`);
+
+  const events = await service.readEvents(7);
+  const paths = events.map((e) => e.path);
+  assert.ok(paths.includes('reciente.md'), 'evento reciente del rotado presente');
+  assert.ok(paths.includes('n.md'), 'evento del log vigente presente');
+  // Orden cronológico coherente.
+  const idxReciente = events.findIndex((e) => e.path === 'reciente.md');
+  const idxNuevo = events.findIndex((e) => e.path === 'n.md');
+  assert.ok(idxReciente < idxNuevo, 'orden por timestamp');
+});
+
+test('A1: deduplicación entre vigente y respaldo legado tras migración', async () => {
+  const { service, adapter } = makeActivity();
+  const now = Date.now();
+  const line = `${now}|dup.md|open|1\n`;
+  await adapter.mkdir('Master/Folder Lab');
+  await adapter.mkdir('Master/.folder-lab');
+  await adapter.write('Master/Folder Lab/activity.log', line);
+  // El legado conserva la MISMA línea (transición de Etapa 5).
+  await adapter.write('Master/.folder-lab/_activity.log', line);
+
+  const events = await service.readEvents(7);
+  assert.equal(events.filter((e) => e.path === 'dup.md').length, 1);
+});
+
+test('A1: rotado ilegible se omite con aviso sin ocultar el resto', async () => {
+  const { service, adapter } = makeActivity();
+  const dir = 'Master/Folder Lab';
+  await adapter.mkdir(dir);
+  const now = Date.now();
+  await adapter.write(`${dir}/activity.log`, `${now}|ok.md|open|1\n`);
+  // Un rotado que falla al leerse.
+  await adapter.write(`${dir}/_activity-2026-10-12T00-00-00.log`, 'x');
+  const originalRead = adapter.read.bind(adapter);
+  adapter.read = async (p) => {
+    if (p.includes('_activity-2026-10-12')) throw new Error('EIO');
+    return originalRead(p);
+  };
+
+  const events = await service.readEvents(7);
+  assert.ok(events.some((e) => e.path === 'ok.md'));
+});

@@ -116,41 +116,78 @@ async record(
 
   /**
    * Lee todos los eventos del período configurado.
+   *
+   * A1 (auditoría adversarial): la lectura reúne el log VIGENTE y
+   * los archivos ROTADOS del mismo directorio que contengan eventos
+   * de la ventana; los eventos se deduplican (ficheros de
+   * transición/backups) y se ordenan por marca de tiempo. Si no
+   * existe el log vigente, se usa el legado (.folder-lab) como
+   * respaldo (compatibilidad Etapa 1-5).
    */
   async readEvents(
     days: number = RecentActivityService.WINDOW_DAYS
   ): Promise<RecentActivityEntry[]> {
-    if (!(await this.logExists())) {
-      // Etapa 5: respaldo legado si el log nuevo aún no existe.
+    const sources: string[] = [];
+    const currentExists = await this.logExists();
+
+    if (currentExists) {
+      sources.push(this.getLogPath());
+    } else {
+      // Respaldo legado solo cuando aún no hay log vigente.
+      const legacy = this.getLegacyLogPath();
       try {
-        const legacy = this.getLegacyLogPath();
         if (await this.app.vault.adapter.exists(legacy)) {
-          const legacyContent = await this.app.vault.adapter.read(legacy);
-          if (legacyContent) {
-            return this.parseEvents(legacyContent, days);
-          }
+          sources.push(legacy);
         }
       } catch {
         /* sin respaldo legado */
       }
-      return [];
     }
 
-    let content: string;
-
-    try {
-      content = await this.app.vault.adapter.read(
-		  this.getLogPath()
-		);
-    } catch (error) {
-      console.warn(
-        "[Folder Lab] No se pudo leer el registro de actividad:",
-        error
-      );
-      return [];
+    // Archivos rotados del directorio vigente (solo si hay log
+    // vigente: los rotados conviven con él tras la rotación).
+    if (currentExists) {
+      try {
+        const directory = this.getLogDirectory();
+        const listed = await this.app.vault.adapter.list(directory);
+        const rotated = (listed.files || [])
+          .filter((f) => /_activity-\d{4}-\d{2}-\d{2}T.*\.log$/.test(f))
+          .sort(); // orden alfabético ≈ cronológico por timestamp ISO
+        sources.push(...rotated);
+      } catch (error) {
+        console.warn(
+          "[Folder Lab] No se pudieron listar los logs rotados:",
+          error
+        );
+      }
     }
 
-    return this.parseEvents(content, days);
+    const entries: RecentActivityEntry[] = [];
+    const seen = new Set<string>();
+
+    for (const source of sources) {
+      let content: string;
+      try {
+        content = await this.app.vault.adapter.read(source);
+      } catch (error) {
+        // Archivo rotado ausente/ilegible: se avisa y se continúa
+        // con el resto (no se oculta el error ni se aborta).
+        console.warn(
+          `[Folder Lab] Log de actividad ilegible omitido: ${source}`,
+          error
+        );
+        continue;
+      }
+      for (const entry of this.parseEvents(content, days)) {
+        const key = `${entry.timestamp}|${entry.path}|${entry.event}|${entry.weight}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        entries.push(entry);
+      }
+    }
+
+    entries.sort((a, b) => a.timestamp - b.timestamp);
+    return entries;
   }
 
   /** Parsea el contenido de un log (vigente o legado). */
@@ -424,6 +461,15 @@ async getRecentNotes(
 	  return masterPath
 	    ? `${masterPath}/${RecentActivityService.VISIBLE_FOLDER}/activity.log`
 	    : `${RecentActivityService.VISIBLE_FOLDER}/activity.log`;
+	}
+
+	/** Directorio del log vigente (y de los rotados). */
+	private getLogDirectory(): string {
+	  const masterPath = this.normalizePath(this.getMasterPath());
+
+	  return masterPath
+	    ? `${masterPath}/${RecentActivityService.VISIBLE_FOLDER}`
+	    : RecentActivityService.VISIBLE_FOLDER;
 	}
 
 	/** Ruta legada (Etapa 1): <master>/.folder-lab/_activity.log */
