@@ -81,23 +81,40 @@ function hydrate(data: {
  */
 export const RESTORE_WINDOW_MS = 15 * 60 * 1000;
 
-function generateId(): string {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  );
+/**
+ * Genera ids con entropía suficiente (crypto cuando existe; doble
+ * Math.random como respaldo). M3: no se confía en Date.now solo.
+ */
+function defaultGenerateId(): string {
+  const g = globalThis as {
+    crypto?: { getRandomValues?: (a: Uint32Array) => Uint32Array };
+  };
+  const c = g.crypto;
+  if (c?.getRandomValues) {
+    const vals = c.getRandomValues(new Uint32Array(2));
+    return (
+      Date.now().toString(36) +
+      vals[0].toString(36) +
+      vals[1].toString(36)
+    );
+  }
+  const rand = () => Math.random().toString(36).slice(2, 10);
+  return `${Date.now().toString(36)}${rand()}${rand()}`;
 }
 
 export class NoteIdentityRegistry {
   private hidden: HiddenFolderManager;
   private hiddenLegacy: HiddenFolderManager;
   private cache: IdentityStore | null = null;
+  private lastMaster: string | null = null;
   private tail: Promise<unknown> = Promise.resolve();
 
   constructor(
     private app: App,
     private getMasterPath: () => string | null,
     hidden?: HiddenFolderManager,
-    hiddenLegacy?: HiddenFolderManager
+    hiddenLegacy?: HiddenFolderManager,
+    private readonly idGenerator: () => string = defaultGenerateId
   ) {
     // Raíz visible (Etapa 5): <master>/Folder Lab/ids.json
     this.hidden = hidden ?? new HiddenFolderManager(app, 'Folder Lab');
@@ -123,7 +140,9 @@ export class NoteIdentityRegistry {
   private async load(): Promise<IdentityStore | null> {
     const master = this.masterPath;
     if (!master) return null;
-    if (this.cache) return this.cache;
+    // B1: si el Master cambia en caliente, invalidar la caché.
+    if (this.cache && this.lastMaster === master) return this.cache;
+    this.lastMaster = master;
 
     // 1) Ubicación actual (Folder Lab/ids.json).
     let data: IdentityStore | null = null;
@@ -192,7 +211,23 @@ export class NoteIdentityRegistry {
       if (!store) return null;
       const existing = store.ids[notePath];
       if (existing) return existing;
-      const id = generateId();
+
+      // M3: unicidad verificada contra el registro existente antes
+      // de asignar (dos notas jamás comparten archivo de entidad).
+      const taken = new Set(Object.values(store.ids));
+      let id = '';
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const candidate = this.idGenerator();
+        if (!taken.has(candidate)) {
+          id = candidate;
+          break;
+        }
+      }
+      if (!id) {
+        throw new Error(
+          `[NoteIdentityRegistry] No se pudo generar un id único para "${notePath}"`
+        );
+      }
       store.ids[notePath] = id;
       await this.persist();
       return id;

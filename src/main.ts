@@ -36,6 +36,8 @@ import { NoteIdentityRegistry } from './storage/NoteIdentityRegistry';
 import { NoteLifecycle } from './storage/NoteLifecycle';
 import { DraftStore } from './storage/DraftStore';
 import { resolveVaultStorageId } from './utils/vault-storage';
+import { normalizeRootPath } from './utils/rootPath';
+import { runStartupMaintenance } from './storage/startupMaintenance';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
 import { WidgetController } from './focus/controllers/WidgetController';
@@ -120,6 +122,8 @@ export default class FolderLabPlugin extends Plugin {
   private dataStore: PluginDataStore | null = null;
   noteLifecycle: NoteLifecycle | null = null;
   draftStore: DraftStore | null = null;
+  private noteIdentityRegistry: NoteIdentityRegistry | null = null;
+  private startupMaintenanceDone = false;
 
 
   async onload() {
@@ -251,11 +255,12 @@ export default class FolderLabPlugin extends Plugin {
     // ============================================================
     // IDENTIDAD Y ALMACENES POR ENTIDAD (Etapas 1 y 3)
     // ============================================================
+    const rootPathFn = () => normalizeRootPath(this.settings.bookRootPath);
     const noteIdentityRegistry = new NoteIdentityRegistry(
       this.app,
-      () => this.settings.bookRootPath || null
+      rootPathFn
     );
-    const rootPathFn = () => this.settings.bookRootPath || null;
+    this.noteIdentityRegistry = noteIdentityRegistry;
     const identityFn = (notePath: string) =>
       noteIdentityRegistry.getId(notePath);
 
@@ -286,13 +291,29 @@ export default class FolderLabPlugin extends Plugin {
       boards: this.boardRepository,
       context: this.noteRepository,
       vaultId: resolveVaultStorageId(this.app),
-      storage: typeof localStorage !== 'undefined' ? localStorage : null
+      storage: typeof localStorage !== 'undefined' ? localStorage : null,
+      getRootPath: rootPathFn,
+      journalApp: this.app
     });
     this.draftStore = new DraftStore(
       this.app,
       rootPathFn,
       noteIdentityRegistry
     );
+
+    // M1: mantenimiento de arranque (diario M2 + reconcile A3),
+    // una vez, tras estar layout y configuración disponibles.
+    this.app.workspace.onLayoutReady(() => {
+      if (this.startupMaintenanceDone) return;
+      this.startupMaintenanceDone = true;
+      void runStartupMaintenance(
+        this.app,
+        noteIdentityRegistry,
+        this.noteLifecycle
+      ).catch((error) => {
+        console.error('[FolderLab] Mantenimiento de arranque fallido:', error);
+      });
+    });
 
     // ============================================================
     // REGISTRAR VISTA

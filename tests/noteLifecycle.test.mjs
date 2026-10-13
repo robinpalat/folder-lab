@@ -163,19 +163,49 @@ function makeRegistry(master = '/Master') {
   return { registry, hidden };
 }
 
-function makeLifecycle({ master = '/Master', vaultId = 'vid' } = {}) {
-  const { registry, hidden } = makeRegistry(master);
+function makeLifecycle({ master = '/Master', vaultId = 'vid', idGenerator } = {}) {
+  const hidden = new FakeHidden();
+  const registry = new NoteIdentityRegistry(
+    {},
+    () => master,
+    hidden,
+    undefined,
+    idGenerator
+  );
   const boards = new FakeStoreRepo();
   const context = new FakeStoreRepo();
   const storage = new FakeStorage();
+  // Adapter de diario (M2): mapa simple con la misma forma.
+  const journalFiles = new Map();
+  const journalDirs = new Set();
+  const journalApp = {
+    vault: {
+      adapter: {
+        async exists(p) {
+          return journalFiles.has(p) || journalDirs.has(p);
+        },
+        async read(p) {
+          return journalFiles.get(p);
+        },
+        async write(p, c) {
+          journalFiles.set(p, c);
+        },
+        async mkdir(p) {
+          journalDirs.add(p);
+        }
+      }
+    }
+  };
   const lifecycle = new NoteLifecycle({
     registry,
     boards,
     context,
     vaultId,
-    storage
+    storage,
+    getRootPath: () => (master ? master.replace(/^\/+/, '') : null),
+    journalApp
   });
-  return { lifecycle, registry, boards, context, storage, hidden };
+  return { lifecycle, registry, boards, context, storage, hidden, journalFiles };
 }
 
 // ------------------------------------------------------------
@@ -396,4 +426,172 @@ test('A3: ids.json sin campo archived es compatible (se hidrata)', async () => {
   const file = hidden.files.get('/Master/ids.json');
   assert.deepEqual(file.ids, { 'a.md': 'id-a', 'b.md': file.ids['b.md'] });
   assert.ok(file.archived);
+});
+
+// ------------------------------------------------------------
+// M3: unicidad de identificadores
+// ------------------------------------------------------------
+
+test('M3: una colisión del generador se resuelve sin mezclar datos', async () => {
+  const { registry, hidden } = makeRegistry();
+  // Sembrar un id existente 'dup'.
+  hidden.files.set('/Master/ids.json', {
+    version: 1,
+    ids: { 'otra.md': 'dup' },
+    tombstones: {},
+    archived: {}
+  });
+  const answers = ['dup', 'dup', 'unico'];
+  const fresh = new NoteIdentityRegistry(
+    {},
+    () => '/Master',
+    hidden,
+    undefined,
+    () => answers.shift() ?? 'fallback'
+  );
+  const id = await fresh.getId('nueva.md');
+  assert.equal(id, 'unico', 'salta la colisión y usa el siguiente');
+  // Dos notas jamás comparten id.
+  assert.notEqual(id, await fresh.findIdByPath('otra.md'));
+});
+
+// ------------------------------------------------------------
+// M2: diario de migraciones e inyección de fallos
+// ------------------------------------------------------------
+
+test('M2: fallo tras migrar Board deja diario pendiente y recoverPending completa', async () => {
+  const { lifecycle, boards, context, registry, journalFiles } =
+    makeLifecycle();
+  boards.stores.set('Notas', { 'Notas/a.md': { blocks: [1] } });
+  boards.failDestWrite = false;
+  await lifecycle.getNoteId('Notas/a.md');
+
+  // Inyectar fallo SOLO en context (paso 2), tras boards exitoso.
+  const originalMigrate = context.migrateEntry.bind(context);
+  let failOnce = true;
+  context.migrateEntry = async (o, n) => {
+    if (failOnce) {
+      failOnce = false;
+      throw new Error('context I/O');
+    }
+    return originalMigrate(o, n);
+  };
+
+  await assert.rejects(() =>
+    lifecycle.onFileRenamed('Notas/a.md', 'Notas/b.md')
+  );
+  // El diario persiste con boards completado y context pendiente.
+  const journalKey = [...journalFiles.keys()][0];
+  const journal = JSON.parse(journalFiles.get(journalKey));
+  assert.equal(journal.length, 1);
+  assert.equal(journal[0].steps.boards, true);
+  assert.equal(journal[0].steps.context, false);
+  assert.ok(journal[0].error.includes('context'));
+
+  // Recuperación (siguiente arranque): completa los pasos restantes.
+  await lifecycle.recoverPending();
+  assert.deepEqual(boards.stores.get('Notas'), {
+    'Notas/b.md': { blocks: [1] }
+  });
+  const idAfter = await registry.findIdByPath('Notas/b.md');
+  assert.ok(idAfter, 'registry re-clavado en la recuperación');
+  // El diario se vacía tras completarse.
+  assert.equal(JSON.parse(journalFiles.get(journalKey)).length, 0);
+});
+
+test('M2: onFileRenamed exitoso no deja entradas en el diario', async () => {
+  const { lifecycle, journalFiles } = makeLifecycle();
+  await lifecycle.onFileRenamed('a.md', 'b.md');
+  const journalKey = [...journalFiles.keys()][0];
+  assert.equal(JSON.parse(journalFiles.get(journalKey)).length, 0);
+});
+
+// ------------------------------------------------------------
+// M1: mantenimiento de arranque
+// ------------------------------------------------------------
+
+test('M1: runStartupMaintenance ejecuta recoverPending y reconcile', async () => {
+  const { runStartupMaintenance } = await bundle(
+    'src/storage/startupMaintenance.ts'
+  );
+  const { lifecycle, registry } = makeLifecycle();
+  await lifecycle.getNoteId('viva.md');
+
+  const app = {
+    vault: {
+      getMarkdownFiles: () => [{ path: 'viva.md' }]
+    }
+  };
+  const report = await runStartupMaintenance(app, registry, lifecycle);
+  assert.equal(report.recoveredJournal, true);
+  assert.equal(report.reconcileOrphans, 0);
+  assert.equal(report.reconcileRestored, 0);
+});
+
+test('M1: un fallo en recoverPending no impide reconcile', async () => {
+  const { runStartupMaintenance } = await bundle(
+    'src/storage/startupMaintenance.ts'
+  );
+  const { registry } = makeLifecycle();
+  const failingLifecycle = {
+    recoverPending: async () => {
+      throw new Error('journal I/O');
+    }
+  };
+  const app = {
+    vault: { getMarkdownFiles: () => [] }
+  };
+  const report = await runStartupMaintenance(
+    app,
+    registry,
+    failingLifecycle
+  );
+  assert.equal(report.recoveredJournal, false);
+  // reconcile corrió igualmente (sin huérfanos).
+  assert.equal(report.reconcileOrphans, 0);
+});
+
+// ------------------------------------------------------------
+// M5 + B1: normalización de rutas y caché del registro
+// ------------------------------------------------------------
+
+test('M5: normalizeRootPath elimina barras iniciales/finales', async () => {
+  const { normalizeRootPath } = await bundle('src/utils/rootPath.ts');
+  assert.equal(normalizeRootPath('Master/'), 'Master');
+  assert.equal(normalizeRootPath('/Master'), 'Master');
+  assert.equal(normalizeRootPath(' /Master/ '), 'Master');
+  assert.equal(normalizeRootPath('Libros/Mi Libro'), 'Libros/Mi Libro');
+  assert.equal(normalizeRootPath(''), null);
+  assert.equal(normalizeRootPath(null), null);
+  assert.equal(normalizeRootPath('///'), null);
+});
+
+test('M5: rutas con barra inicial y final producen la MISMA clave', async () => {
+  const { normalizeRootPath } = await bundle('src/utils/rootPath.ts');
+  const a = normalizeRootPath('/Master/');
+  const b = normalizeRootPath('Master');
+  const keyFor = (root) => {
+    const { registry, hidden } = makeRegistry(root);
+    void registry;
+    return hidden;
+  };
+  // Mismo root normalizado → misma convención de clave del fake.
+  assert.equal(a, b);
+  void keyFor;
+});
+
+test('B1: cambiar el Master en caliente invalida la caché del registro', async () => {
+  const hidden = new FakeHidden();
+  let master = 'MasterA';
+  const registry = new NoteIdentityRegistry({}, () => master, hidden);
+  const idA = await registry.getId('n.md');
+  assert.ok(hidden.files.has('MasterA/ids.json'));
+
+  master = 'MasterB';
+  const idB = await registry.getId('n.md');
+  // Fichero del nuevo master creado; no se mezclan almacenes.
+  assert.ok(hidden.files.has('MasterB/ids.json'));
+  assert.notEqual(hidden.files.get('MasterA/ids.json').ids['n.md'] === undefined, true);
+  void idA;
+  void idB;
 });

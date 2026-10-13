@@ -45,6 +45,19 @@ export interface NoteLifecycleDeps {
   storage: KeyValueStorage | null;
   /** Familias de claves de la Fase 8D/legadas que usan la ruta. */
   keyFamilies?: string[];
+  /** Raíz Master (Etapa 5) para el diario de migraciones (M2). */
+  getRootPath?: () => string | null;
+  /** Adapter mínimo para el diario de migraciones (M2). */
+  journalApp?: {
+    vault: {
+      adapter: {
+        exists(p: string): Promise<boolean>;
+        read(p: string): Promise<string>;
+        write(p: string, c: string): Promise<void>;
+        mkdir(p: string): Promise<void>;
+      };
+    };
+  };
 }
 
 const DEFAULT_KEY_FAMILIES = [
@@ -53,6 +66,23 @@ const DEFAULT_KEY_FAMILIES = [
   'focus-notes',
   'focus-memory-results'
 ];
+
+/** Entrada del diario de migración (M2). */
+export interface LifecycleJournalEntry {
+  type: 'file-rename' | 'folder-rename';
+  oldPath: string;
+  newPath: string;
+  steps: {
+    boards: boolean;
+    context: boolean;
+    registry: boolean;
+    storage: boolean;
+  };
+  error?: string;
+  startedAt: number;
+}
+
+const JOURNAL_FILE = 'lifecycle-journal.json';
 
 export class NoteLifecycle {
   private readonly keyFamilies: string[];
@@ -109,13 +139,188 @@ export class NoteLifecycle {
    * (escritura de destino antes de retirar origen), luego identidad,
    * luego localStorage.
    */
+  // ============================================================
+  // DIARIO DE MIGRACIONES (M2)
+  // ============================================================
+
+  private journalPath(): string | null {
+    const root = this.deps.getRootPath?.();
+    const adapter = this.deps.journalApp?.vault.adapter;
+    if (!root || !adapter || !root.trim()) return null;
+    const master = root.replace(/^\/+|\/+$/g, '');
+    return `${master}/Folder Lab/${JOURNAL_FILE}`;
+  }
+
+  private async journalRead(): Promise<LifecycleJournalEntry[]> {
+    const path = this.journalPath();
+    const adapter = this.deps.journalApp?.vault.adapter;
+    if (!path || !adapter) return [];
+    try {
+      if (!(await adapter.exists(path))) return [];
+      const parsed: unknown = JSON.parse(await adapter.read(path));
+      if (!Array.isArray(parsed)) return [];
+      return parsed as LifecycleJournalEntry[];
+    } catch (error) {
+      console.error('[NoteLifecycle] Diario ilegible (se ignora):', error);
+      return [];
+    }
+  }
+
+  private async journalWrite(
+    entries: LifecycleJournalEntry[]
+  ): Promise<void> {
+    const path = this.journalPath();
+    const adapter = this.deps.journalApp?.vault.adapter;
+    if (!path || !adapter) return;
+    const dir = path.slice(0, path.lastIndexOf('/'));
+    if (!(await adapter.exists(dir))) {
+      await adapter.mkdir(dir);
+    }
+    await adapter.write(path, JSON.stringify(entries, null, 2));
+  }
+
+  private async journalAdd(entry: LifecycleJournalEntry): Promise<void> {
+    const entries = await this.journalRead();
+    entries.push(entry);
+    await this.journalWrite(entries);
+  }
+
+  private async journalUpdate(
+    entry: LifecycleJournalEntry
+  ): Promise<void> {
+    const entries = await this.journalRead();
+    const idx = entries.findIndex(
+      (e) =>
+        e.type === entry.type &&
+        e.oldPath === entry.oldPath &&
+        e.newPath === entry.newPath
+    );
+    if (idx >= 0) entries[idx] = entry;
+    else entries.push(entry);
+    await this.journalWrite(entries);
+  }
+
+  private async journalRemove(
+    entry: LifecycleJournalEntry
+  ): Promise<void> {
+    const entries = await this.journalRead();
+    await this.journalWrite(
+      entries.filter(
+        (e) =>
+          !(
+            e.type === entry.type &&
+            e.oldPath === entry.oldPath &&
+            e.newPath === entry.newPath
+          )
+      )
+    );
+  }
+
+  /**
+   * Ejecuta los pasos pendientes de una entrada del diario,
+   * marcando el progreso tras cada uno (operaciones idempotentes).
+   */
+  private async runJournalSteps(
+    entry: LifecycleJournalEntry
+  ): Promise<void> {
+    const isFolder = entry.type === 'folder-rename';
+    const ops = {
+      boards: () =>
+        isFolder
+          ? this.deps.boards.migrateFolderPrefix(
+              entry.oldPath,
+              entry.newPath
+            )
+          : this.deps.boards.migrateEntry(entry.oldPath, entry.newPath),
+      context: () =>
+        isFolder
+          ? this.deps.context.migrateFolderPrefix(
+              entry.oldPath,
+              entry.newPath
+            )
+          : this.deps.context.migrateEntry(entry.oldPath, entry.newPath),
+      registry: () =>
+        isFolder
+          ? this.deps.registry.onFolderRenamed(
+              entry.oldPath,
+              entry.newPath
+            )
+          : this.deps.registry.onRenamed(entry.oldPath, entry.newPath),
+      storage: async () => {
+        if (isFolder) {
+          await this.onFolderRenamedStorageOnly(
+            entry.oldPath,
+            entry.newPath
+          );
+        } else {
+          this.copyStorageKeys(entry.oldPath, entry.newPath);
+        }
+      }
+    };
+
+    const order = ['boards', 'context', 'registry', 'storage'] as const;
+    for (const key of order) {
+      if (entry.steps[key]) continue;
+      try {
+        await ops[key]();
+        entry.steps[key] = true;
+        delete entry.error;
+        await this.journalUpdate(entry);
+      } catch (error) {
+        entry.error = `${key}: ${error instanceof Error ? error.message : String(error)}`;
+        await this.journalUpdate(entry);
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Reintenta las migraciones pendientes del diario (arranque o
+   * recuperación manual). Idempotente: los pasos ya marcados se
+   * omiten; los repetidos son seguros.
+   */
+  async recoverPending(): Promise<void> {
+    const entries = await this.journalRead();
+    for (const entry of entries) {
+      try {
+        await this.runJournalSteps(entry);
+        await this.journalRemove(entry);
+      } catch (error) {
+        console.error(
+          '[NoteLifecycle] Migración pendiente aún fallida:',
+          entry,
+          error
+        );
+      }
+    }
+  }
+
   async onFileRenamed(oldPath: string, newPath: string): Promise<void> {
     if (oldPath === newPath) return;
 
-    await this.deps.boards.migrateEntry(oldPath, newPath);
-    await this.deps.context.migrateEntry(oldPath, newPath);
-    await this.deps.registry.onRenamed(oldPath, newPath);
-    this.copyStorageKeys(oldPath, newPath);
+    const entry: LifecycleJournalEntry = {
+      type: 'file-rename',
+      oldPath,
+      newPath,
+      steps: { boards: false, context: false, registry: false, storage: false },
+      startedAt: Date.now()
+    };
+    // El diario se registra ANTES de tocar nada (M2): un fallo a
+    // mitad queda pendiente de reintento en recoverPending().
+    await this.journalAdd(entry);
+    try {
+      await this.runJournalSteps(entry);
+      await this.journalRemove(entry);
+    } catch (error) {
+      console.error(
+        '[NoteLifecycle] Migración de renombrado incompleta (se reintentará):',
+        oldPath,
+        '→',
+        newPath,
+        error
+      );
+      throw error;
+    }
   }
 
   /** Renombrar una carpeta: re-clava todo lo que usa la ruta. */
@@ -125,10 +330,34 @@ export class NoteLifecycle {
   ): Promise<void> {
     if (oldPrefix === newPrefix) return;
 
-    await this.deps.boards.migrateFolderPrefix(oldPrefix, newPrefix);
-    await this.deps.context.migrateFolderPrefix(oldPrefix, newPrefix);
-    await this.deps.registry.onFolderRenamed(oldPrefix, newPrefix);
+    const entry: LifecycleJournalEntry = {
+      type: 'folder-rename',
+      oldPath: oldPrefix,
+      newPath: newPrefix,
+      steps: { boards: false, context: false, registry: false, storage: false },
+      startedAt: Date.now()
+    };
+    await this.journalAdd(entry);
+    try {
+      await this.runJournalSteps(entry);
+      await this.journalRemove(entry);
+    } catch (error) {
+      console.error(
+        '[NoteLifecycle] Migración de carpeta incompleta (se reintentará):',
+        oldPrefix,
+        '→',
+        newPrefix,
+        error
+      );
+      throw error;
+    }
+  }
 
+  /** Copia de claves de localStorage por prefijo (paso 'storage'). */
+  private async onFolderRenamedStorageOnly(
+    oldPrefix: string,
+    newPrefix: string
+  ): Promise<void> {
     const storage = this.deps.storage;
     if (!storage) return;
     const oldBase = oldPrefix.replace(/\/+$/, '');
