@@ -32,6 +32,9 @@ import { WidgetManager } from "./focus/WidgetManager";
 import { NoteRepository } from './storage/NoteRepository';
 import { BoardRepository } from './storage/BoardRepository';
 import { PluginDataStore } from './storage/PluginDataStore';
+import { NoteIdentityRegistry } from './storage/NoteIdentityRegistry';
+import { NoteLifecycle } from './storage/NoteLifecycle';
+import { resolveVaultStorageId } from './utils/vault-storage';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
 import { WidgetController } from './focus/controllers/WidgetController';
@@ -112,7 +115,9 @@ export default class FolderLabPlugin extends Plugin {
   private widgetManager: WidgetManager | null = null;
   private widgetController: WidgetController;
   private boardRepository: BoardRepository | null = null;
+  private noteRepository: NoteRepository | null = null;
   private dataStore: PluginDataStore | null = null;
+  noteLifecycle: NoteLifecycle | null = null;
 
 
   async onload() {
@@ -243,6 +248,7 @@ export default class FolderLabPlugin extends Plugin {
 
     const noteRepository =
       new NoteRepository(this.app);
+    this.noteRepository = noteRepository;
 
     this.boardRepository =
       new BoardRepository(this.app);
@@ -252,6 +258,21 @@ export default class FolderLabPlugin extends Plugin {
         this.widgetRegistry,
         noteRepository
       );
+
+    // ============================================================
+    // CICLO DE VIDA DE DATOS (Etapa 1)
+    // ============================================================
+    const noteIdentityRegistry = new NoteIdentityRegistry(
+      this.app,
+      () => this.settings.bookRootPath || null
+    );
+    this.noteLifecycle = new NoteLifecycle({
+      registry: noteIdentityRegistry,
+      boards: this.boardRepository,
+      context: this.noteRepository,
+      vaultId: resolveVaultStorageId(this.app),
+      storage: typeof localStorage !== 'undefined' ? localStorage : null
+    });
 
     // ============================================================
     // REGISTRAR VISTA

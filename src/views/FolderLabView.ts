@@ -1072,6 +1072,16 @@ export class FolderLabView extends ItemView {
             console.error('[FolderLab] Error cargando la carpeta:', error);
           });
         }
+        // Etapa 1: recuperar identidad si la nota restaura una ruta
+        // con tombstone (borrado anterior).
+        void this.plugin.noteLifecycle
+          ?.onNoteCreated(file.path)
+          .catch((error) => {
+            console.error(
+              '[FolderLab] Error recuperando identidad de nota:',
+              error
+            );
+          });
       })
     );
 
@@ -1086,13 +1096,42 @@ export class FolderLabView extends ItemView {
             console.error('[FolderLab] Error cargando la carpeta:', error);
           });
         }
+        // Etapa 1: conservar la identidad como tombstone (recuperable).
+        void this.plugin.noteLifecycle?.onNoteDeleted(file.path).catch((error) => {
+          console.error('[FolderLab] Error registrando borrado:', error);
+        });
       })
     );
 
     this.registerEvent(
       this.app.vault.on('rename', async (file, oldPath) => {
-        if (!(file instanceof TFile)) return;
         if (file.path.includes(`/${INTERNAL_FOLDER}/`)) return;
+        if (oldPath.includes(`/${INTERNAL_FOLDER}/`)) return;
+
+        // Etapa 1: migrar datos persistentes por nota (Board,
+        // Contexto, identidad, borradores) ANTES del refresco.
+        if (file instanceof TFolder) {
+          void this.plugin.noteLifecycle
+            ?.onFolderRenamed(oldPath, file.path)
+            .catch((error) => {
+              console.error(
+                '[FolderLab] Error migrando datos por renombrado de carpeta:',
+                error
+              );
+            });
+          return;
+        }
+        if (!(file instanceof TFile)) return;
+
+        void this.plugin.noteLifecycle
+          ?.onFileRenamed(oldPath, file.path)
+          .catch((error) => {
+            console.error(
+              '[FolderLab] Error migrando datos por renombrado:',
+              error
+            );
+          });
+
         const currentPath = this.controller.getCurrentPath();
         if (currentPath && (file.path.startsWith(currentPath) || oldPath.startsWith(currentPath))) {
           await this.controller.orderService.updateOrderOnRename(oldPath, file.path);

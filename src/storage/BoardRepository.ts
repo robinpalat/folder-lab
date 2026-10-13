@@ -322,6 +322,74 @@ export class BoardRepository {
     return this.enqueue(() => this.writeStoreRaw(folderPath, data));
   }
 
+  /**
+   * Migra la entrada de una nota al renombrarla/moverla (Etapa 1).
+   * Invariante anti-pérdida: el destino se escribe ANTES de retirar
+   * el origen; si la escritura de destino falla, el origen queda
+   * intacto y la operación PROPAGA.
+   */
+  migrateEntry(oldPath: string, newPath: string): Promise<void> {
+    return this.enqueue(async () => {
+      const oldFolder = this.getParentFolderPath(oldPath);
+      const newFolder = this.getParentFolderPath(newPath);
+
+      if (oldFolder === null || newFolder === null) return;
+
+      if (oldFolder === newFolder) {
+        const store = await this.readStoreRaw(oldFolder);
+        if (!(oldPath in store)) return;
+        store[newPath] = store[oldPath];
+        delete store[oldPath];
+        await this.writeStoreRaw(oldFolder, store);
+        return;
+      }
+
+      const source = await this.readStoreRaw(oldFolder);
+      if (!(oldPath in source)) return;
+      const entry = source[oldPath];
+
+      const target = await this.readStoreRaw(newFolder);
+      target[newPath] = entry;
+      await this.writeStoreRaw(newFolder, target);
+
+      delete source[oldPath];
+      await this.writeStoreRaw(oldFolder, source);
+    });
+  }
+
+  /**
+   * Re-clava todas las entradas bajo un prefijo al renombrar una
+   * carpeta. El archivo del store se localiza por el padre del
+   * prefijo (el renombrar no cambia el padre).
+   */
+  migrateFolderPrefix(
+    oldPrefix: string,
+    newPrefix: string
+  ): Promise<void> {
+    return this.enqueue(async () => {
+      const oldBase = oldPrefix.replace(/\/+$/, '');
+      const newBase = newPrefix.replace(/\/+$/, '');
+      // El archivo del store se MOVIÓ con la carpeta renombrada:
+      // tras el evento, la ubicación válida es la nueva.
+      const folderPath = newBase;
+
+      const store = await this.readStoreRaw(folderPath);
+      let changed = false;
+      for (const key of Object.keys(store)) {
+        if (key === oldBase || key.startsWith(oldBase + '/')) {
+          const next =
+            key === oldBase
+              ? newBase
+              : newBase + '/' + key.slice(oldBase.length + 1);
+          store[next] = store[key];
+          delete store[key];
+          changed = true;
+        }
+      }
+      if (changed) await this.writeStoreRaw(folderPath, store);
+    });
+  }
+
   loadNote(notePath: string): Promise<BoardData | null> {
     return this.enqueue(async () => {
       const folderPath = this.getParentFolderPath(notePath);

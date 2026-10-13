@@ -173,6 +173,70 @@ export class NoteRepository {
   }
 
   /**
+   * Migra la entrada de una nota al renombrarla/moverla (Etapa 1).
+   * Mismo invariante que BoardRepository: destino antes que origen.
+   */
+  migrateEntry(oldPath: string, newPath: string): Promise<void> {
+    return this.enqueue(async () => {
+      const oldFolder = this.getParentFolderPath(oldPath);
+      const newFolder = this.getParentFolderPath(newPath);
+
+      if (oldFolder === null || newFolder === null) return;
+
+      if (oldFolder === newFolder) {
+        const store = await this.readStoreRaw(oldFolder);
+        if (!(oldPath in store)) return;
+        store[newPath] = store[oldPath];
+        delete store[oldPath];
+        await this.writeStoreRaw(oldFolder, store);
+        return;
+      }
+
+      const source = await this.readStoreRaw(oldFolder);
+      if (!(oldPath in source)) return;
+      const entry = source[oldPath];
+
+      const target = await this.readStoreRaw(newFolder);
+      target[newPath] = entry;
+      await this.writeStoreRaw(newFolder, target);
+
+      delete source[oldPath];
+      await this.writeStoreRaw(oldFolder, source);
+    });
+  }
+
+  /**
+   * Re-clava todas las entradas bajo un prefijo al renombrar una
+   * carpeta (padre invariante).
+   */
+  migrateFolderPrefix(
+    oldPrefix: string,
+    newPrefix: string
+  ): Promise<void> {
+    return this.enqueue(async () => {
+      const oldBase = oldPrefix.replace(/\/+$/, '');
+      const newBase = newPrefix.replace(/\/+$/, '');
+      // Tras el evento rename, el store vive en la carpeta nueva.
+      const folderPath = newBase;
+
+      const store = await this.readStoreRaw(folderPath);
+      let changed = false;
+      for (const key of Object.keys(store)) {
+        if (key === oldBase || key.startsWith(oldBase + '/')) {
+          const next =
+            key === oldBase
+              ? newBase
+              : newBase + '/' + key.slice(oldBase.length + 1);
+          store[next] = store[key];
+          delete store[key];
+          changed = true;
+        }
+      }
+      if (changed) await this.writeStoreRaw(folderPath, store);
+    });
+  }
+
+  /**
    * Obtiene la configuración de una nota concreta.
    */
   loadNote(notePath: string): Promise<NoteContextData | null> {
