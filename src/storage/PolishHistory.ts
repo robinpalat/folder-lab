@@ -43,11 +43,13 @@ function sameOverrides(
 
 export class PolishHistory {
   private readonly store: EntityFileStore<PolishData>;
+  private readonly app: App;
 
   constructor(
     app: App,
     getRootPath: () => string | null
   ) {
+    this.app = app;
     this.store = new EntityFileStore<PolishData>(app, {
       subfolder: 'polish',
       getRootPath,
@@ -70,7 +72,19 @@ export class PolishHistory {
     notePath: string,
     overrides: BoardFragmentOverride[]
   ): Promise<void> {
-    const existing = await this.store.read(noteId).catch(() => null);
+    let existing: { data: PolishData } | null = null;
+    try {
+      existing = await this.store.read(noteId);
+    } catch (error) {
+      // B2: historial ilegible → respaldo recuperable y
+      // reconstrucción; si el respaldo falla, PROPAGA.
+      console.error(
+        '[PolishHistory] Historial ilegible; respaldo y reconstrucción:',
+        error
+      );
+      await this.backupCorrupt(noteId);
+      existing = null;
+    }
     const versions: PolishSnapshot[] = existing?.data.versions ?? [];
     const last = versions[versions.length - 1];
     if (last && sameOverrides(last.overrides, overrides)) {
@@ -78,6 +92,17 @@ export class PolishHistory {
     }
     versions.push({ savedAt: Date.now(), overrides });
     await this.store.write(noteId, notePath, { versions });
+  }
+
+  /** Copia del sobre corrupto a `<id>.json.corrupt.bak` (una vez). */
+  private async backupCorrupt(noteId: string): Promise<void> {
+    const path = this.store.pathFor(noteId);
+    if (!path) return;
+    const adapter = this.app.vault.adapter;
+    const backup = `${path}.corrupt.bak`;
+    if (await adapter.exists(backup)) return;
+    const raw = await adapter.read(path);
+    await adapter.write(backup, raw);
   }
 
   async list(noteId: string): Promise<PolishSnapshot[]> {

@@ -126,9 +126,30 @@ export class DraftStore {
   }
 
   /**
+   * Conserva una copia recuperable de un archivo corrupto antes de
+   * cualquier reparación (A2). Si la copia falla, se RECHAZA la
+   * escritura: nunca se destruye contenido ilegible sin respaldo.
+   */
+  private async backupCorrupt(path: string): Promise<void> {
+    const adapter = this.app.vault.adapter;
+    const backup = `${path}.corrupt.bak`;
+    if (await adapter.exists(backup)) {
+      // Se conserva el PRIMER respaldo (no se pisa con sucesivos).
+      return;
+    }
+    const raw = await adapter.read(path);
+    await adapter.write(backup, raw);
+  }
+
+  /**
    * Escritura en modo parche: solo las claves provistas se
    * actualizan; el resto del archivo se conserva. Si no hay
    * archivo, se crea. Idempotente.
+   *
+   * A2 (auditoría adversarial): un error de LECTURA no se confunde
+   * con ausencia. Archivo ilegible → se copia a `.corrupt.bak`
+   * (recuperable) y se reconstruye; si la copia falla, la
+   * escritura PROPAGA sin tocar el original.
    */
   async write(
     notePath: string,
@@ -140,7 +161,23 @@ export class DraftStore {
       await this.ensureDir();
 
       let current: DraftFile;
-      const existing = await this.read(notePath).catch(() => null);
+      const adapter = this.app.vault.adapter;
+      const exists = await adapter.exists(path);
+      let existing: DraftFile | null = null;
+      if (exists) {
+        try {
+          existing = await this.read(notePath);
+        } catch (error) {
+          console.error(
+            '[DraftStore] Borrador ilegible; respaldo y reconstrucción:',
+            path,
+            error
+          );
+          await this.backupCorrupt(path);
+          existing = null;
+        }
+      }
+
       if (existing) {
         current = existing;
       } else {

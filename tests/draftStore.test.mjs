@@ -164,3 +164,50 @@ test('idempotencia: reescribir no duplica entradas', async () => {
   assert.equal(adapter.files.size, 1);
   assert.equal((await store.read('n.md')).draft, 'b');
 });
+
+// ------------------------------------------------------------
+// A2: protección de borradores corruptos
+// ------------------------------------------------------------
+
+test('A2: escribir sobre borrador corrupto conserva el original en .bak', async () => {
+  const { store, adapter } = makeDraftStore();
+  await store.write('n.md', { draft: 'valioso', blocks: [{ text: 'b', active: false }] });
+  const key = [...adapter.files.keys()].find((k) => k.endsWith('.json'));
+  const original = adapter.files.get(key);
+  adapter.files.set(key, '{ corrupt');
+
+  await store.write('n.md', { draft: 'nuevo' });
+
+  // El original corrupto está recuperable en .corrupt.bak.
+  const bak = adapter.files.get(`${key}.corrupt.bak`);
+  assert.equal(bak, '{ corrupt');
+  // El archivo principal se reconstruye con el parche.
+  const rebuilt = await store.read('n.md');
+  assert.equal(rebuilt.draft, 'nuevo');
+});
+
+test('A2: si el respaldo falla, la escritura PROPAGA y el original queda intacto', async () => {
+  const { store, adapter } = makeDraftStore();
+  await store.write('n.md', { draft: 'x' });
+  const key = [...adapter.files.keys()].find((k) => k.endsWith('.json'));
+  adapter.files.set(key, '{ corrupt');
+  const originalRead = adapter.read.bind(adapter);
+  adapter.read = async (p) => {
+    if (p === key) throw new Error('EIO');
+    return originalRead(p);
+  };
+
+  await assert.rejects(() => store.write('n.md', { draft: 'y' }));
+  assert.equal(adapter.files.get(key), '{ corrupt');
+});
+
+test('A2: el primer .bak no se pisa con sucesivas corrupciones', async () => {
+  const { store, adapter } = makeDraftStore();
+  await store.write('n.md', { draft: 'primero' });
+  const key = [...adapter.files.keys()].find((k) => k.endsWith('.json'));
+  adapter.files.set(key, '{ corrupt-1');
+  await store.write('n.md', { draft: 'a' });
+  adapter.files.set(key, '{ corrupt-2');
+  await store.write('n.md', { draft: 'b' });
+  assert.equal(adapter.files.get(`${key}.corrupt.bak`), '{ corrupt-1');
+});

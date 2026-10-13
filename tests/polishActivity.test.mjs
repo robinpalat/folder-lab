@@ -329,3 +329,34 @@ test('A1: rotado ilegible se omite con aviso sin ocultar el resto', async () => 
   const events = await service.readEvents(7);
   assert.ok(events.some((e) => e.path === 'ok.md'));
 });
+
+// ------------------------------------------------------------
+// B2: protección del historial de Pulir corrupto
+// ------------------------------------------------------------
+
+test('B2: append con historial corrupto conserva el original en .bak', async () => {
+  const { repo, adapter } = makeBoardRepo();
+  await repo.saveNote('Nota.md', boardData([OVERRIDE]));
+  const polishKey = [...adapter.files.keys()].find((k) =>
+    k.startsWith('Master/Folder Lab/polish/')
+  );
+  const original = adapter.files.get(polishKey);
+  adapter.files.set(polishKey, '{ corrupt');
+  void original;
+
+  await repo.saveNote(
+    'Nota.md',
+    boardData([{ ...OVERRIDE, overrideText: 'v2' }])
+  );
+
+  // El contenido corrupto (posiblemente parcialmente recuperable)
+  // queda preservado en .bak antes de reconstruir.
+  assert.equal(
+    adapter.files.get(`${polishKey}.corrupt.bak`),
+    '{ corrupt'
+  );
+  // El historial se reconstruye con la nueva versión.
+  const history = JSON.parse(adapter.files.get(polishKey));
+  assert.equal(history.data.versions.length, 1);
+  assert.equal(history.data.versions[0].overrides[0].overrideText, 'v2');
+});
