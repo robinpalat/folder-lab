@@ -3,8 +3,9 @@
 // Identidad estable de notas (Etapa 1 de la reforma de almacenamiento).
 //
 // Decisión (documentada en el diseño de almacenamiento): registro
-// lateral en `<master>/.folder-lab/ids.json` — NO se modifica el
-// frontmatter de las notas del usuario.
+// lateral en `<master>/Folder Lab/ids.json` (Etapa 5; antes en
+// `<master>/.folder-lab/ids.json`, que se lee como respaldo) — NO se
+// modifica el frontmatter de las notas del usuario.
 //
 // - `ids`:        ruta de nota → id estable (se conserva al renombrar).
 // - `tombstones`: ruta borrada → { id, deletedAt } (permite recuperar
