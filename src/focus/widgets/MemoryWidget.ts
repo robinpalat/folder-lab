@@ -1,4 +1,5 @@
 import { MarkdownRenderer, Notice, TFile } from 'obsidian';
+import { resolveVaultStorageId, vaultStorageKey } from '../../utils/vault-storage';
 import { i18n } from '../../i18n/I18nService';
 /* 3E-1 (W3): el plugin se obtiene de app.plugins.plugins['folder-lab']
  * (origen any); el campo se tipa con el tipo real del proyecto
@@ -117,7 +118,11 @@ this.contextResolver = new ContextResolver(
     this.currentFile = context.activeFile;
 
     this.resultsStorageKey = this.currentFile
-      ? `focus-memory-results-${this.currentFile.path}`
+      ? vaultStorageKey(
+          resolveVaultStorageId(this.app),
+          'focus-memory-results',
+          this.currentFile.path
+        )
       : '';
 
     this.results = this.loadResults();
@@ -171,7 +176,11 @@ this.contextResolver = new ContextResolver(
     this.currentResponse = '';
 
     this.resultsStorageKey = this.currentFile
-      ? `focus-memory-results-${this.currentFile.path}`
+      ? vaultStorageKey(
+          resolveVaultStorageId(this.app),
+          'focus-memory-results',
+          this.currentFile.path
+        )
       : '';
 
     this.results = this.loadResults();

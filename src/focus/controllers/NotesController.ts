@@ -1,4 +1,5 @@
 import { Plugin } from 'obsidian';
+import { resolveVaultStorageId, vaultStorageKey } from '../../utils/vault-storage';
 
 interface NotesBlock {
   id: string;
@@ -23,8 +24,12 @@ export class NotesController {
       // 1. DRAFT ACTUAL
       // --------------------------------------------------------
 
-      const draftKey =
-        `focus-notes-draft-${notePath}`;
+      const vaultId = resolveVaultStorageId(this.plugin.app);
+      const draftKey = vaultStorageKey(
+        vaultId,
+        'focus-notes-draft',
+        notePath
+      );
 
       const draft =
         localStorage.getItem(draftKey);
@@ -37,8 +42,11 @@ export class NotesController {
       // 2. FRAGMENTO ACTIVO
       // --------------------------------------------------------
 
-      const blocksKey =
-        `focus-notes-blocks-${notePath}`;
+      const blocksKey = vaultStorageKey(
+        vaultId,
+        'focus-notes-blocks',
+        notePath
+      );
 
       const serialized =
         localStorage.getItem(blocksKey);

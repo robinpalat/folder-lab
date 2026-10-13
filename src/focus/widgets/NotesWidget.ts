@@ -7,6 +7,7 @@ import { i18n } from '../../i18n/I18nService';
 
 import { FocusContext } from "../FocusContext";
 import { App, Notice, TFile } from "obsidian";
+import { resolveVaultStorageId, vaultStorageKey } from "../../utils/vault-storage";
 
 import { FocusListItem } from "../FocusListItem";
 import {
@@ -73,16 +74,17 @@ export class NotesWidget implements FocusWidget {
     this.lastContext = context;
     this.currentFile = context.activeFile;
 
+    const vaultId = resolveVaultStorageId(this.app);
     this.storageKey = this.currentFile
-      ? `focus-notes-${this.currentFile.path}`
+      ? vaultStorageKey(vaultId, "focus-notes", this.currentFile.path)
       : "";
 
     this.draftStorageKey = this.currentFile
-      ? `focus-notes-draft-${this.currentFile.path}`
+      ? vaultStorageKey(vaultId, "focus-notes-draft", this.currentFile.path)
       : "";
 
     this.blocksStorageKey = this.currentFile
-      ? `focus-notes-blocks-${this.currentFile.path}`
+      ? vaultStorageKey(vaultId, "focus-notes-blocks", this.currentFile.path)
       : "";
 
     this.container.empty();
@@ -126,12 +128,13 @@ export class NotesWidget implements FocusWidget {
 
     this.currentFile = newFile;
 
+    const vaultId = resolveVaultStorageId(this.app);
     this.storageKey = this.currentFile
-      ? `focus-notes-${this.currentFile.path}`
+      ? vaultStorageKey(vaultId, "focus-notes", this.currentFile.path)
       : "";
 
     this.blocksStorageKey = this.currentFile
-      ? `focus-notes-blocks-${this.currentFile.path}`
+      ? vaultStorageKey(vaultId, "focus-notes-blocks", this.currentFile.path)
       : "";
 
     if (this.container) {

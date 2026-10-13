@@ -82,7 +82,9 @@ export class BoardPolishModal extends Modal {
     if (this.hasOverride && this.onDiscard) {
       const discardButton = new ButtonComponent(actions);
       discardButton.setButtonText(i18n.t('modal.polish.discard'));
-      discardButton.setDestructive();
+      // setWarning() en lugar de setDestructive() (@since 1.13.0)
+      // para mantener minAppVersion 1.4.4; mismo estilo destructivo.
+      discardButton.setWarning();
       discardButton.onClick(() => {
         this.onDiscard?.();
         this.close();
