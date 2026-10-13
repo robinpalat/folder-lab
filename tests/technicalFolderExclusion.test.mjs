@@ -256,3 +256,47 @@ test('StatsService: la carpeta técnica devuelve ceros y sus .md no cuentan', as
   const masterStats = await service.calculateStats('Master');
   assert.equal(masterStats.totalNotes, 1, 'solo la nota del usuario');
 });
+
+// ------------------------------------------------------------
+// shouldReloadFolderOnModify (Corrección del render innecesario)
+// ------------------------------------------------------------
+
+test('modify del log de actividad NO recarga la lista (causa del parpadeo)', async () => {
+  const { shouldReloadFolderOnModify } = await bundle('src/utils/dataPath.ts');
+  // Escenario reproducido: vista en master (Todas las notas/Recientes);
+  // abrir una nota dispara record() → append de activity.log →
+  // vault modify → antes reconstruía la lista.
+  assert.equal(
+    shouldReloadFolderOnModify(
+      'Master/Folder Lab/activity.log',
+      'Master',
+      'Master'
+    ),
+    false
+  );
+});
+
+test('modify de datos técnicos (borradores/ids/entidades) NO recarga', async () => {
+  const { shouldReloadFolderOnModify } = await bundle('src/utils/dataPath.ts');
+  for (const path of [
+    'Master/Folder Lab/drafts/id1.json',
+    'Master/Folder Lab/ids.json',
+    'Master/Folder Lab/boards/id2.json',
+    'Master/.folder-lab/_folder_order.json'
+  ]) {
+    assert.equal(shouldReloadFolderOnModify(path, 'Master', 'Master'), false, path);
+  }
+});
+
+test('modify de una nota REAL bajo la carpeta actual SÍ recarga', async () => {
+  const { shouldReloadFolderOnModify } = await bundle('src/utils/dataPath.ts');
+  assert.equal(
+    shouldReloadFolderOnModify('Master/Notas/a.md', 'Master/Notas', 'Master'),
+    true
+  );
+  // Fuera de la carpeta actual: no recarga.
+  assert.equal(
+    shouldReloadFolderOnModify('Otra/b.md', 'Master/Notas', 'Master'),
+    false
+  );
+});

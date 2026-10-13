@@ -10,6 +10,7 @@ import { VIEW_TYPE_FOLDER_ORDER, INTERNAL_FOLDER } from '../constants/view-types
 import { FolderLabController, FolderLabEvent } from '../core/FolderLabController';
 import { FolderLabState, NavigationMode } from '../core/FolderLabState';
 import { boardMustCloseOnExit, pickLeafStrategy } from '../utils/boardStability';
+import { shouldReloadFolderOnModify } from '../utils/dataPath';
 import { FolderRepository } from '../storage/FolderRepository';
 import { HeaderComponent } from '../layout/HeaderComponent';
 import { NoteListComponent, ListItem } from '../components/NoteListComponent';
@@ -1052,13 +1053,28 @@ export class FolderLabView extends ItemView {
         // actualiza con «Actualizar estadísticas» del diálogo.
         // Los recuentos de notas/subcarpetas se refrescan con el
         // re-render del modo (loadFolder → renderNormalMode).
-        const currentPath = this.controller.getCurrentPath();
+        //
+        // Corrección del renderizado innecesario: las escrituras en
+        // la carpeta técnica (activity.log, borradores, ids…) NO
+        // deben recargar la lista; abrir una nota con la vista en
+        // Todas las notas/Recientes reconstruía la lista por el
+        // append del log de actividad del propio registro.
+        if (
+          !shouldReloadFolderOnModify(
+            file.path,
+            this.controller.getCurrentPath(),
+            this.plugin.settings.bookRootPath
+          )
+        ) {
+          return;
+        }
 
-        if (currentPath && file.path.startsWith(currentPath)) {
-          // Durante un reorder del Board/properties, las escrituras
-          // intermedias NO provocan recarga: el refresco definitivo
-          // llega vía order-changed tras sincronizar metadatos.
-          if (!this.shouldSkipReloadDuringReorder()) {
+        // Durante un reorder del Board/properties, las escrituras
+        // intermedias NO provocan recarga: el refresco definitivo
+        // llega vía order-changed tras sincronizar metadatos.
+        if (!this.shouldSkipReloadDuringReorder()) {
+          const currentPath = this.controller.getCurrentPath();
+          if (currentPath) {
             void this.controller.loadFolder(currentPath).catch((error) => {
               console.error('[FolderLab] Error cargando la carpeta:', error);
             });

@@ -37,3 +37,24 @@ export function isTechnicalDataPath(
   const normalized = path.replace(/^\/+|\/+$/g, "");
   return normalized === root || normalized.startsWith(`${root}/`);
 }
+
+/**
+ * Decisión de recarga ante `vault.on('modify')` (Corrección del
+ * renderizado innecesario).
+ *
+ * Falso para datos técnicos (`Folder Lab/`, `.folder-lab/`): sus
+ * escrituras (activity.log, borradores, entidades, ids.json…) no
+ * cambian el CONTENIDO de la carpeta que el explorador muestra y
+ * provocaban reconstrucciones innecesarias de la lista al abrir
+ * una nota (append del log de actividad del propio registro).
+ */
+export function shouldReloadFolderOnModify(
+  path: string,
+  currentPath: string | null | undefined,
+  masterRoot: string | null | undefined
+): boolean {
+  if (!path || !currentPath) return false;
+  if (path.includes(`/.folder-lab/`)) return false;
+  if (isTechnicalDataPath(path, masterRoot)) return false;
+  return path.startsWith(currentPath);
+}
