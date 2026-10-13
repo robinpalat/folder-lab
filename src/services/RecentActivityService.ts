@@ -37,7 +37,9 @@ export interface RecentNoteScore {
  * - mantiene el algoritmo de ranking separado del registro
  */
 export class RecentActivityService {
-  private static readonly FOLDER_NAME = ".folder-lab";
+	private static readonly FOLDER_NAME = ".folder-lab";
+	/** Raíz visible de datos (Etapa 5). */
+	private static readonly VISIBLE_FOLDER = "Folder Lab";
   private static readonly WINDOW_DAYS = 7;
   private static readonly DEFAULT_LIMIT = 5;
   private static readonly ACTIVITY_WEIGHT = 0.45;
@@ -119,6 +121,18 @@ async record(
     days: number = RecentActivityService.WINDOW_DAYS
   ): Promise<RecentActivityEntry[]> {
     if (!(await this.logExists())) {
+      // Etapa 5: respaldo legado si el log nuevo aún no existe.
+      try {
+        const legacy = this.getLegacyLogPath();
+        if (await this.app.vault.adapter.exists(legacy)) {
+          const legacyContent = await this.app.vault.adapter.read(legacy);
+          if (legacyContent) {
+            return this.parseEvents(legacyContent, days);
+          }
+        }
+      } catch {
+        /* sin respaldo legado */
+      }
       return [];
     }
 
@@ -136,6 +150,14 @@ async record(
       return [];
     }
 
+    return this.parseEvents(content, days);
+  }
+
+  /** Parsea el contenido de un log (vigente o legado). */
+  private parseEvents(
+    content: string,
+    days: number
+  ): RecentActivityEntry[] {
     const cutoff = Date.now() - Math.max(0, days) * 24 * 60 * 60 * 1000;
     const entries: RecentActivityEntry[] = [];
 
@@ -400,16 +422,25 @@ async getRecentNotes(
 	  const masterPath = this.normalizePath(this.getMasterPath());
 
 	  return masterPath
-		? `${masterPath}/${RecentActivityService.FOLDER_NAME}/_activity.log`
-		: `${RecentActivityService.FOLDER_NAME}/_activity.log`;
+	    ? `${masterPath}/${RecentActivityService.VISIBLE_FOLDER}/activity.log`
+	    : `${RecentActivityService.VISIBLE_FOLDER}/activity.log`;
+	}
+
+	/** Ruta legada (Etapa 1): <master>/.folder-lab/_activity.log */
+	private getLegacyLogPath(): string {
+	  const masterPath = this.normalizePath(this.getMasterPath());
+
+	  return masterPath
+	    ? `${masterPath}/${RecentActivityService.FOLDER_NAME}/_activity.log`
+	    : `${RecentActivityService.FOLDER_NAME}/_activity.log`;
 	}
 
 	private async ensureLogDirectory(): Promise<void> {
 	  const masterPath = this.normalizePath(this.getMasterPath());
 
 	  const directory = masterPath
-	    ? `${masterPath}/${RecentActivityService.FOLDER_NAME}`
-	    : RecentActivityService.FOLDER_NAME;
+	    ? `${masterPath}/${RecentActivityService.VISIBLE_FOLDER}`
+	    : RecentActivityService.VISIBLE_FOLDER;
 
 	  try {
 	    if (!(await this.app.vault.adapter.exists(directory))) {
@@ -419,6 +450,31 @@ async getRecentNotes(
 	    if (!(await this.app.vault.adapter.exists(directory))) {
 	      throw error;
 	    }
+	  }
+
+	  await this.migrateLegacyLog();
+	}
+
+	/**
+	 * Etapa 5: si el log nuevo no existe y sí el legado
+	 * (.folder-lab/_activity.log), se COPIA el contenido (el
+	 * legado se conserva intacto — recuperable).
+	 */
+	private async migrateLegacyLog(): Promise<void> {
+	  try {
+	    const current = this.getLogPath();
+	    const legacy = this.getLegacyLogPath();
+	    if (await this.app.vault.adapter.exists(current)) return;
+	    if (!(await this.app.vault.adapter.exists(legacy))) return;
+	    const content = await this.app.vault.adapter.read(legacy);
+	    if (content) {
+	      await this.app.vault.adapter.write(current, content);
+	    }
+	  } catch (error) {
+	    console.warn(
+	      "[Folder Lab] Migración del log legado fallida:",
+	      error
+	    );
 	  }
 	}
 

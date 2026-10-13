@@ -194,9 +194,9 @@ function makeActivity() {
 test('rotación: al superar el umbral se conserva el contenido previo', async () => {
   const { service, adapter } = makeActivity();
   const file = { path: 'n.md', extension: 'md' };
-  // Sembrar un log grande.
-  const logPath = 'Master/.folder-lab/_activity.log';
-  await adapter.mkdir('Master/.folder-lab');
+  // Sembrar un log grande en la ubicación vigente (Etapa 5).
+  const logPath = 'Master/Folder Lab/activity.log';
+  await adapter.mkdir('Master/Folder Lab');
   await adapter.write(logPath, 'x'.repeat(300 * 1024));
 
   await service.record(file, 'open', 1);
@@ -212,16 +212,35 @@ test('rotación: al superar el umbral se conserva el contenido previo', async ()
   assert.ok(fresh.includes('n.md|open|'));
 });
 
+test('migración: el log legado se copia al nuevo sin borrar origen', async () => {
+  const { service, adapter } = makeActivity();
+  await adapter.mkdir('Master/.folder-lab');
+  await adapter.write(
+    'Master/.folder-lab/_activity.log',
+    '1|a.md|open|1\n'
+  );
+  await service.record({ path: 'b.md', extension: 'md' }, 'open', 1);
+  // El nuevo existe con contenido legado + nueva línea.
+  const fresh = adapter.files.get('Master/Folder Lab/activity.log');
+  assert.ok(fresh.includes('a.md|open|'));
+  assert.ok(fresh.includes('b.md|open|'));
+  // El legado queda intacto.
+  assert.equal(
+    adapter.files.get('Master/.folder-lab/_activity.log'),
+    '1|a.md|open|1\n'
+  );
+});
+
 test('poda: se conservan solo los MAX_ROTATED_LOGS más recientes', async () => {
   const { service, adapter } = makeActivity();
-  const dir = 'Master/.folder-lab';
+  const dir = 'Master/Folder Lab';
   await adapter.mkdir(dir);
   // Sembrar 30 rotados con nombres ordenables.
   for (let i = 0; i < 30; i++) {
     const stamp = `2026-01-${String(i + 1).padStart(2, '0')}T00-00-00`;
     await adapter.write(`${dir}/_activity-${stamp}.log`, 'old');
   }
-  await adapter.write(`${dir}/_activity.log`, 'x'.repeat(300 * 1024));
+  await adapter.write(`${dir}/activity.log`, 'x'.repeat(300 * 1024));
   await service.record({ path: 'n.md', extension: 'md' }, 'open', 1);
 
   const rotated = [...adapter.files.keys()].filter((k) =>
@@ -239,8 +258,8 @@ test('poda: se conservan solo los MAX_ROTATED_LOGS más recientes', async () => 
 test('fallo de rotación: el append continúa sin pérdida', async () => {
   const { service, adapter } = makeActivity();
   adapter.failRename = true;
-  const logPath = 'Master/.folder-lab/_activity.log';
-  await adapter.mkdir('Master/.folder-lab');
+  const logPath = 'Master/Folder Lab/activity.log';
+  await adapter.mkdir('Master/Folder Lab');
   await adapter.write(logPath, 'x'.repeat(300 * 1024));
 
   await service.record({ path: 'n.md', extension: 'md' }, 'open', 1);

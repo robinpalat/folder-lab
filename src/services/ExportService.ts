@@ -37,6 +37,31 @@ constructor(
   this.noteService = noteService;
 }
 
+  /**
+   * Etapa 5: las exportaciones de raíz se guardan en
+   * `<Master>/Folder Lab/exports/` cuando hay Master configurado;
+   * sin Master se mantiene la raíz de la bóveda (compatibilidad).
+   */
+  private async resolveExportPath(fileName: string): Promise<string> {
+    const master = (this.settings.bookRootPath || '').replace(
+      /^\/|\/$/g,
+      ''
+    );
+    if (!master) return fileName;
+
+    const dir = `${master}/Folder Lab/exports`;
+    const adapter = this.app.vault.adapter;
+    const parts = dir.split('/').filter((p) => p !== '');
+    let current = '';
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
+      if (!(await adapter.exists(current))) {
+        await adapter.mkdir(current);
+      }
+    }
+    return `${dir}/${fileName}`;
+  }
+
   // ============================================================
   // MENÚ DE EXPORTACIÓN
   // ============================================================
@@ -101,8 +126,9 @@ constructor(
     } else {
       const ext = format === 'txt' ? 'txt' : 'md';
       const fileName = `indice-${folderPath.replace(/\//g, '-')}.${ext}`;
-      await this.app.vault.create(fileName, content);
-      new Notice(i18n.t('export.indexFileCreated', { fileName }));
+      const target = await this.resolveExportPath(fileName);
+      await this.app.vault.create(target, content);
+      new Notice(i18n.t('export.indexFileCreated', { fileName: target }));
     }
   }
 
@@ -224,8 +250,9 @@ constructor(
       }
 
       const fileName = `seleccion-${folderPath.replace(/\//g, '-')}.md`;
-      await this.app.vault.create(fileName, content);
-      new Notice(`✅ ${fileName} creado`);
+      const target = await this.resolveExportPath(fileName);
+      await this.app.vault.create(target, content);
+      new Notice(`✅ ${target} creado`);
     } catch (error) {
       console.error('Error al exportar selección:', error);
       new Notice('❌ Error al exportar selección');

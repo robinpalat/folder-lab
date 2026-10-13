@@ -51,15 +51,20 @@ function generateId(): string {
 
 export class NoteIdentityRegistry {
   private hidden: HiddenFolderManager;
+  private hiddenLegacy: HiddenFolderManager;
   private cache: IdentityStore | null = null;
   private tail: Promise<unknown> = Promise.resolve();
 
   constructor(
     private app: App,
     private getMasterPath: () => string | null,
-    hidden?: HiddenFolderManager
+    hidden?: HiddenFolderManager,
+    hiddenLegacy?: HiddenFolderManager
   ) {
-    this.hidden = hidden ?? new HiddenFolderManager(app);
+    // Raíz visible (Etapa 5): <master>/Folder Lab/ids.json
+    this.hidden = hidden ?? new HiddenFolderManager(app, 'Folder Lab');
+    // Ubicación legada (Etapa 1): <master>/.folder-lab/ids.json
+    this.hiddenLegacy = hiddenLegacy ?? new HiddenFolderManager(app);
   }
 
   private get masterPath(): string | null {
@@ -81,17 +86,49 @@ export class NoteIdentityRegistry {
     const master = this.masterPath;
     if (!master) return null;
     if (this.cache) return this.cache;
+
+    // 1) Ubicación actual (Folder Lab/ids.json).
     let data: IdentityStore | null = null;
     try {
       data = await this.hidden.readJSON<IdentityStore>(master, IDS_FILE);
     } catch {
-      // JSON inválido: no pisar; comportarse como vacío pero sin
-      // persistir por encima hasta que el usuario resuelva.
       console.error(
         '[NoteIdentityRegistry] ids.json ilegible; operación omitida'
       );
       return null;
     }
+
+    // 2) Respaldo legado (.folder-lab/ids.json): si existe y el
+    //    actual no, se usa y se copia al nuevo (sin borrar origen).
+    if (data === null) {
+      try {
+        const legacy = await this.hiddenLegacy.readJSON<IdentityStore>(
+          master,
+          IDS_FILE
+        );
+        if (
+          legacy &&
+          typeof legacy === 'object' &&
+          typeof legacy.ids === 'object' &&
+          legacy.ids !== null
+        ) {
+          data = legacy;
+          this.cache = {
+            version: 1,
+            ids: legacy.ids,
+            tombstones:
+              legacy.tombstones && typeof legacy.tombstones === 'object'
+                ? legacy.tombstones
+                : {}
+          };
+          await this.persist();
+          return this.cache;
+        }
+      } catch {
+        // Respaldo ilegible: continuar como sin datos.
+      }
+    }
+
     if (data === null) {
       this.cache = emptyStore();
       return this.cache;
