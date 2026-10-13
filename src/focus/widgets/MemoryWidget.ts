@@ -1,5 +1,4 @@
 import { MarkdownRenderer, Notice, TFile } from 'obsidian';
-import { resolveVaultStorageId, vaultStorageKey } from '../../utils/vault-storage';
 import { i18n } from '../../i18n/I18nService';
 /* 3E-1 (W3): el plugin se obtiene de app.plugins.plugins['folder-lab']
  * (origen any); el campo se tipa con el tipo real del proyecto
@@ -69,7 +68,14 @@ export class MemoryWidget implements FocusWidget {
   private resultContainer: HTMLElement | null = null;
 
   private results: MemoryResult[] = [];
-  private resultsStorageKey: string = '';
+  /**
+   * Corrección A: espejo de resultados AISLADO POR IDENTIDAD.
+   * resultsMirrorId se resuelve en background tras el render;
+   * pendingResultsJson retiene guardados ocurridos antes de tener
+   * el id (se reintentan al resolverse).
+   */
+  private resultsMirrorId: string | null = null;
+  private pendingResultsJson: string | null = null;
 
   private responseArea: HTMLElement | null = null;
   private currentResponse: string = '';
@@ -117,15 +123,9 @@ this.contextResolver = new ContextResolver(
     this.lastContext = context;
     this.currentFile = context.activeFile;
 
-    this.resultsStorageKey = this.currentFile
-      ? vaultStorageKey(
-          resolveVaultStorageId(this.app),
-          'focus-memory-results',
-          this.currentFile.path
-        )
-      : '';
-
-    this.results = this.loadResults();
+    this.resultsMirrorId = null;
+    this.results = [];
+    void this.resolveResultsMirror();
 
     this.container.empty();
     this.container.addClass('fl-widget-memory');
@@ -175,15 +175,9 @@ this.contextResolver = new ContextResolver(
     this.sessionView = 'capture';
     this.currentResponse = '';
 
-    this.resultsStorageKey = this.currentFile
-      ? vaultStorageKey(
-          resolveVaultStorageId(this.app),
-          'focus-memory-results',
-          this.currentFile.path
-        )
-      : '';
-
-    this.results = this.loadResults();
+    this.resultsMirrorId = null;
+    this.results = [];
+    void this.resolveResultsMirror();
 
     if (this.container) {
       this.render(this.container, context);
@@ -902,25 +896,9 @@ this.contextResolver = new ContextResolver(
 
 
 
-  private loadResults(): MemoryResult[] {
-    if (!this.currentFile || !this.resultsStorageKey) {
-      return [];
-    }
-
+  /** Validación de forma del espejo (dato externo, unknown). */
+  private parseResults(serialized: string): MemoryResult[] {
     try {
-      const serialized =
-        localStorage.getItem(this.resultsStorageKey);
-
-      if (!serialized) {
-        return [];
-      }
-
-      /*
-       * 3E-2 (W4): JSON de localStorage (datos externos) tipado
-       * como unknown; la validación de forma es la misma que la
-       * anterior (array + tipos de id/content/active), ahora
-       * explícita sobre unknown en lugar de implícita sobre any.
-       */
       const parsed: unknown = JSON.parse(serialized);
 
       if (!Array.isArray(parsed)) {
@@ -946,30 +924,93 @@ this.contextResolver = new ContextResolver(
       });
     } catch (error) {
       console.warn(
-        '[MemoryWidget] Error cargando respuestas:',
+        '[MemoryWidget] Error parseando respuestas del espejo:',
         error
       );
-
       return [];
     }
   }
 
-  private saveResults(): void {
-    if (!this.currentFile || !this.resultsStorageKey) {
-      return;
-    }
+  /**
+   * Corrección A: carga el espejo por IDENTIDAD (nunca por ruta).
+   * Si el id se resuelve con los resultados aún vacíos y el espejo
+   * tiene datos legados de la PROPIA identidad, se re-renderiza una
+   * vez para presentarlos.
+   */
+  private async resolveResultsMirror(): Promise<void> {
+    if (!this.currentFile) return;
+    const path = this.currentFile.path;
+    const mirror = this.plugin.localMirror;
+    if (!mirror) return;
 
     try {
-      localStorage.setItem(
-        this.resultsStorageKey,
-        JSON.stringify(this.results)
+      const id = await this.plugin.noteLifecycle?.getNoteId(path) ?? null;
+      if (!id || this.currentFile?.path !== path) return;
+      this.resultsMirrorId = id;
+
+      // Guardados en vuelo antes de resolver el id: reintentar.
+      if (this.pendingResultsJson !== null) {
+        await mirror.write(
+          'focus-memory-results',
+          path,
+          this.pendingResultsJson
+        );
+        if (this.currentFile?.path === path) {
+          this.pendingResultsJson = null;
+        }
+      }
+
+      const mirrored = await mirror.read('focus-memory-results', path);
+      if (mirrored.value) {
+        const parsed = this.parseResults(mirrored.value);
+        if (this.results.length === 0 && parsed.length > 0) {
+          this.results = parsed;
+          if (
+            this.container &&
+            this.lastContext &&
+            this.currentFile?.path === path
+          ) {
+            this.render(this.container, this.lastContext);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[MemoryWidget] Error resolviendo espejo de resultados:',
+        error
       );
+    }
+  }
+
+  private async flushResultsMirror(): Promise<void> {
+    if (!this.currentFile || this.pendingResultsJson === null) return;
+    if (!this.resultsMirrorId) return; // se reintenta en resolve/flush
+    const path = this.currentFile.path;
+    const mirror = this.plugin.localMirror;
+    if (!mirror) return;
+    try {
+      await mirror.write(
+        'focus-memory-results',
+        path,
+        this.pendingResultsJson
+      );
+      if (this.currentFile?.path === path) {
+        this.pendingResultsJson = null;
+      }
     } catch (error) {
       console.warn(
         '[MemoryWidget] Error guardando respuestas:',
         error
       );
     }
+  }
+
+  private saveResults(): void {
+    if (!this.currentFile) {
+      return;
+    }
+    this.pendingResultsJson = JSON.stringify(this.results);
+    void this.flushResultsMirror();
   }
 
   private saveState(): void {

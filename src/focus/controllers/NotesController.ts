@@ -1,5 +1,4 @@
 import { Plugin } from 'obsidian';
-import { resolveVaultStorageId, vaultStorageKey } from '../../utils/vault-storage';
 import type FolderLabPlugin from '../../main';
 import type { DraftData } from '../../storage/DraftStore';
 
@@ -26,26 +25,16 @@ export class NotesController {
       // 1. DRAFT ACTUAL
       // --------------------------------------------------------
 
-      const vaultId = resolveVaultStorageId(this.plugin.app);
-      const draftKey = vaultStorageKey(
-        vaultId,
-        'focus-notes-draft',
-        notePath
-      );
-      const blocksKey = vaultStorageKey(
-        vaultId,
-        'focus-notes-blocks',
-        notePath
-      );
-
       /*
-       * Etapa 2: el ARCHIVO sincronizable (Folder Lab/drafts) es la
-       * verdad; localStorage es el espejo de emergencia. Si el
-       * archivo falta o es ilegible, se usa el espejo; si el espejo
-       * tiene datos y no hay archivo, se copia (sin borrar origen).
+       * Etapa 2 + Corrección A: el ARCHIVO sincronizable
+       * (Folder Lab/drafts) es la verdad; el espejo de emergencia
+       * está AISLADO POR IDENTIDAD (LocalMirror). El legado por
+       * ruta solo se adopta cuando la propiedad es segura (sin
+       * pendientes); una nota nueva en ruta antigua no hereda.
        */
-      const draftStore = (this.plugin as unknown as FolderLabPlugin)
-        .draftStore;
+      const plugin = this.plugin as unknown as FolderLabPlugin;
+      const draftStore = plugin.draftStore;
+      const mirror = plugin.localMirror;
       let draft = '';
       let fileBlocks: DraftData['blocks'] | null = null;
       if (draftStore) {
@@ -63,12 +52,15 @@ export class NotesController {
         }
       }
 
-      if (draft === '') {
-        draft = localStorage.getItem(draftKey) ?? '';
-        if (draft.trim() && draftStore) {
-          void draftStore.write(notePath, { draft }).catch(() => {
-            /* el espejo local sigue disponible */
-          });
+      if (draft === '' && mirror) {
+        const mirrored = await mirror.read('focus-notes-draft', notePath);
+        if (mirrored.value && mirrored.value.trim()) {
+          draft = mirrored.value;
+          if (draftStore && mirrored.adopted) {
+            void draftStore.write(notePath, { draft }).catch(() => {
+              /* el espejo local sigue disponible */
+            });
+          }
         }
       }
 
@@ -82,9 +74,10 @@ export class NotesController {
 
       let serialized: string | null =
         fileBlocks !== null ? JSON.stringify(fileBlocks) : null;
-      if (serialized === null) {
-        serialized = localStorage.getItem(blocksKey);
-        if (serialized && draftStore) {
+      if (serialized === null && mirror) {
+        const mirrored = await mirror.read('focus-notes-blocks', notePath);
+        serialized = mirrored.value;
+        if (serialized && draftStore && mirrored.adopted) {
           try {
             const parsedLs: unknown = JSON.parse(serialized);
             if (Array.isArray(parsedLs)) {

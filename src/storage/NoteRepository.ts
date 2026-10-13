@@ -95,6 +95,9 @@ export class NoteRepository {
   private readonly hiddenManager: HiddenFolderManager;
   private readonly identity?: (notePath: string) => Promise<string | null>;
   private readonly getRootPath?: () => string | null;
+  private readonly legacyOwnershipSafe?: (
+    notePath: string
+  ) => Promise<boolean>;
   private readonly entities: EntityFileStore<NoteContextData> | null;
 
   /*
@@ -111,6 +114,8 @@ export class NoteRepository {
     options?: {
       identity?: (notePath: string) => Promise<string | null>;
       getRootPath?: () => string | null;
+      /** Corrección A: ver BoardRepository.legacyOwnershipSafe. */
+      legacyOwnershipSafe?: (notePath: string) => Promise<boolean>;
     }
   ) {
     this.hiddenManager = new HiddenFolderManager(
@@ -119,6 +124,7 @@ export class NoteRepository {
     );
     this.identity = options?.identity;
     this.getRootPath = options?.getRootPath;
+    this.legacyOwnershipSafe = options?.legacyOwnershipSafe;
     this.entities =
       this.identity && this.getRootPath
         ? new EntityFileStore<NoteContextData>(app, {
@@ -314,6 +320,15 @@ export class NoteRepository {
         const envelope = await this.entities.read(id);
         if (envelope !== null) {
           return envelope.data;
+        }
+
+        // Corrección A: sin entidad propia, el legado por ruta solo
+        // se adopta con propiedad segura (sin pendientes).
+        if (this.legacyOwnershipSafe) {
+          const safe = await this.legacyOwnershipSafe(notePath);
+          if (!safe) {
+            return null;
+          }
         }
       }
 

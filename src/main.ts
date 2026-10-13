@@ -35,6 +35,7 @@ import { PluginDataStore } from './storage/PluginDataStore';
 import { NoteIdentityRegistry } from './storage/NoteIdentityRegistry';
 import { NoteLifecycle } from './storage/NoteLifecycle';
 import { DraftStore } from './storage/DraftStore';
+import { LocalMirror } from './storage/localMirror';
 import { resolveVaultStorageId } from './utils/vault-storage';
 import { normalizeRootPath } from './utils/rootPath';
 import { runStartupMaintenance } from './storage/startupMaintenance';
@@ -126,6 +127,8 @@ export default class FolderLabPlugin extends Plugin {
   draftStore: DraftStore | null = null;
   private noteIdentityRegistry: NoteIdentityRegistry | null = null;
   private startupMaintenanceDone = false;
+  /** Espejo LS aislado por identidad (Corrección A). */
+  localMirror: LocalMirror | null = null;
 
 
   async onload() {
@@ -265,18 +268,25 @@ export default class FolderLabPlugin extends Plugin {
     this.noteIdentityRegistry = noteIdentityRegistry;
     const identityFn = (notePath: string) =>
       noteIdentityRegistry.getId(notePath);
+    // Corrección A: propiedad de datos legados = sin pendientes.
+    const legacyOwnershipSafe = (notePath: string) =>
+      noteIdentityRegistry
+        .getPendingFor(notePath)
+        .then((candidates) => candidates.length === 0);
 
     const noteRepository =
       new NoteRepository(this.app, {
         identity: identityFn,
-        getRootPath: rootPathFn
+        getRootPath: rootPathFn,
+        legacyOwnershipSafe
       });
     this.noteRepository = noteRepository;
 
     this.boardRepository =
       new BoardRepository(this.app, {
         identity: identityFn,
-        getRootPath: rootPathFn
+        getRootPath: rootPathFn,
+        legacyOwnershipSafe
       });
 
     this.widgetManager =
@@ -302,6 +312,12 @@ export default class FolderLabPlugin extends Plugin {
       rootPathFn,
       noteIdentityRegistry
     );
+    this.localMirror = new LocalMirror({
+      storage: typeof localStorage !== 'undefined' ? localStorage : null,
+      vaultId: resolveVaultStorageId(this.app),
+      getNoteId: identityFn,
+      hasSafeOwnership: legacyOwnershipSafe
+    });
 
     // ============================================================
     // CICLO DE VIDA INDEPENDIENTE DE LA VISTA (E2)

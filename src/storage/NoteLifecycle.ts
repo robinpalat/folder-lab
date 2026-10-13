@@ -104,6 +104,11 @@ export class NoteLifecycle {
    * Copia las claves de localStorage de oldPath a newPath.
    * Conservadora: solo escribe la clave destino si está vacía y
    * NUNCA borra la clave origen (los datos siguen recuperables).
+   *
+   * Corrección A: esto aplica solo a las claves HISTÓRICAS por
+   * ruta (formato 8D). El espejo nuevo está aislado por identidad
+   * (LocalMirror) y no necesita re-clavado: el id no cambia al
+   * renombrar.
    */
   private copyStorageKeys(oldPath: string, newPath: string): void {
     const storage = this.deps.storage;
@@ -416,5 +421,15 @@ export class NoteLifecycle {
   /** Identidad perezosa para consumidores (Board, drafts, etc.). */
   async getNoteId(notePath: string): Promise<string | null> {
     return this.deps.registry.getId(notePath);
+  }
+
+  /**
+   * true si la ruta NO tiene datos pendientes de otra identidad
+   * (Corrección A): criterio de propiedad para adoptar datos
+   * legados por ruta.
+   */
+  async hasSafeOwnership(notePath: string): Promise<boolean> {
+    const candidates = await this.deps.registry.getPendingFor(notePath);
+    return candidates.length === 0;
   }
 }

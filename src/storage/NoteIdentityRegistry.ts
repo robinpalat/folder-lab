@@ -363,8 +363,13 @@ export class NoteIdentityRegistry {
   }
 
   /**
-   * Borrado (E2): el id pasa a `pending`; la ruta queda desvinculada
-   * (una nota nueva NO lo heredará) y los datos por id se conservan.
+   * Borrado (E2 + Corrección A): el id pasa a `pending`; la ruta
+   * queda desvinculada (una nota nueva NO lo heredará) y los datos
+   * por id se conservan. Si la ruta ya tiene un pendiente AJENO,
+   * ese pendiente pasa a `archived` (sigue reclamable) y el nuevo
+   * ocupa `pending`; si ambos buckets están ocupados, se conserva
+   * el pendiente previo y el id queda como huérfano reportable
+   * (datos intactos — nunca se borra nada).
    */
   async onDeleted(notePath: string): Promise<void> {
     return this.enqueue(async () => {
@@ -374,11 +379,32 @@ export class NoteIdentityRegistry {
       if (id === undefined) return;
       delete store.ids[notePath];
       const now = Date.now();
-      store.pending[notePath] = {
-        id,
-        deletedAt: now,
-        detectedAt: now
-      };
+      const existing = store.pending[notePath];
+      if (existing && existing.id !== id) {
+        if (!store.archived[notePath]) {
+          store.archived[notePath] = {
+            id: existing.id,
+            deletedAt: existing.deletedAt
+          };
+          store.pending[notePath] = {
+            id,
+            deletedAt: now,
+            detectedAt: now
+          };
+        } else {
+          console.warn(
+            '[NoteIdentityRegistry] Ruta con pendiente y archivado ' +
+              'ocupados; el id borrado queda como huérfano:',
+            notePath
+          );
+        }
+      } else {
+        store.pending[notePath] = {
+          id,
+          deletedAt: now,
+          detectedAt: now
+        };
+      }
       await this.persist();
     });
   }

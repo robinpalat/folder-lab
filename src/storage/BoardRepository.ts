@@ -242,6 +242,9 @@ export class BoardRepository {
   private readonly hiddenManager: HiddenFolderManager;
   private readonly identity?: (notePath: string) => Promise<string | null>;
   private readonly getRootPath?: () => string | null;
+  private readonly legacyOwnershipSafe?: (
+    notePath: string
+  ) => Promise<boolean>;
   private readonly entities: EntityFileStore<BoardData> | null;
   private readonly polishHistory: PolishHistory | null;
 
@@ -262,6 +265,12 @@ export class BoardRepository {
     options?: {
       identity?: (notePath: string) => Promise<string | null>;
       getRootPath?: () => string | null;
+      /**
+       * Corrección A: propiedad segura de datos legados por ruta.
+       * false cuando la ruta tiene pendientes de otra identidad (no
+       * se adopta el store legado). Ausente = sin criterio (legacy).
+       */
+      legacyOwnershipSafe?: (notePath: string) => Promise<boolean>;
     }
   ) {
     this.hiddenManager = new HiddenFolderManager(
@@ -270,6 +279,7 @@ export class BoardRepository {
     );
     this.identity = options?.identity;
     this.getRootPath = options?.getRootPath;
+    this.legacyOwnershipSafe = options?.legacyOwnershipSafe;
     this.entities =
       this.identity && this.getRootPath
         ? new EntityFileStore<BoardData>(app, {
@@ -482,6 +492,16 @@ export class BoardRepository {
         const envelope = await this.entities.read(id);
         if (envelope !== null) {
           return envelope.data;
+        }
+
+        // Corrección A: identidad ACTIVA sin entidad propia: el
+        // store legado por ruta solo se adopta si la propiedad es
+        // segura (la ruta no tiene pendientes de otra identidad).
+        if (this.legacyOwnershipSafe) {
+          const safe = await this.legacyOwnershipSafe(notePath);
+          if (!safe) {
+            return null;
+          }
         }
       }
 

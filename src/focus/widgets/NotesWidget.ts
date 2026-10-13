@@ -9,6 +9,7 @@ import { FocusContext } from "../FocusContext";
 import { App, Notice, TFile } from "obsidian";
 import { resolveVaultStorageId, vaultStorageKey } from "../../utils/vault-storage";
 import type FolderLabPlugin from "../../main";
+import type { LocalMirror } from "../../storage/localMirror";
 
 import { FocusListItem } from "../FocusListItem";
 import {
@@ -78,6 +79,48 @@ export class NotesWidget implements FocusWidget {
           error
         );
       });
+  }
+
+  // ------------------------------------------------------------
+  // Espejo de emergencia AISLADO POR IDENTIDAD (Corrección A)
+  // ------------------------------------------------------------
+
+  private get localMirror(): LocalMirror | null {
+    const plugin = (this.app as unknown as {
+      plugins?: { plugins?: Record<string, FolderLabPlugin | undefined> };
+    }).plugins?.plugins?.["folder-lab"];
+    return plugin?.localMirror ?? null;
+  }
+
+  private async mirrorWrite(
+    family: string,
+    value: string | null
+  ): Promise<void> {
+    if (!this.currentFile) return;
+    const mirror = this.localMirror;
+    if (!mirror) return;
+    try {
+      if (value === null || value === "") {
+        await mirror.remove(family, this.currentFile.path);
+      } else {
+        await mirror.write(family, this.currentFile.path, value);
+      }
+    } catch (error) {
+      console.warn("[NotesWidget] Error escribiendo espejo local:", error);
+    }
+  }
+
+  private async mirrorRead(family: string): Promise<string | null> {
+    if (!this.currentFile) return null;
+    const mirror = this.localMirror;
+    if (!mirror) return null;
+    try {
+      const result = await mirror.read(family, this.currentFile.path);
+      return result.value && result.value !== "" ? result.value : null;
+    } catch (error) {
+      console.warn("[NotesWidget] Error leyendo espejo local:", error);
+      return null;
+    }
   }
 
   // ============================================================
@@ -450,7 +493,7 @@ export class NotesWidget implements FocusWidget {
       !this.draftText.trim() &&
       this.draftStorageKey
     ) {
-      localStorage.removeItem(this.draftStorageKey);
+      void this.mirrorWrite("focus-notes-draft", null);
       this.persistDraftPatch({ draft: "" });
     }
 
@@ -461,15 +504,10 @@ export class NotesWidget implements FocusWidget {
 
       if (this.draftStorageKey) {
         if (this.draftText.trim()) {
-          localStorage.setItem(
-            this.draftStorageKey,
-            this.draftText
-          );
+          void this.mirrorWrite("focus-notes-draft", this.draftText);
           this.persistDraftPatch({ draft: this.draftText });
         } else {
-          localStorage.removeItem(
-            this.draftStorageKey
-          );
+          void this.mirrorWrite("focus-notes-draft", null);
           this.persistDraftPatch({ draft: "" });
         }
       }
@@ -598,7 +636,7 @@ export class NotesWidget implements FocusWidget {
     // El texto ya pasó a formar parte de los fragmentos.
     this.draftText = "";
     if (this.draftStorageKey) {
-      localStorage.removeItem(this.draftStorageKey);
+      void this.mirrorWrite("focus-notes-draft", null);
     }
     this.persistDraftPatch({ draft: "" });
 
@@ -631,8 +669,7 @@ export class NotesWidget implements FocusWidget {
     if (!this.currentFile) return [];
 
     try {
-      const serialized =
-        localStorage.getItem(this.blocksStorageKey);
+      const serialized = await this.mirrorRead("focus-notes-blocks");
 
       if (serialized) {
         /*
@@ -995,15 +1032,15 @@ export class NotesWidget implements FocusWidget {
     if (!this.currentFile) return;
 
     try {
-      localStorage.setItem(
-        this.blocksStorageKey,
+      await this.mirrorWrite(
+        "focus-notes-blocks",
         JSON.stringify(blocks)
       );
 
       // La representación textual sigue siendo fiel al contenido.
       // El estado active se conserva en blocksStorageKey.
-      localStorage.setItem(
-        this.storageKey,
+      await this.mirrorWrite(
+        "focus-notes",
         blocks.map(block => block.text).join("\n\n")
       );
 
@@ -1023,8 +1060,7 @@ export class NotesWidget implements FocusWidget {
     if (!this.currentFile) return "";
 
     try {
-      const saved =
-        localStorage.getItem(this.storageKey);
+      const saved = await this.mirrorRead("focus-notes");
 
       if (saved !== null) return saved;
 
@@ -1112,7 +1148,7 @@ export class NotesWidget implements FocusWidget {
     }
 
     try {
-      const saved = localStorage.getItem(this.storageKey);
+      const saved = await this.mirrorRead("focus-notes");
 
       if (saved) {
         this.textarea.value = saved;
@@ -1133,10 +1169,7 @@ export class NotesWidget implements FocusWidget {
 
           this.textarea.value = content;
 
-          localStorage.setItem(
-            this.storageKey,
-            content
-          );
+          await this.mirrorWrite("focus-notes", content);
         }
       }
     } catch (error) {
@@ -1155,10 +1188,7 @@ export class NotesWidget implements FocusWidget {
     try {
       const content = this.textarea.value;
 
-      localStorage.setItem(
-        this.storageKey,
-        content
-      );
+      await this.mirrorWrite("focus-notes", content);
     } catch (error) {
       console.warn(
         "Error guardando apuntes:",
