@@ -330,3 +330,70 @@ test('reconcile detecta ids duplicados sin modificar nada', async () => {
   const report = await registry.reconcile(['a.md', 'b.md']);
   assert.deepEqual(report.duplicateIds, ['same']);
 });
+
+// ------------------------------------------------------------
+// A3: restauración vs creación nueva
+// ------------------------------------------------------------
+
+test('A3: restauración dentro de la ventana recupera el mismo id', async () => {
+  const { lifecycle, registry } = makeLifecycle();
+  const id = await lifecycle.getNoteId('n.md');
+  await lifecycle.onNoteDeleted('n.md');
+  const restored = await lifecycle.onNoteCreated('n.md');
+  assert.equal(restored, id);
+  assert.equal(await registry.findIdByPath('n.md'), id);
+});
+
+test('A3: creación nueva FUERA de la ventana archiva y asigna id nuevo', async () => {
+  const { registry, hidden } = makeRegistry();
+  const oldId = await registry.getId('n.md');
+  await registry.onDeleted('n.md');
+  // Envejecer el tombstone más allá de la ventana (15 min).
+  const file = hidden.files.get('/Master/ids.json');
+  file.tombstones['n.md'].deletedAt =
+    Date.now() - (16 * 60 * 1000);
+
+  // Nueva instancia = nuevo arranque (caché fría).
+  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const result = await fresh.onCreated('n.md');
+  assert.equal(result, null, 'sin restauración automática');
+  // El tombstone quedó archivado (conservado, no eliminado).
+  const after = hidden.files.get('/Master/ids.json');
+  assert.equal(after.archived['n.md'].id, oldId);
+  assert.equal(after.tombstones['n.md'], undefined);
+  // Una nota nueva recibe un id DISTINTO.
+  const newId = await fresh.getId('n.md');
+  assert.notEqual(newId, oldId);
+  // Los datos del id antiguo no se asocian a la nueva nota.
+  assert.equal(await fresh.findPathById(oldId), null);
+});
+
+test('A3: reconcile aplica la misma ventana (archiva, no restaura)', async () => {
+  const { registry, hidden } = makeRegistry();
+  const oldId = await registry.getId('n.md');
+  await registry.onDeleted('n.md');
+  hidden.files.get('/Master/ids.json').tombstones['n.md'].deletedAt =
+    Date.now() - (16 * 60 * 1000);
+
+  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const report = await fresh.reconcile(['n.md']);
+  assert.deepEqual(report.archived, ['n.md']);
+  assert.deepEqual(report.restored, []);
+  assert.equal(hidden.files.get('/Master/ids.json').archived['n.md'].id, oldId);
+});
+
+test('A3: ids.json sin campo archived es compatible (se hidrata)', async () => {
+  const hidden = new FakeHidden();
+  hidden.files.set('/Master/ids.json', {
+    version: 1,
+    ids: { 'a.md': 'id-a' },
+    tombstones: {}
+  });
+  const registry = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  assert.equal(await registry.findIdByPath('a.md'), 'id-a');
+  // Tras persistir, archived existe y los datos previos se conservan.
+  await registry.getId('b.md');
+  const file = hidden.files.get('/Master/ids.json');
+  assert.deepEqual(file.ids, { 'a.md': 'id-a', 'b.md': file.ids['b.md'] });
+  assert.ok(file.archived);
+});

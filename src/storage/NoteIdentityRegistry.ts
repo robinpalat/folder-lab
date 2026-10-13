@@ -29,20 +29,57 @@ export interface IdentityStore {
   version: 1;
   ids: Record<string, string>;
   tombstones: Record<string, IdentityTombstone>;
+  /**
+   * Tombstones archivados (A3): la nota NO se consideró
+   * restauración (creación nueva en ruta antigua tras la ventana).
+   * Conservan id y datos para recuperación manual; reconcile no los
+   * revive automáticamente.
+   */
+  archived?: Record<string, IdentityTombstone>;
 }
 
 export interface ReconcileReport {
   /** Rutas con id cuya nota no existe y no está en tombstone. */
   orphans: string[];
-  /** Tombstones restaurados (la nota volvió a existir). */
+  /** Tombstones restaurados (la nota volvió a existir sin evento). */
   restored: string[];
+  /** Tombstones archivados por creación nueva fuera de ventana. */
+  archived: string[];
   /** Ids duplicados detectados (invariante rota; solo reporte). */
   duplicateIds: string[];
 }
 
 function emptyStore(): IdentityStore {
-  return { version: 1, ids: {}, tombstones: {} };
+  return { version: 1, ids: {}, tombstones: {}, archived: {} };
 }
+
+/** Hidrata el store desde datos crudos preservando archived. */
+function hydrate(data: {
+  ids: Record<string, string>;
+  tombstones?: Record<string, IdentityTombstone>;
+  archived?: Record<string, IdentityTombstone>;
+}): IdentityStore {
+  return {
+    version: 1,
+    ids: data.ids,
+    tombstones:
+      data.tombstones && typeof data.tombstones === 'object'
+        ? data.tombstones
+        : {},
+    archived:
+      data.archived && typeof data.archived === 'object'
+        ? data.archived
+        : {}
+  };
+}
+
+/**
+ * Ventana en la que una creación en la ruta de una nota borrada se
+ * considera RESTAURACIÓN (papelera → restaurar casi inmediato).
+ * Fuera de la ventana se trata como nota NUEVA (A3): la identidad
+ * anterior se archiva, nunca se borra.
+ */
+export const RESTORE_WINDOW_MS = 15 * 60 * 1000;
 
 function generateId(): string {
   return (
@@ -114,14 +151,7 @@ export class NoteIdentityRegistry {
           legacy.ids !== null
         ) {
           data = legacy;
-          this.cache = {
-            version: 1,
-            ids: legacy.ids,
-            tombstones:
-              legacy.tombstones && typeof legacy.tombstones === 'object'
-                ? legacy.tombstones
-                : {}
-          };
+          this.cache = hydrate(legacy);
           await this.persist();
           return this.cache;
         }
@@ -145,14 +175,7 @@ export class NoteIdentityRegistry {
       );
       return null;
     }
-    this.cache = {
-      version: 1,
-      ids: data.ids,
-      tombstones:
-        data.tombstones && typeof data.tombstones === 'object'
-          ? data.tombstones
-          : {}
-    };
+    this.cache = hydrate(data);
     return this.cache;
   }
 
@@ -200,13 +223,22 @@ export class NoteIdentityRegistry {
       const store = await this.load();
       if (!store) return;
       const id = store.ids[oldPath];
-      if (id === undefined) return;
-      delete store.ids[oldPath];
-      store.ids[newPath] = id;
+      if (id === undefined && !store.tombstones[oldPath] && !store.archived?.[oldPath]) {
+        return;
+      }
+      if (id !== undefined) {
+        delete store.ids[oldPath];
+        store.ids[newPath] = id;
+      }
       if (store.tombstones[oldPath]) {
         const tomb = store.tombstones[oldPath];
         delete store.tombstones[oldPath];
         store.tombstones[newPath] = { ...tomb, deletedAt: Date.now() };
+      }
+      if (store.archived?.[oldPath]) {
+        const arch = store.archived[oldPath];
+        delete store.archived[oldPath];
+        store.archived[newPath] = arch;
       }
       await this.persist();
     });
@@ -245,6 +277,19 @@ export class NoteIdentityRegistry {
           changed = true;
         }
       }
+      if (store.archived) {
+        for (const key of Object.keys(store.archived)) {
+          if (key === oldBase || key.startsWith(oldBase + '/')) {
+            const next =
+              key === oldBase
+                ? newBase
+                : newBase + '/' + key.slice(oldBase.length + 1);
+            store.archived[next] = store.archived[key];
+            delete store.archived[key];
+            changed = true;
+          }
+        }
+      }
       if (changed) await this.persist();
     });
   }
@@ -263,9 +308,17 @@ export class NoteIdentityRegistry {
   }
 
   /**
-   * Creación/restauración: si hay tombstone para la ruta, restaura
-   * el id original. Notas nuevas (sin tombstone) no reciben id aquí
-   * (se asigna de forma perezosa en getId).
+   * Creación/restauración (A3).
+   *
+   * La API de Obsidian no distingue «restaurar de la papelera» de
+   * «crear nota nueva en ruta antigua»: ambos emiten `create`.
+   * Estrategia explícita:
+   * - Dentro de RESTORE_WINDOW_MS del borrado → RESTAURACIÓN:
+   *   se recupera el id (y con él, board/contexto/borradores).
+   * - Fuera de la ventana → NOTA NUEVA: se asigna id nuevo (perezoso)
+   *   y el tombstone pasa a `archived` (datos conservados, no se
+   *   reviven automáticamente). Recuperación manual/futura.
+   * Nunca se borran datos; la ambigüedad se resuelve conservando.
    */
   async onCreated(notePath: string): Promise<string | null> {
     return this.enqueue(async () => {
@@ -273,12 +326,24 @@ export class NoteIdentityRegistry {
       if (!store) return null;
       const tomb = store.tombstones[notePath];
       if (!tomb) return null;
-      delete store.tombstones[notePath];
-      if (store.ids[notePath] === undefined) {
-        store.ids[notePath] = tomb.id;
+
+      const age = Date.now() - tomb.deletedAt;
+      if (age <= RESTORE_WINDOW_MS) {
+        // Restauración (ventana corta tras el borrado).
+        delete store.tombstones[notePath];
+        if (store.ids[notePath] === undefined) {
+          store.ids[notePath] = tomb.id;
+        }
+        await this.persist();
+        return store.ids[notePath] ?? tomb.id;
       }
+
+      // Creación nueva probable: archivar el tombstone (conservar).
+      delete store.tombstones[notePath];
+      store.archived = store.archived ?? {};
+      store.archived[notePath] = { ...tomb, deletedAt: tomb.deletedAt };
       await this.persist();
-      return store.ids[notePath] ?? tomb.id;
+      return null;
     });
   }
 
@@ -292,6 +357,7 @@ export class NoteIdentityRegistry {
       const report: ReconcileReport = {
         orphans: [],
         restored: [],
+        archived: [],
         duplicateIds: []
       };
       const store = await this.load();
@@ -300,9 +366,18 @@ export class NoteIdentityRegistry {
 
       for (const [path, tomb] of Object.entries(store.tombstones)) {
         if (existing.has(path) && store.ids[path] === undefined) {
-          store.ids[path] = tomb.id;
-          delete store.tombstones[path];
-          report.restored.push(path);
+          // Misma regla A3 que onCreated: ventana de restauración.
+          const age = Date.now() - tomb.deletedAt;
+          if (age <= RESTORE_WINDOW_MS) {
+            store.ids[path] = tomb.id;
+            delete store.tombstones[path];
+            report.restored.push(path);
+          } else {
+            delete store.tombstones[path];
+            store.archived = store.archived ?? {};
+            store.archived[path] = tomb;
+            report.archived.push(path);
+          }
         }
       }
 
@@ -319,7 +394,9 @@ export class NoteIdentityRegistry {
         }
       }
 
-      if (report.restored.length > 0) await this.persist();
+      if (report.restored.length > 0 || report.archived.length > 0) {
+        await this.persist();
+      }
       return report;
     });
   }
