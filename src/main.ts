@@ -248,12 +248,29 @@ export default class FolderLabPlugin extends Plugin {
     // INICIALIZAR GESTOR DE INSTANCIAS
     // ============================================================
 
+    // ============================================================
+    // IDENTIDAD Y ALMACENES POR ENTIDAD (Etapas 1 y 3)
+    // ============================================================
+    const noteIdentityRegistry = new NoteIdentityRegistry(
+      this.app,
+      () => this.settings.bookRootPath || null
+    );
+    const rootPathFn = () => this.settings.bookRootPath || null;
+    const identityFn = (notePath: string) =>
+      noteIdentityRegistry.getId(notePath);
+
     const noteRepository =
-      new NoteRepository(this.app);
+      new NoteRepository(this.app, {
+        identity: identityFn,
+        getRootPath: rootPathFn
+      });
     this.noteRepository = noteRepository;
 
     this.boardRepository =
-      new BoardRepository(this.app);
+      new BoardRepository(this.app, {
+        identity: identityFn,
+        getRootPath: rootPathFn
+      });
 
     this.widgetManager =
       new WidgetManager(
@@ -264,10 +281,6 @@ export default class FolderLabPlugin extends Plugin {
     // ============================================================
     // CICLO DE VIDA DE DATOS (Etapa 1)
     // ============================================================
-    const noteIdentityRegistry = new NoteIdentityRegistry(
-      this.app,
-      () => this.settings.bookRootPath || null
-    );
     this.noteLifecycle = new NoteLifecycle({
       registry: noteIdentityRegistry,
       boards: this.boardRepository,
@@ -277,7 +290,7 @@ export default class FolderLabPlugin extends Plugin {
     });
     this.draftStore = new DraftStore(
       this.app,
-      () => this.settings.bookRootPath || null,
+      rootPathFn,
       noteIdentityRegistry
     );
 

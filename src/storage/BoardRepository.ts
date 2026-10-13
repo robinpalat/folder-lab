@@ -1,5 +1,6 @@
 import { App } from 'obsidian';
 import { HiddenFolderManager } from './HiddenFolderManager';
+import { EntityFileStore } from './EntityFileStore';
 import { INTERNAL_FOLDER } from '../constants/view-types';
 
 const BOARD_FILE = '_board.json';
@@ -238,6 +239,9 @@ function assertBoardDataForSave(
 export class BoardRepository {
 
   private readonly hiddenManager: HiddenFolderManager;
+  private readonly identity?: (notePath: string) => Promise<string | null>;
+  private readonly getRootPath?: () => string | null;
+  private readonly entities: EntityFileStore<BoardData> | null;
 
   /*
    * P2-1: cola FIFO de operaciones sobre el almacén de la
@@ -245,17 +249,41 @@ export class BoardRepository {
    * catch para que un fallo no bloquee la cola): cada
    * lectura-modificación-escritura se ejecuta completa antes
    * de que empiece la siguiente, de modo que dos escrituras no
-   * pueden terminar aplicándose en orden inverso y un RMW
+   * pueden terminarse aplicándose en orden inverso y un RMW
    * concurrente no pierde actualizaciones de otras notas.
    * Instancia única por plugin (compartida por todos los Board).
    */
   private tail: Promise<void> = Promise.resolve();
 
-  constructor(private readonly app: App) {
+  constructor(
+    private readonly app: App,
+    options?: {
+      identity?: (notePath: string) => Promise<string | null>;
+      getRootPath?: () => string | null;
+    }
+  ) {
     this.hiddenManager = new HiddenFolderManager(
       app,
       INTERNAL_FOLDER
     );
+    this.identity = options?.identity;
+    this.getRootPath = options?.getRootPath;
+    this.entities =
+      this.identity && this.getRootPath
+        ? new EntityFileStore<BoardData>(app, {
+            subfolder: 'boards',
+            getRootPath: this.getRootPath,
+            validate: (data, context) => {
+              assertStoredBoardData(data, context);
+            }
+          })
+        : null;
+  }
+
+  /** Id estable de la nota si la identidad está disponible. */
+  private async entityId(notePath: string): Promise<string | null> {
+    if (!this.identity || !this.getRootPath?.()) return null;
+    return this.identity(notePath);
   }
 
   private enqueue<T>(op: () => Promise<T>): Promise<T> {
@@ -312,7 +340,28 @@ export class BoardRepository {
    * entrada y borraría los boards de las demás notas.
    */
   loadFolder(folderPath: string): Promise<BoardStore> {
-    return this.enqueue(() => this.readStoreRaw(folderPath));
+    return this.enqueue(async () => {
+      const legacy = await this.readStoreRaw(folderPath);
+      if (!this.entities) return legacy;
+
+      // Fusión: el store legado + los archivos por entidad (la
+      // entidad gana). Los archivos corruptos se omiten con log.
+      const merged: BoardStore = { ...legacy };
+      const items = await this.entities.list();
+      const prefix =
+        folderPath === '' ? '' : folderPath.replace(/\/+$/, '') + '/';
+      for (const { envelope } of items) {
+        const notePath = envelope.notePath;
+        const inFolder =
+          folderPath === ''
+            ? !notePath.includes('/')
+            : notePath.startsWith(prefix);
+        if (inFolder) {
+          merged[notePath] = envelope.data;
+        }
+      }
+      return merged;
+    });
   }
 
   saveFolder(
@@ -337,23 +386,31 @@ export class BoardRepository {
 
       if (oldFolder === newFolder) {
         const store = await this.readStoreRaw(oldFolder);
-        if (!(oldPath in store)) return;
-        store[newPath] = store[oldPath];
-        delete store[oldPath];
-        await this.writeStoreRaw(oldFolder, store);
-        return;
+        if (oldPath in store) {
+          store[newPath] = store[oldPath];
+          delete store[oldPath];
+          await this.writeStoreRaw(oldFolder, store);
+        }
+      } else {
+        const source = await this.readStoreRaw(oldFolder);
+        if (oldPath in source) {
+          const entry = source[oldPath];
+          const target = await this.readStoreRaw(newFolder);
+          target[newPath] = entry;
+          await this.writeStoreRaw(newFolder, target);
+          delete source[oldPath];
+          await this.writeStoreRaw(oldFolder, source);
+        }
       }
 
-      const source = await this.readStoreRaw(oldFolder);
-      if (!(oldPath in source)) return;
-      const entry = source[oldPath];
-
-      const target = await this.readStoreRaw(newFolder);
-      target[newPath] = entry;
-      await this.writeStoreRaw(newFolder, target);
-
-      delete source[oldPath];
-      await this.writeStoreRaw(oldFolder, source);
+      // El re-clavado de la entidad se aplica aunque la entrada
+      // viva SOLO en el archivo por entidad (Etapa 3).
+      if (this.entities) {
+        await this.entities.rekeyNotePath(
+          (p) => p === oldPath,
+          () => newPath
+        );
+      }
     });
   }
 
@@ -387,6 +444,15 @@ export class BoardRepository {
         }
       }
       if (changed) await this.writeStoreRaw(folderPath, store);
+      if (this.entities) {
+        await this.entities.rekeyNotePath(
+          (p) => p === oldBase || p.startsWith(oldBase + '/'),
+          (p) =>
+            p === oldBase
+              ? newBase
+              : newBase + '/' + p.slice(oldBase.length + 1)
+        );
+      }
     });
   }
 
@@ -398,6 +464,17 @@ export class BoardRepository {
         return null;
       }
 
+      // 1) Archivo por entidad (verdad única, Etapa 3). JSON
+      //    ilegible PROPAGA (protección anti-pisado).
+      const id = await this.entityId(notePath);
+      if (id && this.entities) {
+        const envelope = await this.entities.read(id);
+        if (envelope !== null) {
+          return envelope.data;
+        }
+      }
+
+      // 2) Fallback al store multipath legado (+ migración perezosa).
       const store = await this.readStoreRaw(folderPath);
 
       const entry = store[notePath];
@@ -411,6 +488,15 @@ export class BoardRepository {
       // sobrescribiría con un estado inventado).
       assertStoredBoardData(entry, `"${notePath}"`);
 
+      if (id && this.entities) {
+        await this.entities.write(id, notePath, entry).catch((error) => {
+          console.error(
+            '[BoardRepository] Migración perezosa fallida:',
+            error
+          );
+        });
+      }
+
       return entry;
     });
   }
@@ -420,6 +506,18 @@ export class BoardRepository {
     data: BoardData
   ): Promise<void> {
     return this.enqueue(async () => {
+      assertBoardDataForSave(data, `"${notePath}"`);
+
+      // Ruta por entidad (Etapa 3): verdad única por nota. Si el
+      // archivo existente es ilegible, la lectura protege PROPAGA
+      // y la escritura queda abortada (nunca se pisa un corrupto).
+      const id = await this.entityId(notePath);
+      if (id && this.entities) {
+        await this.entities.read(id);
+        await this.entities.write(id, notePath, data);
+        return;
+      }
+
       const folderPath = this.getParentFolderPath(notePath);
 
       if (folderPath === null) {
@@ -427,8 +525,6 @@ export class BoardRepository {
           `[BoardRepository] No se pudo determinar la carpeta padre de "${notePath}"`
         );
       }
-
-      assertBoardDataForSave(data, `"${notePath}"`);
 
       // Si la lectura del almacén falla o el JSON está corrupto,
       // readStoreRaw lanza y la escritura queda ABORTADA: los
