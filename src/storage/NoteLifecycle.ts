@@ -408,8 +408,8 @@ export class NoteLifecycle {
     await this.deps.registry.onDeleted(notePath);
   }
 
-  /** Creación/restauración: recupera el id si había tombstone. */
-  async onNoteCreated(notePath: string): Promise<string | null> {
+  /** Creación/restauración: E2 delega en el registro (sin auto-claim). */
+  async onNoteCreated(notePath: string): Promise<null> {
     return this.deps.registry.onCreated(notePath);
   }
 

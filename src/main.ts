@@ -38,6 +38,8 @@ import { DraftStore } from './storage/DraftStore';
 import { resolveVaultStorageId } from './utils/vault-storage';
 import { normalizeRootPath } from './utils/rootPath';
 import { runStartupMaintenance } from './storage/startupMaintenance';
+import { registerLifecycleListeners } from './storage/vaultLifecycleListeners';
+import { ClaimDataModal } from './modals/ClaimDataModal';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
 import { WidgetController } from './focus/controllers/WidgetController';
@@ -300,6 +302,59 @@ export default class FolderLabPlugin extends Plugin {
       rootPathFn,
       noteIdentityRegistry
     );
+
+    // ============================================================
+    // CICLO DE VIDA INDEPENDIENTE DE LA VISTA (E2)
+    // ============================================================
+    registerLifecycleListeners(
+      this,
+      this.noteLifecycle,
+      noteIdentityRegistry,
+      rootPathFn
+    );
+
+    // Comando de reclamación EXPLÍCITA de identidades pendientes.
+    this.addCommand({
+      id: 'claim-note-data',
+      name: 'Reclamar datos de nota…',
+      callback: () => {
+        const registry = this.noteIdentityRegistry;
+        if (!registry) return;
+        void registry
+          .listAllPending()
+          .then((candidates) => {
+            if (candidates.length === 0) {
+              new Notice('Folder Lab: no hay datos pendientes.');
+              return;
+            }
+            if (candidates.length === 1) {
+              // Un único candidato: reclamo directo (idempotente).
+              void registry
+                .claim(candidates[0].path, candidates[0].bucket)
+                .then((result) => {
+                  if (result.status === 'claimed') {
+                    new Notice(
+                      `Folder Lab: datos restaurados en «${candidates[0].path}».`
+                    );
+                  } else {
+                    new Notice(
+                      'Folder Lab: el reclamo directo no se pudo completar.'
+                    );
+                  }
+                });
+              return;
+            }
+            // Varios candidatos: presentar opciones (sin elegir).
+            new ClaimDataModal(this.app, candidates, registry).open();
+          })
+          .catch((error) => {
+            console.error(
+              '[FolderLab] Error listando datos pendientes:',
+              error
+            );
+          });
+      }
+    });
 
     // M1: mantenimiento de arranque (diario M2 + reconcile A3),
     // una vez, tras estar layout y configuración disponibles.

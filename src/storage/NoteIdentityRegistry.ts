@@ -1,19 +1,24 @@
 // src/storage/NoteIdentityRegistry.ts
 //
-// Identidad estable de notas (Etapa 1 de la reforma de almacenamiento).
+// Identidad estable de notas (Etapa 1 + E2 «identidad pendiente»).
 //
-// Decisión (documentada en el diseño de almacenamiento): registro
-// lateral en `<master>/Folder Lab/ids.json` (Etapa 5; antes en
-// `<master>/.folder-lab/ids.json`, que se lee como respaldo) — NO se
-// modifica el frontmatter de las notas del usuario.
+// Registro lateral en `<master>/Folder Lab/ids.json` (Etapa 5) — NO
+// se modifica el frontmatter de las notas del usuario.
 //
-// - `ids`:        ruta de nota → id estable (se conserva al renombrar).
-// - `tombstones`: ruta borrada → { id, deletedAt } (permite recuperar
-//                 la identidad al restaurar la nota en la misma ruta).
+// Buckets (E2 — sustituye la ventana temporal de 15 min):
+// - `ids`:      ruta activa → id estable (se conserva al renombrar).
+// - `pending`:  ruta borrada → { id, deletedAt, detectedAt }; los
+//               datos por id permanecen intactos y la ruta queda
+//               DESVINCULADA: una nota nueva en esa ruta recibe un
+//               id nuevo y NO hereda el contexto. La recuperación es
+//               EXPLÍCITA vía `claim()` (comando del plugin).
+// - `archived`: entradas históricas (A3) — también reclamables con
+//               `claim(..., 'archived')`; nunca se purgan aquí.
+// - `tombstones`: legado v1 — en cada carga se MIGRA a `pending`
+//               (conservando id y fechas); no se borran datos.
 //
 // Sin Master configurado el registro no persiste y `getId` devuelve
-// `null`: los consumidores deben caer a la ruta como identidad
-// (comportamiento previo a la reforma).
+// `null`: los consumidores caen a la ruta como identidad.
 
 import { App } from 'obsidian';
 import { HiddenFolderManager } from './HiddenFolderManager';
@@ -25,38 +30,63 @@ export interface IdentityTombstone {
   deletedAt: number;
 }
 
+/** Entrada pendiente de reclamación (E2). */
+export interface PendingEntry extends IdentityTombstone {
+  /** Momento en que se detectó/creó la pendencia (retención futura). */
+  detectedAt: number;
+}
+
+export interface PendingClaim {
+  path: string;
+  id: string;
+  deletedAt: number;
+  detectedAt: number;
+  bucket: 'pending' | 'archived';
+}
+
 export interface IdentityStore {
   version: 1;
   ids: Record<string, string>;
+  /** Legado v1; se migra a `pending` en la carga. */
   tombstones: Record<string, IdentityTombstone>;
-  /**
-   * Tombstones archivados (A3): la nota NO se consideró
-   * restauración (creación nueva en ruta antigua tras la ventana).
-   * Conservan id y datos para recuperación manual; reconcile no los
-   * revive automáticamente.
-   */
-  archived?: Record<string, IdentityTombstone>;
+  pending: Record<string, PendingEntry>;
+  archived: Record<string, IdentityTombstone>;
 }
 
 export interface ReconcileReport {
-  /** Rutas con id cuya nota no existe y no está en tombstone. */
+  /** Rutas con id activo cuya nota no existe. */
   orphans: string[];
-  /** Tombstones restaurados (la nota volvió a existir sin evento). */
-  restored: string[];
-  /** Tombstones archivados por creación nueva fuera de ventana. */
-  archived: string[];
+  /** Rutas con datos pendientes cuya nota YA existe (reclamar). */
+  pendingExisting: string[];
   /** Ids duplicados detectados (invariante rota; solo reporte). */
   duplicateIds: string[];
 }
 
+export type ClaimResult =
+  | { status: 'claimed'; id: string }
+  | { status: 'none' }
+  | { status: 'ambiguous'; candidates: PendingClaim[] }
+  | {
+      status: 'conflict';
+      existingId: string;
+      candidates: PendingClaim[];
+    };
+
 function emptyStore(): IdentityStore {
-  return { version: 1, ids: {}, tombstones: {}, archived: {} };
+  return {
+    version: 1,
+    ids: {},
+    tombstones: {},
+    pending: {},
+    archived: {}
+  };
 }
 
-/** Hidrata el store desde datos crudos preservando archived. */
+/** Hidrata desde datos crudos (v1 o v2) sin perder ningún bucket. */
 function hydrate(data: {
   ids: Record<string, string>;
   tombstones?: Record<string, IdentityTombstone>;
+  pending?: Record<string, PendingEntry>;
   archived?: Record<string, IdentityTombstone>;
 }): IdentityStore {
   return {
@@ -66,6 +96,8 @@ function hydrate(data: {
       data.tombstones && typeof data.tombstones === 'object'
         ? data.tombstones
         : {},
+    pending:
+      data.pending && typeof data.pending === 'object' ? data.pending : {},
     archived:
       data.archived && typeof data.archived === 'object'
         ? data.archived
@@ -74,12 +106,25 @@ function hydrate(data: {
 }
 
 /**
- * Ventana en la que una creación en la ruta de una nota borrada se
- * considera RESTAURACIÓN (papelera → restaurar casi inmediato).
- * Fuera de la ventana se trata como nota NUEVA (A3): la identidad
- * anterior se archiva, nunca se borra.
+ * Migra `tombstones` (v1) a `pending` conservando id y fechas.
+ * Devuelve true si hubo cambios (persistir).
  */
-export const RESTORE_WINDOW_MS = 15 * 60 * 1000;
+function migrateTombstonesToPending(store: IdentityStore): boolean {
+  let changed = false;
+  for (const [path, tomb] of Object.entries(store.tombstones)) {
+    if (!store.pending[path]) {
+      store.pending[path] = {
+        id: tomb.id,
+        deletedAt: tomb.deletedAt,
+        detectedAt: tomb.deletedAt
+      };
+      changed = true;
+    }
+    delete store.tombstones[path];
+    changed = true;
+  }
+  return changed;
+}
 
 /**
  * Genera ids con entropía suficiente (crypto cuando existe; doble
@@ -171,7 +216,9 @@ export class NoteIdentityRegistry {
         ) {
           data = legacy;
           this.cache = hydrate(legacy);
-          await this.persist();
+          if (migrateTombstonesToPending(this.cache)) {
+            await this.persist();
+          }
           return this.cache;
         }
       } catch {
@@ -195,6 +242,10 @@ export class NoteIdentityRegistry {
       return null;
     }
     this.cache = hydrate(data);
+    // E2: migración conservadora de tombstones v1 → pending.
+    if (migrateTombstonesToPending(this.cache)) {
+      await this.persist();
+    }
     return this.cache;
   }
 
@@ -258,22 +309,20 @@ export class NoteIdentityRegistry {
       const store = await this.load();
       if (!store) return;
       const id = store.ids[oldPath];
-      if (id === undefined && !store.tombstones[oldPath] && !store.archived?.[oldPath]) {
-        return;
-      }
+      const hasPending = !!store.pending[oldPath];
+      const hasArchived = !!store.archived[oldPath];
+      if (id === undefined && !hasPending && !hasArchived) return;
       if (id !== undefined) {
         delete store.ids[oldPath];
         store.ids[newPath] = id;
       }
-      if (store.tombstones[oldPath]) {
-        const tomb = store.tombstones[oldPath];
-        delete store.tombstones[oldPath];
-        store.tombstones[newPath] = { ...tomb, deletedAt: Date.now() };
+      if (store.pending[oldPath]) {
+        store.pending[newPath] = store.pending[oldPath];
+        delete store.pending[oldPath];
       }
-      if (store.archived?.[oldPath]) {
-        const arch = store.archived[oldPath];
+      if (store.archived[oldPath]) {
+        store.archived[newPath] = store.archived[oldPath];
         delete store.archived[oldPath];
-        store.archived[newPath] = arch;
       }
       await this.persist();
     });
@@ -289,47 +338,34 @@ export class NoteIdentityRegistry {
       if (!store) return;
       const oldBase = oldPrefix.replace(/\/+$/, '');
       const newBase = newPrefix.replace(/\/+$/, '');
-      let changed = false;
-      for (const key of Object.keys(store.ids)) {
-        if (key === oldBase || key.startsWith(oldBase + '/')) {
-          const next =
-            key === oldBase
-              ? newBase
-              : newBase + '/' + key.slice(oldBase.length + 1);
-          store.ids[next] = store.ids[key];
-          delete store.ids[key];
-          changed = true;
-        }
-      }
-      for (const key of Object.keys(store.tombstones)) {
-        if (key === oldBase || key.startsWith(oldBase + '/')) {
-          const next =
-            key === oldBase
-              ? newBase
-              : newBase + '/' + key.slice(oldBase.length + 1);
-          store.tombstones[next] = store.tombstones[key];
-          delete store.tombstones[key];
-          changed = true;
-        }
-      }
-      if (store.archived) {
-        for (const key of Object.keys(store.archived)) {
+      const rekey = <T>(record: Record<string, T>): boolean => {
+        let changedLocal = false;
+        for (const key of Object.keys(record)) {
           if (key === oldBase || key.startsWith(oldBase + '/')) {
             const next =
               key === oldBase
                 ? newBase
                 : newBase + '/' + key.slice(oldBase.length + 1);
-            store.archived[next] = store.archived[key];
-            delete store.archived[key];
-            changed = true;
+            record[next] = record[key];
+            delete record[key];
+            changedLocal = true;
           }
         }
-      }
+        return changedLocal;
+      };
+      let changed = false;
+      changed = rekey(store.ids) || changed;
+      changed = rekey(store.pending) || changed;
+      changed = rekey(store.archived) || changed;
+      changed = rekey(store.tombstones) || changed;
       if (changed) await this.persist();
     });
   }
 
-  /** Borrado: conserva el id como tombstone (recuperable). */
+  /**
+   * Borrado (E2): el id pasa a `pending`; la ruta queda desvinculada
+   * (una nota nueva NO lo heredará) y los datos por id se conservan.
+   */
   async onDeleted(notePath: string): Promise<void> {
     return this.enqueue(async () => {
       const store = await this.load();
@@ -337,82 +373,221 @@ export class NoteIdentityRegistry {
       const id = store.ids[notePath];
       if (id === undefined) return;
       delete store.ids[notePath];
-      store.tombstones[notePath] = { id, deletedAt: Date.now() };
+      const now = Date.now();
+      store.pending[notePath] = {
+        id,
+        deletedAt: now,
+        detectedAt: now
+      };
       await this.persist();
     });
   }
 
   /**
-   * Creación/restauración (A3).
-   *
-   * La API de Obsidian no distingue «restaurar de la papelera» de
-   * «crear nota nueva en ruta antigua»: ambos emiten `create`.
-   * Estrategia explícita:
-   * - Dentro de RESTORE_WINDOW_MS del borrado → RESTAURACIÓN:
-   *   se recupera el id (y con él, board/contexto/borradores).
-   * - Fuera de la ventana → NOTA NUEVA: se asigna id nuevo (perezoso)
-   *   y el tombstone pasa a `archived` (datos conservados, no se
-   *   reviven automáticamente). Recuperación manual/futura.
-   * Nunca se borran datos; la ambigüedad se resuelve conservando.
+   * Creación (E2): NO se decide por coincidencia de ruta ni por
+   * ventana temporal. La nota nueva recibe un id nuevo (perezoso);
+   * los datos pendientes/archivados se conservan hasta un `claim()`
+   * explícito del usuario.
    */
-  async onCreated(notePath: string): Promise<string | null> {
+  async onCreated(_notePath: string): Promise<null> {
+    // La carga migra tombstones v1 → pending si los hubiera.
+    await this.load();
+    return null;
+  }
+
+  /** Candidatas pendientes/archivadas para una ruta concreta. */
+  async getPendingFor(notePath: string): Promise<PendingClaim[]> {
     return this.enqueue(async () => {
       const store = await this.load();
-      if (!store) return null;
-      const tomb = store.tombstones[notePath];
-      if (!tomb) return null;
-
-      const age = Date.now() - tomb.deletedAt;
-      if (age <= RESTORE_WINDOW_MS) {
-        // Restauración (ventana corta tras el borrado).
-        delete store.tombstones[notePath];
-        if (store.ids[notePath] === undefined) {
-          store.ids[notePath] = tomb.id;
-        }
-        await this.persist();
-        return store.ids[notePath] ?? tomb.id;
+      if (!store) return [];
+      const out: PendingClaim[] = [];
+      const p = store.pending[notePath];
+      if (p) {
+        out.push({
+          path: notePath,
+          id: p.id,
+          deletedAt: p.deletedAt,
+          detectedAt: p.detectedAt,
+          bucket: 'pending'
+        });
       }
+      const a = store.archived[notePath];
+      if (a) {
+        out.push({
+          path: notePath,
+          id: a.id,
+          deletedAt: a.deletedAt,
+          detectedAt: a.deletedAt,
+          bucket: 'archived'
+        });
+      }
+      return out;
+    });
+  }
 
-      // Creación nueva probable: archivar el tombstone (conservar).
-      delete store.tombstones[notePath];
-      store.archived = store.archived ?? {};
-      store.archived[notePath] = { ...tomb, deletedAt: tomb.deletedAt };
-      await this.persist();
-      return null;
+  /** Todas las candidatas (para el comando de reclamación). */
+  async listAllPending(): Promise<PendingClaim[]> {
+    return this.enqueue(async () => {
+      const store = await this.load();
+      if (!store) return [];
+      const out: PendingClaim[] = [];
+      for (const [path, p] of Object.entries(store.pending)) {
+        out.push({
+          path,
+          id: p.id,
+          deletedAt: p.deletedAt,
+          detectedAt: p.detectedAt,
+          bucket: 'pending'
+        });
+      }
+      for (const [path, a] of Object.entries(store.archived)) {
+        out.push({
+          path,
+          id: a.id,
+          deletedAt: a.deletedAt,
+          detectedAt: a.deletedAt,
+          bucket: 'archived'
+        });
+      }
+      return out;
     });
   }
 
   /**
-   * Detección de inconsistencias (no destructiva):
-   * - restaura tombstones cuya nota volvió a existir sin evento;
-   * - reporta ids huérfanos e ids duplicados.
+   * Reclamación EXPLÍCITA (E2).
+   * - Sin candidatas → 'none'.
+   * - La ruta ya tiene un id activo DISTINTO → 'conflict' (no se
+   *   pisa; los candidatos se conservan para resolución manual).
+   * - Varias candidatas y sin `bucket` → 'ambiguous' (no se elige
+   *   arbitrariamente; el llamante presenta las opciones).
+   * - Un solo candidato (o `bucket` explícito) → se asocia el id y
+   *   se retira SOLO el bucket reclamado (el otro se conserva).
+   * Idempotente: reclamar dos veces la misma entrada es un no-op.
+   */
+  async claim(
+    notePath: string,
+    bucket?: 'pending' | 'archived'
+  ): Promise<ClaimResult> {
+    return this.enqueue(async () => {
+      const store = await this.load();
+      if (!store) return { status: 'none' };
+
+      const candidates = this.collectCandidates(store, notePath);
+      const active = store.ids[notePath];
+
+      if (active !== undefined) {
+        if (candidates.length === 0) {
+          // Ya reclamada y sin candidatas: idempotente.
+          return { status: 'claimed', id: active };
+        }
+        if (candidates.some((c) => c.id === active)) {
+          // Reclamada; retira el bucket restante con el mismo id.
+          this.removeClaimedBucket(store, notePath, active);
+          await this.persist();
+          return { status: 'claimed', id: active };
+        }
+        return { status: 'conflict', existingId: active, candidates };
+      }
+
+      if (candidates.length === 0) return { status: 'none' };
+
+      let chosen: PendingClaim | null = null;
+      if (bucket) {
+        chosen = candidates.find((c) => c.bucket === bucket) ?? null;
+        if (!chosen) return { status: 'none' };
+      } else if (candidates.length === 1) {
+        chosen = candidates[0];
+      } else {
+        return { status: 'ambiguous', candidates };
+      }
+
+      store.ids[notePath] = chosen.id;
+      // Retira solo el bucket reclamado; conserva el resto.
+      if (chosen.bucket === 'pending') {
+        delete store.pending[notePath];
+      } else {
+        delete store.archived[notePath];
+      }
+      await this.persist();
+      return { status: 'claimed', id: chosen.id };
+    });
+  }
+
+  private collectCandidates(
+    store: IdentityStore,
+    notePath: string
+  ): PendingClaim[] {
+    const out: PendingClaim[] = [];
+    const p = store.pending[notePath];
+    if (p) {
+      out.push({
+        path: notePath,
+        id: p.id,
+        deletedAt: p.deletedAt,
+        detectedAt: p.detectedAt,
+        bucket: 'pending'
+      });
+    }
+    const a = store.archived[notePath];
+    if (a) {
+      out.push({
+        path: notePath,
+        id: a.id,
+        deletedAt: a.deletedAt,
+        detectedAt: a.deletedAt,
+        bucket: 'archived'
+      });
+    }
+    return out;
+  }
+
+  /** Tras un reclamo idempotente: retira buckets con el id activo. */
+  private removeClaimedBucket(
+    store: IdentityStore,
+    notePath: string,
+    activeId: string
+  ): boolean {
+    let changed = false;
+    if (store.pending[notePath]?.id === activeId) {
+      delete store.pending[notePath];
+      changed = true;
+    }
+    if (store.archived[notePath]?.id === activeId) {
+      delete store.archived[notePath];
+      changed = true;
+    }
+    return changed;
+  }
+
+  /**
+   * Detección de inconsistencias (no destructiva, E2):
+   * - NO restaura automáticamente (reclamo explícito);
+   * - reporta rutas pendientes cuya nota ya existe;
+   * - reporta ids huérfanos y duplicados.
    */
   async reconcile(existingPaths: string[]): Promise<ReconcileReport> {
     return this.enqueue(async () => {
       const report: ReconcileReport = {
         orphans: [],
-        restored: [],
-        archived: [],
+        pendingExisting: [],
         duplicateIds: []
       };
       const store = await this.load();
       if (!store) return report;
       const existing = new Set(existingPaths);
 
-      for (const [path, tomb] of Object.entries(store.tombstones)) {
+      for (const path of Object.keys(store.pending)) {
         if (existing.has(path) && store.ids[path] === undefined) {
-          // Misma regla A3 que onCreated: ventana de restauración.
-          const age = Date.now() - tomb.deletedAt;
-          if (age <= RESTORE_WINDOW_MS) {
-            store.ids[path] = tomb.id;
-            delete store.tombstones[path];
-            report.restored.push(path);
-          } else {
-            delete store.tombstones[path];
-            store.archived = store.archived ?? {};
-            store.archived[path] = tomb;
-            report.archived.push(path);
-          }
+          report.pendingExisting.push(path);
+        }
+      }
+      for (const path of Object.keys(store.archived)) {
+        if (
+          existing.has(path) &&
+          store.ids[path] === undefined &&
+          !report.pendingExisting.includes(path)
+        ) {
+          report.pendingExisting.push(path);
         }
       }
 
@@ -427,10 +602,6 @@ export class NoteIdentityRegistry {
         } else {
           seen.set(id, path);
         }
-      }
-
-      if (report.restored.length > 0 || report.archived.length > 0) {
-        await this.persist();
       }
       return report;
     });

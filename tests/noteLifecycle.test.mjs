@@ -315,38 +315,52 @@ test('renombrar carpeta re-clava stores, identidad y borradores', async () => {
 // ------------------------------------------------------------
 // 4. Borrar / restaurar
 // ------------------------------------------------------------
-test('borrar conserva id como tombstone; restaurar lo recupera', async () => {
+test('E2: borrar deja id pendiente; el reclamo explícito lo recupera', async () => {
   const { lifecycle, registry } = makeLifecycle();
   const id = await lifecycle.getNoteId('n.md');
   await lifecycle.onNoteDeleted('n.md');
+  // Sin reclamo: la nota no tiene id asociado.
   assert.equal(await registry.findIdByPath('n.md'), null);
-  const restored = await lifecycle.onNoteCreated('n.md');
-  assert.equal(restored, id);
+  // onCreated NO auto-reclama (creación nueva = id nuevo después).
+  assert.equal(await lifecycle.onNoteCreated('n.md'), null);
+  // Reclamo explícito recupera el mismo id (sin límite de tiempo).
+  const pending = await registry.getPendingFor('n.md');
+  assert.equal(pending.length, 1);
+  const result = await registry.claim('n.md');
+  assert.equal(result.status, 'claimed');
   assert.equal(await registry.findIdByPath('n.md'), id);
 });
-
-test('nota nueva sin tombstone: onCreated no asigna id', async () => {
+test('nota nueva sin pendientes: onCreated no asigna id', async () => {
   const { lifecycle } = makeLifecycle();
   assert.equal(await lifecycle.onNoteCreated('nueva.md'), null);
 });
 
 // ------------------------------------------------------------
-// 5. reconcile
+// 5. reconcile (E2: sin restauración automática)
 // ------------------------------------------------------------
-test('reconcile reporta huérfanos y restaura tombstones', async () => {
+
+test('reconcile reporta huérfanos y pendientes existentes sin auto-restaurar', async () => {
   const { lifecycle, registry } = makeLifecycle();
   await registry.getId('viva.md');
-  await registry.getId('muerta.md');
+  const muertaId = await registry.getId('muerta.md');
   await registry.onDeleted('muerta.md');
 
+  // La nota muerta «reaparece» sin evento (p. ej. sync) → reporte.
   const report = await registry.reconcile(['viva.md', 'muerta.md']);
   assert.deepEqual(report.orphans, []);
-  assert.deepEqual(report.restored, ['muerta.md']);
-  // Tras restaurar, la identidad vuelve.
-  assert.ok((await registry.findIdByPath('muerta.md')) !== null);
+  assert.deepEqual(report.pendingExisting, ['muerta.md']);
+  // NO se restaura automáticamente: sigue sin id activo.
+  assert.equal(await registry.findIdByPath('muerta.md'), null);
 
+  // La nota desaparece de nuevo: pending sin nota existente NO es
+  // huérfano (huérfano = id ACTIVO sin nota); queda pendiente.
   const report2 = await registry.reconcile(['viva.md']);
-  assert.deepEqual(report2.orphans, ['muerta.md']);
+  assert.deepEqual(report2.orphans, []);
+  assert.deepEqual(report2.pendingExisting, []);
+  const pending = await registry.getPendingFor('muerta.md');
+  assert.equal(pending.length, 1, 'el pendiente se conserva');
+  void lifecycle;
+  void muertaId;
 });
 
 test('reconcile detecta ids duplicados sin modificar nada', async () => {
@@ -365,51 +379,105 @@ test('reconcile detecta ids duplicados sin modificar nada', async () => {
 // A3: restauración vs creación nueva
 // ------------------------------------------------------------
 
-test('A3: restauración dentro de la ventana recupera el mismo id', async () => {
-  const { lifecycle, registry } = makeLifecycle();
-  const id = await lifecycle.getNoteId('n.md');
-  await lifecycle.onNoteDeleted('n.md');
-  const restored = await lifecycle.onNoteCreated('n.md');
-  assert.equal(restored, id);
-  assert.equal(await registry.findIdByPath('n.md'), id);
-});
-
-test('A3: creación nueva FUERA de la ventana archiva y asigna id nuevo', async () => {
+test('E2: recuperación más allá de cualquier plazo (claim tardío)', async () => {
   const { registry, hidden } = makeRegistry();
   const oldId = await registry.getId('n.md');
   await registry.onDeleted('n.md');
-  // Envejecer el tombstone más allá de la ventana (15 min).
+  // Envejecer la pendencia años (sin ventana temporal en E2).
   const file = hidden.files.get('/Master/ids.json');
-  file.tombstones['n.md'].deletedAt =
-    Date.now() - (16 * 60 * 1000);
+  file.pending['n.md'].deletedAt = Date.now() - 365 * 24 * 60 * 60 * 1000;
 
-  // Nueva instancia = nuevo arranque (caché fría).
   const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
-  const result = await fresh.onCreated('n.md');
-  assert.equal(result, null, 'sin restauración automática');
-  // El tombstone quedó archivado (conservado, no eliminado).
-  const after = hidden.files.get('/Master/ids.json');
-  assert.equal(after.archived['n.md'].id, oldId);
-  assert.equal(after.tombstones['n.md'], undefined);
-  // Una nota nueva recibe un id DISTINTO.
+  const result = await fresh.claim('n.md');
+  assert.equal(result.status, 'claimed');
+  assert.equal(await fresh.findIdByPath('n.md'), oldId);
+});
+
+test('E2: creación nueva en ruta antigua recibe id nuevo; el reclamo recupera el viejo', async () => {
+  const { registry, hidden } = makeRegistry();
+  const oldId = await registry.getId('n.md');
+  await registry.onDeleted('n.md');
+
+  // Nota nueva (sin reclamo): id nuevo; los datos viejos NO se asocian.
+  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  assert.equal(await fresh.onCreated('n.md'), null);
   const newId = await fresh.getId('n.md');
   assert.notEqual(newId, oldId);
-  // Los datos del id antiguo no se asocian a la nueva nota.
-  assert.equal(await fresh.findPathById(oldId), null);
+  assert.notEqual(await fresh.findPathById(oldId), 'n.md');
+
+  // Reclamo explícito conflicto: la ruta ya tiene id activo distinto.
+  const claim = await fresh.claim('n.md');
+  assert.equal(claim.status, 'conflict');
+  // La pendencia se conserva (recuperable en el futuro).
+  const after = hidden.files.get('/Master/ids.json');
+  assert.equal(after.pending['n.md'].id, oldId);
 });
 
-test('A3: reconcile aplica la misma ventana (archiva, no restaura)', async () => {
+test('E2: reconcile reporta pendientes existentes sin restaurar', async () => {
   const { registry, hidden } = makeRegistry();
   const oldId = await registry.getId('n.md');
   await registry.onDeleted('n.md');
-  hidden.files.get('/Master/ids.json').tombstones['n.md'].deletedAt =
-    Date.now() - (16 * 60 * 1000);
 
   const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
   const report = await fresh.reconcile(['n.md']);
-  assert.deepEqual(report.archived, ['n.md']);
-  assert.deepEqual(report.restored, []);
-  assert.equal(hidden.files.get('/Master/ids.json').archived['n.md'].id, oldId);
+  assert.deepEqual(report.pendingExisting, ['n.md']);
+  assert.equal(await fresh.findIdByPath('n.md'), null);
+  void oldId;
+});
+
+test('E2: ids.json v1 con tombstones migra a pending conservando datos', async () => {
+  const hidden = new FakeHidden();
+  hidden.files.set('/Master/ids.json', {
+    version: 1,
+    ids: { 'viva.md': 'id-viva' },
+    tombstones: {
+      'muerta.md': { id: 'id-muerta', deletedAt: 1234567890 }
+    }
+  });
+  const registry = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  // La carga migra: pendiente con las MISMAS fechas.
+  const pending = await registry.getPendingFor('muerta.md');
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].id, 'id-muerta');
+  assert.equal(pending[0].deletedAt, 1234567890);
+  // El id activo de la nota viva se conserva.
+  assert.equal(await registry.findIdByPath('viva.md'), 'id-viva');
+  // tombstones vacío tras la migración; los datos no se pierden.
+  const file = hidden.files.get('/Master/ids.json');
+  assert.deepEqual(file.tombstones, {});
+  assert.equal(file.pending['muerta.md'].id, 'id-muerta');
+});
+
+test('E2: ambigüedad pending+archived no se resuelve arbitrariamente', async () => {
+  const { registry, hidden } = makeRegistry();
+  const pendingId = await registry.getId('n.md');
+  await registry.onDeleted('n.md');
+  // Sembrar además un archived para la MISMA ruta (id distinto).
+  const file = hidden.files.get('/Master/ids.json');
+  file.archived = { 'n.md': { id: 'archived-id', deletedAt: 111 } };
+
+  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const result = await fresh.claim('n.md');
+  assert.equal(result.status, 'ambiguous');
+  assert.equal(result.candidates.length, 2);
+  // Con bucket explícito sí se reclama.
+  const claimed = await fresh.claim('n.md', 'pending');
+  assert.equal(claimed.status, 'claimed');
+  assert.equal(await fresh.findIdByPath('n.md'), pendingId);
+  // El archivado se conserva.
+  const after = hidden.files.get('/Master/ids.json');
+  assert.equal(after.archived['n.md'].id, 'archived-id');
+});
+
+test('E2: claim idempotente (dos veces = mismo resultado)', async () => {
+  const { registry } = makeRegistry();
+  const id = await registry.getId('n.md');
+  await registry.onDeleted('n.md');
+  const r1 = await registry.claim('n.md');
+  const r2 = await registry.claim('n.md');
+  assert.equal(r1.status, 'claimed');
+  assert.equal(r2.status, 'claimed');
+  assert.equal(await registry.findIdByPath('n.md'), id);
 });
 
 test('A3: ids.json sin campo archived es compatible (se hidrata)', async () => {
@@ -525,7 +593,7 @@ test('M1: runStartupMaintenance ejecuta recoverPending y reconcile', async () =>
   const report = await runStartupMaintenance(app, registry, lifecycle);
   assert.equal(report.recoveredJournal, true);
   assert.equal(report.reconcileOrphans, 0);
-  assert.equal(report.reconcileRestored, 0);
+  assert.equal(report.reconcilePendingExisting, 0);
 });
 
 test('M1: un fallo en recoverPending no impide reconcile', async () => {

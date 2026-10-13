@@ -17,8 +17,8 @@ import type { NoteLifecycle } from './NoteLifecycle';
 export interface MaintenanceReport {
   recoveredJournal: boolean;
   reconcileOrphans: number;
-  reconcileRestored: number;
-  reconcileArchived: number;
+  /** Rutas con datos pendientes cuya nota ya existe (reclamar). */
+  reconcilePendingExisting: number;
   reconcileDuplicateIds: number;
 }
 
@@ -30,8 +30,7 @@ export async function runStartupMaintenance(
   const report: MaintenanceReport = {
     recoveredJournal: false,
     reconcileOrphans: 0,
-    reconcileRestored: 0,
-    reconcileArchived: 0,
+    reconcilePendingExisting: 0,
     reconcileDuplicateIds: 0
   };
 
@@ -53,13 +52,11 @@ export async function runStartupMaintenance(
       .map((f) => f.path);
     const reconcile = await registry.reconcile(existingPaths);
     report.reconcileOrphans = reconcile.orphans.length;
-    report.reconcileRestored = reconcile.restored.length;
-    report.reconcileArchived = reconcile.archived.length;
+    report.reconcilePendingExisting = reconcile.pendingExisting.length;
     report.reconcileDuplicateIds = reconcile.duplicateIds.length;
     if (
       reconcile.orphans.length ||
-      reconcile.restored.length ||
-      reconcile.archived.length ||
+      reconcile.pendingExisting.length ||
       reconcile.duplicateIds.length
     ) {
       console.info('[FolderLab] Reconciliación de identidad:', reconcile);
