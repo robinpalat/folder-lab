@@ -90,11 +90,14 @@ export class DraftStore {
     const dir = this.dirPath();
     if (!dir) return;
     const adapter = this.app.vault.adapter;
-    // Crea la cadena de carpetas si falta (Folder Lab/ y drafts/).
-    const parts = dir.split('/');
-    let current = '';
+    const prefix = dir.startsWith('/') ? '/' : '';
+    const parts = dir.split('/').filter((p) => p !== '');
+    let current = prefix;
     for (const part of parts) {
-      current = current ? `${current}/${part}` : part;
+      current =
+        current === '' || current === '/'
+          ? current + part
+          : `${current}/${part}`;
       if (!(await adapter.exists(current))) {
         await adapter.mkdir(current);
       }
