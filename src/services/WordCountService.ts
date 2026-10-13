@@ -10,6 +10,7 @@
 import { App, TFolder, TFile } from 'obsidian';
 import { INTERNAL_FOLDER } from '../constants/view-types';
 import { countWords as countWordsUtil } from '../utils/string-utils';
+import { isTechnicalDataPath } from '../utils/dataPath';
 
 export interface WordCountResult {
   totalWords: number;
@@ -97,6 +98,9 @@ export class WordCountService {
       if (item instanceof TFolder) {
         // Saltar carpeta interna del plugin
         if (item.name === INTERNAL_FOLDER || item.name.startsWith('.')) continue;
+        // E1: la carpeta técnica de datos no aporta notas del libro
+        // (evita contar exportaciones de Folder Lab/exports/).
+        if (isTechnicalDataPath(item.path, this.rootPath)) continue;
         
         const subResult = await this.walkFolderForWordCount(item);
         totalWords += subResult.totalWords;
@@ -115,6 +119,8 @@ export class WordCountService {
         
         // Saltar archivos dentro de .folder-lab
         if (item.path.includes(`/${INTERNAL_FOLDER}/`)) continue;
+        // E1: archivos bajo la carpeta técnica de datos.
+        if (isTechnicalDataPath(item.path, this.rootPath)) continue;
 
         const content = await this.app.vault.read(item);
         const wordCount = countWordsUtil(content);

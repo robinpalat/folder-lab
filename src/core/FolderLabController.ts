@@ -68,7 +68,7 @@ export class FolderLabController {
     this.filterService = new FilterService();
     this.exportService = new ExportService(app, this.repository, settings, this.orderService, this.noteService);
     this.navigationService = new NavigationService(app, this.repository, this.settings);
-    this.statsService = new StatsService(app);
+    this.statsService = new StatsService(app, settings.bookRootPath);
     this.wordCountService = new WordCountService(app, settings.bookRootPath);
 
     if (settings.bookRootPath) {

@@ -10,6 +10,7 @@ import { INTERNAL_FOLDER } from '../constants/view-types';
 import { FolderLabController } from '../core/FolderLabController';
 import { NavigationTree, NavigationNode } from '../models/Navigation';
 import { isHiddenFolderName } from '../utils/folderUtils';
+import { isTechnicalDataPath } from '../utils/dataPath';
 
 export class AllNotesView {
   private app: App;
@@ -128,9 +129,11 @@ async renderNavigation(
     const subfolders: TFolder[] = [];
     const noteFiles: TFile[] = [];
 
+    const masterPath = this.controller.getMasterPath();
     for (const child of folder.children) {
       if (child instanceof TFolder) {
         if (isHiddenFolderName(child.name)) continue; // TODO
+        if (isTechnicalDataPath(child.path, masterPath)) continue; // E1
 
         subfolders.push(child);
       } else if (child instanceof TFile && child.extension === 'md') {
@@ -138,6 +141,7 @@ async renderNavigation(
         if (child.name === `${folder.name}.md`) continue;
         if (child.path.includes(`/${INTERNAL_FOLDER}/`)) continue;
         if (isHiddenFolderName(child.name)) continue;
+        if (isTechnicalDataPath(child.path, masterPath)) continue; // E1
 
         noteFiles.push(child);
       }

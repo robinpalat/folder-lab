@@ -10,6 +10,7 @@
 
 import { App, TFolder, TFile } from 'obsidian';
 import { INTERNAL_FOLDER } from '../constants/view-types';
+import { isTechnicalDataPath } from '../utils/dataPath';
 import { isNoteEmpty } from '../utils/string-utils';
 import { isHiddenFolderName } from '../utils/folderUtils';
 
@@ -28,11 +29,10 @@ export interface NoteStats {
 }
 
 export class StatsService {
-  private app: App;
-
-  constructor(app: App) {
-    this.app = app;
-  }
+  constructor(
+    private app: App,
+    private masterRoot: string | null = null
+  ) {}
 
   // ============================================================
   // ESTADÍSTICAS DE UNA CARPETA
@@ -42,6 +42,10 @@ export class StatsService {
    * Calcula las estadísticas de una carpeta (solo notas de primer nivel)
    */
   async calculateStats(folderPath: string): Promise<FolderStats> {
+    // E1: la carpeta técnica de datos no produce estadísticas de libro.
+    if (isTechnicalDataPath(folderPath, this.masterRoot)) {
+      return { totalNotes: 0, completedNotes: 0, emptyNotes: 0, percentage: 0 };
+    }
     const folder = this.app.vault.getAbstractFileByPath(folderPath);
     if (!(folder instanceof TFolder)) {
       return { totalNotes: 0, completedNotes: 0, emptyNotes: 0, percentage: 0 };
@@ -53,7 +57,8 @@ export class StatsService {
         child.extension === 'md' &&
         !child.path.includes(`/${INTERNAL_FOLDER}/`) &&
         !child.name.startsWith('_') &&
-        child.name !== `${folder.name}.md`
+        child.name !== `${folder.name}.md` &&
+        !isTechnicalDataPath(child.path, this.masterRoot)
     );
     
     const totalNotes = files.length;

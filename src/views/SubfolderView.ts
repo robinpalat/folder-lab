@@ -10,6 +10,7 @@ import { INTERNAL_FOLDER } from '../constants/view-types';
 import { FolderLabController } from '../core/FolderLabController';
 import { NavigationNode } from '../models/Navigation';
 import { isHiddenFolderName } from '../utils/folderUtils';
+import { isTechnicalDataPath } from '../utils/dataPath';
 
 export class SubfolderView {
   private app: App;
@@ -183,11 +184,14 @@ export class SubfolderView {
 
   // Filesystem walk (existente)
   private walkTree(folder: TFolder, level: number, items: ListItem[]): void {
+    const masterPath = this.controller.getMasterPath();
     const subfolders = folder.children.filter(
       (child): child is TFolder =>
         child instanceof TFolder &&
         !isHiddenFolderName(child.name) &&
-        child.name !== INTERNAL_FOLDER
+        child.name !== INTERNAL_FOLDER &&
+        // E1: excluir la carpeta técnica de datos y sus descendientes.
+        !isTechnicalDataPath(child.path, masterPath)
     );
 
     subfolders.sort((a, b) => a.name.localeCompare(b.name));

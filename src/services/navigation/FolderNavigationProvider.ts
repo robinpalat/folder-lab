@@ -4,12 +4,15 @@ import { App, TFolder, TFile } from 'obsidian';
 import { NavigationProvider, NavigationTree, NavigationNode } from '../../models/Navigation';
 import { FolderRepository } from '../../storage/FolderRepository';
 import { isHiddenFolderName } from '../../utils/folderUtils';
+import { isTechnicalDataPath } from '../../utils/dataPath';
 
 export class FolderNavigationProvider implements NavigationProvider {
   readonly id = 'folders';
   readonly name = 'Carpetas y archivos';
 
   private tree: NavigationTree | null = null;
+  /** Master de la construcción en curso (filtro E1 en walkFolder). */
+  private masterPathForFilter: string | null = null;
 
   constructor(
     private app: App,
@@ -18,6 +21,7 @@ export class FolderNavigationProvider implements NavigationProvider {
 
   async build(): Promise<NavigationTree> {
     const masterPath = this.repository.getMasterPath();
+    this.masterPathForFilter = masterPath;
     if (!masterPath) {
       this.tree = { root: [], nodeMap: new Map(), flatNodes: [] };
       return this.tree;
@@ -72,6 +76,10 @@ export class FolderNavigationProvider implements NavigationProvider {
     // ============================================================
     for (const itemName of orderData.order || []) {
        if (isHiddenFolderName(itemName)) continue;
+      // E1: excluir la carpeta técnica del orden explícito.
+      if (isTechnicalDataPath(`${currentPath}/${itemName}`, masterPath)) {
+        continue;
+      }
       processed.add(itemName);
 
       const itemPath = `${currentPath}/${itemName}`;
@@ -112,6 +120,9 @@ export class FolderNavigationProvider implements NavigationProvider {
     // ============================================================
     for (const folderName of Object.keys(orderData.folders || {})) {
       if (isHiddenFolderName(folderName)) continue;
+      if (isTechnicalDataPath(`${currentPath}/${folderName}`, masterPath)) {
+        continue;
+      }
 
       const folderPath = `${currentPath}/${folderName}`;
       const folderData = orderData.folders[folderName];
@@ -164,6 +175,10 @@ export class FolderNavigationProvider implements NavigationProvider {
     for (const child of children) {
       if (child instanceof TFolder) {
         if (isHiddenFolderName(child.name)) continue;
+        // E1: la carpeta técnica de datos no es contenido de usuario.
+        if (isTechnicalDataPath(child.path, this.masterPathForFilter)) {
+          continue;
+        }
 
         const node: NavigationNode = {
           id: child.path,
@@ -182,6 +197,9 @@ export class FolderNavigationProvider implements NavigationProvider {
       } else if (child instanceof TFile && child.extension === 'md') {
         if (child.name.startsWith('_')) continue;
         if (child.parent && child.name === `${child.parent.name}.md`) continue;
+        if (isTechnicalDataPath(child.path, this.masterPathForFilter)) {
+          continue;
+        }
 
         const node: NavigationNode = {
           id: child.path,
