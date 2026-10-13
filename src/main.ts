@@ -34,6 +34,7 @@ import { BoardRepository } from './storage/BoardRepository';
 import { PluginDataStore } from './storage/PluginDataStore';
 import { NoteIdentityRegistry } from './storage/NoteIdentityRegistry';
 import { NoteLifecycle } from './storage/NoteLifecycle';
+import { DraftStore } from './storage/DraftStore';
 import { resolveVaultStorageId } from './utils/vault-storage';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
@@ -118,6 +119,7 @@ export default class FolderLabPlugin extends Plugin {
   private noteRepository: NoteRepository | null = null;
   private dataStore: PluginDataStore | null = null;
   noteLifecycle: NoteLifecycle | null = null;
+  draftStore: DraftStore | null = null;
 
 
   async onload() {
@@ -273,6 +275,11 @@ export default class FolderLabPlugin extends Plugin {
       vaultId: resolveVaultStorageId(this.app),
       storage: typeof localStorage !== 'undefined' ? localStorage : null
     });
+    this.draftStore = new DraftStore(
+      this.app,
+      () => this.settings.bookRootPath || null,
+      noteIdentityRegistry
+    );
 
     // ============================================================
     // REGISTRAR VISTA

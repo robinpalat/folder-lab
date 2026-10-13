@@ -1,5 +1,7 @@
 import { Plugin } from 'obsidian';
 import { resolveVaultStorageId, vaultStorageKey } from '../../utils/vault-storage';
+import type FolderLabPlugin from '../../main';
+import type { DraftData } from '../../storage/DraftStore';
 
 interface NotesBlock {
   id: string;
@@ -30,11 +32,47 @@ export class NotesController {
         'focus-notes-draft',
         notePath
       );
+      const blocksKey = vaultStorageKey(
+        vaultId,
+        'focus-notes-blocks',
+        notePath
+      );
 
-      const draft =
-        localStorage.getItem(draftKey);
+      /*
+       * Etapa 2: el ARCHIVO sincronizable (Folder Lab/drafts) es la
+       * verdad; localStorage es el espejo de emergencia. Si el
+       * archivo falta o es ilegible, se usa el espejo; si el espejo
+       * tiene datos y no hay archivo, se copia (sin borrar origen).
+       */
+      const draftStore = (this.plugin as unknown as FolderLabPlugin)
+        .draftStore;
+      let draft = '';
+      let fileBlocks: DraftData['blocks'] | null = null;
+      if (draftStore) {
+        try {
+          const file = await draftStore.read(notePath);
+          if (file) {
+            draft = file.draft;
+            fileBlocks = file.blocks;
+          }
+        } catch (error) {
+          console.error(
+            '[NotesController] Borrador de bóveda ilegible; usando espejo local:',
+            error
+          );
+        }
+      }
 
-      if (draft?.trim()) {
+      if (draft === '') {
+        draft = localStorage.getItem(draftKey) ?? '';
+        if (draft.trim() && draftStore) {
+          void draftStore.write(notePath, { draft }).catch(() => {
+            /* el espejo local sigue disponible */
+          });
+        }
+      }
+
+      if (draft.trim()) {
         return draft.trim();
       }
 
@@ -42,14 +80,27 @@ export class NotesController {
       // 2. FRAGMENTO ACTIVO
       // --------------------------------------------------------
 
-      const blocksKey = vaultStorageKey(
-        vaultId,
-        'focus-notes-blocks',
-        notePath
-      );
-
-      const serialized =
-        localStorage.getItem(blocksKey);
+      let serialized: string | null =
+        fileBlocks !== null ? JSON.stringify(fileBlocks) : null;
+      if (serialized === null) {
+        serialized = localStorage.getItem(blocksKey);
+        if (serialized && draftStore) {
+          try {
+            const parsedLs: unknown = JSON.parse(serialized);
+            if (Array.isArray(parsedLs)) {
+              void draftStore
+                .write(notePath, {
+                  blocks: parsedLs as DraftData['blocks']
+                })
+                .catch(() => {
+                  /* el espejo local sigue disponible */
+                });
+            }
+          } catch {
+            /* espejo corrupto: se ignora igual que antes */
+          }
+        }
+      }
 
       if (!serialized) {
         return '';

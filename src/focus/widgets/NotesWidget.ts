@@ -8,6 +8,7 @@ import { i18n } from '../../i18n/I18nService';
 import { FocusContext } from "../FocusContext";
 import { App, Notice, TFile } from "obsidian";
 import { resolveVaultStorageId, vaultStorageKey } from "../../utils/vault-storage";
+import type FolderLabPlugin from "../../main";
 
 import { FocusListItem } from "../FocusListItem";
 import {
@@ -55,6 +56,28 @@ export class NotesWidget implements FocusWidget {
 
   constructor(app: App) {
     this.app = app;
+  }
+
+  /**
+   * Etapa 2: parchea el archivo sincronizable de borradores.
+   * localStorage sigue escribiéndose como espejo de emergencia.
+   */
+  private persistDraftPatch(patch: {
+    draft?: string;
+    blocks?: NoteBlock[];
+  }): void {
+    if (!this.currentFile) return;
+    const plugin = (this.app as unknown as {
+      plugins?: { plugins?: Record<string, FolderLabPlugin | undefined> };
+    }).plugins?.plugins?.["folder-lab"];
+    plugin?.draftStore
+      ?.write(this.currentFile.path, patch)
+      .catch((error: unknown) => {
+        console.warn(
+          "[NotesWidget] Error guardando borrador en bóveda:",
+          error
+        );
+      });
   }
 
   // ============================================================
@@ -428,6 +451,7 @@ export class NotesWidget implements FocusWidget {
       this.draftStorageKey
     ) {
       localStorage.removeItem(this.draftStorageKey);
+      this.persistDraftPatch({ draft: "" });
     }
 
     captureEditor.value = this.draftText;
@@ -441,10 +465,12 @@ export class NotesWidget implements FocusWidget {
             this.draftStorageKey,
             this.draftText
           );
+          this.persistDraftPatch({ draft: this.draftText });
         } else {
           localStorage.removeItem(
             this.draftStorageKey
           );
+          this.persistDraftPatch({ draft: "" });
         }
       }
 
@@ -574,6 +600,7 @@ export class NotesWidget implements FocusWidget {
     if (this.draftStorageKey) {
       localStorage.removeItem(this.draftStorageKey);
     }
+    this.persistDraftPatch({ draft: "" });
 
     // Limpiar el editor real.
     const editor = this.container?.querySelector(
@@ -979,6 +1006,9 @@ export class NotesWidget implements FocusWidget {
         this.storageKey,
         blocks.map(block => block.text).join("\n\n")
       );
+
+      // Etapa 2: además del espejo local, persistir en bóveda.
+      this.persistDraftPatch({ blocks });
     } catch (error) {
       console.warn(
         "[NotesWidget] Error guardando bloques:",
