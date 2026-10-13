@@ -226,7 +226,7 @@ export class WordCountModal extends Modal {
           : i18n.t('modal.wordCount.goalPlaceholder'),
         'aria-label': i18n.t('modal.wordCount.goalAria')
       }
-    }) as unknown as HTMLInputElement;
+    });
 
     if (currentGoal !== null) {
       input.value = String(currentGoal);

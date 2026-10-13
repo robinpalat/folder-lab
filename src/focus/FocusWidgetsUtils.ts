@@ -439,7 +439,7 @@ export class FolderLabDragDrop {
       // Comprobación entre ventanas (popouts): Node.instanceOf
       // es el sustituto oficial de `instanceof HTMLElement`.
       const target = (e.target as Node | null)?.instanceOf(HTMLElement)
-        ? (e.target as Node) as HTMLElement
+        ? e.target as HTMLElement
         : null;
       if (!target) return;
 
@@ -451,7 +451,7 @@ export class FolderLabDragDrop {
       const text = selection?.toString().trim() || '';
       if (!text) return;
 
-      const activeFile = this.app.workspace.getActiveFile() as TFile | null;
+      const activeFile = this.app.workspace.getActiveFile();
 
       const payload: FolderLabTextPayload = {
         kind: 'text',

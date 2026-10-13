@@ -361,8 +361,9 @@ async getRecentNotes(
    * Si la última nota realmente trabajada ya está dentro
    * del Top 5, no hacemos nada.
    */
+  const latestNote = latestMeaningful;
   const alreadyIncluded = result.some(
-    note => note.path === latestMeaningful!.path
+    note => note.path === latestNote.path
   );
 
   if (alreadyIncluded) {

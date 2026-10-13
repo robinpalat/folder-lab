@@ -2668,9 +2668,6 @@ body.focus-splitter-dragging {
    ================================================================ */
 
 @media (max-width: 768px) {
-  .folder-lab-title-name {
-    font-size: 0.95em;
-  }
 
   .folder-lab-toolbar .clickable-icon {
     width: 34px;
@@ -2739,9 +2736,6 @@ body.focus-splitter-dragging {
     padding: 6px 8px 4px 8px;
   }
 
-  .folder-lab-title-name {
-    font-size: 0.85em;
-  }
 
   .folder-lab-toolbar {
     flex-direction: row !important;
@@ -3361,26 +3355,6 @@ body.focus-splitter-dragging {
   cursor: pointer;
 }
 
-.fl-expandable-text-collapse-action {
-  width: 100%;
-  box-sizing: border-box;
-
-  margin-top: 6px;
-  padding: 0;
-
-  text-align: center;
-
-  color: var(--text-muted);
-  background: var(--background-secondary);
-
-  font-size: 0.58rem;
-  line-height: 1.2;
-
-  border: none;
-
-  cursor: pointer;
-  user-select: none;
-}
 
 
 /* ============================================================
@@ -4612,7 +4586,6 @@ body.focus-splitter-dragging {
 
 .fl-widget-manager-delete-button {
   flex: 0 0 auto;
-  margin-left: auto;
 }
 
 /* ============================================================
@@ -4735,21 +4708,12 @@ body.focus-splitter-dragging {
   position: relative;
 }
 
-.fl-widget-manager-add-button {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-}
 
 /* Ajuste del hover para eliminar en las instancias */
 .fl-widget-manager-instance-header {
   position: relative;
 }
 
-.fl-widget-manager-delete-button {
-  margin-left: auto;
-  padding: 0 4px;
-}
 
 /* Estilos específicos para el ícono de agregar en hover */
 .fl-widget-manager-card:hover .fl-widget-manager-add-button {
@@ -4811,9 +4775,6 @@ body.focus-splitter-dragging {
   cursor: text;
 }
 
-.fl-expandable-text-collapse-action {
-  cursor: pointer;
-}
 
 /* ================================================================
    SCROLL FADE — LÍMITES DE LAS SUPERFICIES DESPLAZABLES

@@ -249,7 +249,7 @@ export default class FolderLabPlugin extends Plugin {
 
     this.widgetManager =
       new WidgetManager(
-        this.widgetRegistry!,
+        this.widgetRegistry,
         noteRepository
       );
 
@@ -260,10 +260,10 @@ export default class FolderLabPlugin extends Plugin {
     this.widgetRegistry.register(
       new MemoryWidgetFactory(
         this.app,
-        this.aiService!,
-        this.capabilityRegistry!,
+        this.aiService,
+        this.capabilityRegistry,
         this.widgetController,
-        this.widgetManager!
+        this.widgetManager
       ),
       {
         id: 'memory',

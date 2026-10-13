@@ -193,7 +193,7 @@ export class FolderLabController {
         path: file.path,
         isSpecial: false,
         file: file
-      } as FolderLabItem);
+      });
     }
   }
 
@@ -283,11 +283,12 @@ export class FolderLabController {
       return;
     }
 
-    const files = folder.children.filter(child =>
-      child instanceof TFile &&
-      child.extension === 'md' &&
-      !child.path.includes('/.folder-order/')
-    ) as TFile[];
+    const files = folder.children.filter(
+      (child): child is TFile =>
+        child instanceof TFile &&
+        child.extension === 'md' &&
+        !child.path.includes('/.folder-order/')
+    );
 
     const specialFile = files.find(f => f.name === `${folder.name}.md`);
     const regularFiles = files.filter(f => f.name !== `${folder.name}.md`);

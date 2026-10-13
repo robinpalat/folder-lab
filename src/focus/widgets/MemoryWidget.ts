@@ -41,6 +41,7 @@ export class MemoryWidget implements FocusWidget {
 
   private container: HTMLElement | null = null;
   private currentFile: TFile | null = null;
+  private lastContext: FocusContext | null = null;
   /*
    * 3E-3 (W5, conservado como any): el widget necesita
    * app.plugins.plugins['folder-lab'] (registro de plugins de
@@ -112,6 +113,7 @@ this.contextResolver = new ContextResolver(
 
   render(container: HTMLElement, context: FocusContext): void {
     this.container = container;
+    this.lastContext = context;
     this.currentFile = context.activeFile;
 
     this.resultsStorageKey = this.currentFile
@@ -329,12 +331,10 @@ this.contextResolver = new ContextResolver(
 
           this.sessionView = 'today';
 
-          if (this.container) {
+          if (this.container && this.lastContext) {
             this.render(
               this.container,
-              {
-                activeFile: this.currentFile
-              } as FocusContext
+              this.lastContext
             );
           }
 
@@ -361,12 +361,10 @@ this.contextResolver = new ContextResolver(
 
                   this.saveState();
 
-                  if (this.container) {
+                  if (this.container && this.lastContext) {
                     this.render(
                       this.container,
-                      {
-                        activeFile: this.currentFile
-                      } as FocusContext
+                      this.lastContext
                     );
                   }
                 }
@@ -695,12 +693,10 @@ this.contextResolver = new ContextResolver(
     // Una nueva consulta siempre vuelve a la vista principal.
     this.sessionView = 'capture';
 
-    if (this.container) {
+    if (this.container && this.lastContext) {
       this.render(
         this.container,
-        {
-          activeFile: this.currentFile
-        } as FocusContext
+        this.lastContext
       );
     }
 

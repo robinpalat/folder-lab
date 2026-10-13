@@ -31,6 +31,7 @@ export class NotesWidget implements FocusWidget {
   readonly icon = "pencil";
 
   private container: HTMLElement | null = null;
+  private lastContext: FocusContext | null = null;
   private textarea: HTMLTextAreaElement | null = null;
   private currentFile: TFile | null = null;
   private saveTimeout: number | null = null;
@@ -69,6 +70,7 @@ export class NotesWidget implements FocusWidget {
 
   render(container: HTMLElement, context: FocusContext): void {
     this.container = container;
+    this.lastContext = context;
     this.currentFile = context.activeFile;
 
     this.storageKey = this.currentFile
@@ -252,10 +254,8 @@ export class NotesWidget implements FocusWidget {
             void this.save();
             this.sessionView = "today";
           }
-          if (this.container) {
-            this.render(this.container, {
-              activeFile: this.currentFile
-            } as FocusContext);
+          if (this.container && this.lastContext) {
+            this.render(this.container, this.lastContext);
           }
         },
 
@@ -1018,13 +1018,11 @@ export class NotesWidget implements FocusWidget {
   }
 
   private async refreshBlocks(): Promise<void> {
-    if (!this.container || !this.currentFile) return;
+    if (!this.container || !this.currentFile || !this.lastContext) return;
 
     this.render(
       this.container,
-      {
-        activeFile: this.currentFile
-      } as FocusContext
+      this.lastContext
     );
   }
 

@@ -91,8 +91,9 @@ export class AddResourceModal extends Modal {
     container.empty();
 
     if (this.resourceType === 'file') {
-      // Seleccionar archivo
-      const setting = new Setting(container)
+      // Seleccionar archivo (6A: sin binding — el resultado no se
+      // utilizaba; la configuración ocurre en la cadena).
+      new Setting(container)
         .setName(i18n.t('resources.field.file'))
         .addText(text => {
           text

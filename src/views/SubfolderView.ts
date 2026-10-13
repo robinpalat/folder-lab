@@ -183,11 +183,12 @@ export class SubfolderView {
 
   // Filesystem walk (existente)
   private walkTree(folder: TFolder, level: number, items: ListItem[]): void {
-    const subfolders = folder.children.filter(child =>
-      child instanceof TFolder &&
-      !isHiddenFolderName(child.name) &&
-      child.name !== INTERNAL_FOLDER
-    ) as TFolder[];
+    const subfolders = folder.children.filter(
+      (child): child is TFolder =>
+        child instanceof TFolder &&
+        !isHiddenFolderName(child.name) &&
+        child.name !== INTERNAL_FOLDER
+    );
 
     subfolders.sort((a, b) => a.name.localeCompare(b.name));
 

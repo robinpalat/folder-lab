@@ -2332,12 +2332,12 @@ export class Board
     };
 
     const cardElements = Array.from(
-      blockLayer.querySelectorAll('.fl-board-text-card')
-    ) as HTMLElement[];
+      blockLayer.querySelectorAll<HTMLElement>('.fl-board-text-card')
+    );
 
     const boxElements = Array.from(
-      blockLayer.querySelectorAll('.fl-board-group-box')
-    ) as HTMLElement[];
+      blockLayer.querySelectorAll<HTMLElement>('.fl-board-group-box')
+    );
 
     for (const connection of this.connections) {
       const endpoints = endpointOf(connection);
@@ -2449,13 +2449,13 @@ export class Board
       // Puntos en los extremos (tarjeta o contenedor)
       this.renderEndpointDot(
         source,
-        endpoints.source!,
+        endpoints.source,
         sourceAnchor,
         sourceRect
       );
       this.renderEndpointDot(
         target,
-        endpoints.target!,
+        endpoints.target,
         targetAnchor,
         targetRect
       );

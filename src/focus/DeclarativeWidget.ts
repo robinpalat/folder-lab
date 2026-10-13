@@ -1071,10 +1071,11 @@ const item: WidgetRecord = {
                 continue;
             }
 
+            const field = metric.field;
             result[id] =
                 items.filter(
                     item =>
-                        item[metric.field!] === metric.value
+                        item[field] === metric.value
                 ).length;
         }
 

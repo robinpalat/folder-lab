@@ -47,13 +47,14 @@ export class StatsService {
       return { totalNotes: 0, completedNotes: 0, emptyNotes: 0, percentage: 0 };
     }
     
-    const files = folder.children.filter(child => 
-      child instanceof TFile && 
-      child.extension === 'md' &&
-      !child.path.includes(`/${INTERNAL_FOLDER}/`) &&
-      !child.name.startsWith('_') &&
-      child.name !== `${folder.name}.md`
-    ) as TFile[];
+    const files = folder.children.filter(
+      (child): child is TFile =>
+        child instanceof TFile &&
+        child.extension === 'md' &&
+        !child.path.includes(`/${INTERNAL_FOLDER}/`) &&
+        !child.name.startsWith('_') &&
+        child.name !== `${folder.name}.md`
+    );
     
     const totalNotes = files.length;
     let completedNotes = 0;
