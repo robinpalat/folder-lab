@@ -623,6 +623,34 @@ getMasterName(): string {
     }
   }
 
+  /**
+   * E3: ciclo de vida administrado de borrado (inyectado por la
+   * vista desde el plugin). Si está presente, `deleteNote` delega en
+   * el flujo con snapshot + diario + papelera compatible.
+   */
+  private managedLifecycle: {
+    deleteNoteManaged(
+      notePath: string,
+      updateOrder?: (notePath: string) => Promise<void>
+    ): Promise<void>;
+  } | null = null;
+
+  setManagedLifecycle(lifecycle: FolderLabController['managedLifecycle']): void {
+    this.managedLifecycle = lifecycle;
+  }
+
+  /** Elimina la entrada de la nota del orden de la carpeta actual. */
+  async removeNoteFromOrder(notePath: string): Promise<void> {
+    const currentPath = this.getCurrentPath();
+    if (!currentPath) return;
+    const fileName = notePath.slice(notePath.lastIndexOf('/') + 1);
+    const currentOrder = await this.orderService.getOrderForFolder(currentPath);
+    if (currentOrder.length > 0) {
+      const newOrder = currentOrder.filter((name: string) => name !== fileName);
+      await this.orderService.updateFolderOrder(currentPath, newOrder);
+    }
+  }
+
   async deleteNote(file: TFile): Promise<void> {
     if (!file) {
       new Notice(i18n.t('errors.note.invalidFile'));
@@ -635,12 +663,25 @@ getMasterName(): string {
       return;
     }
 
-    try {
-      const currentOrder = await this.orderService.getOrderForFolder(currentPath);
-      if (currentOrder.length > 0) {
-        const newOrder = currentOrder.filter((name: string) => name !== file.name);
-        await this.orderService.updateFolderOrder(currentPath, newOrder);
+    // E3: borrado administrado (snapshot + diario + papelera).
+    if (this.managedLifecycle) {
+      try {
+        await this.managedLifecycle.deleteNoteManaged(
+          file.path,
+          (notePath) => this.removeNoteFromOrder(notePath)
+        );
+        new Notice(i18n.t('notes.deleted', { name: file.name }));
+        await this.loadFolder(currentPath);
+      } catch (error) {
+        console.error('Error al eliminar nota:', error);
+        new Notice(i18n.t('errors.note.deleteFailed'));
       }
+      return;
+    }
+
+    // Compatibilidad: sin ciclo de vida, el flujo anterior.
+    try {
+      await this.removeNoteFromOrder(file.path);
 
       await this.app.vault.delete(file);
       new Notice(i18n.t('notes.deleted', { name: file.name }));

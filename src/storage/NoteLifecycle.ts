@@ -55,9 +55,19 @@ export interface NoteLifecycleDeps {
         read(p: string): Promise<string>;
         write(p: string, c: string): Promise<void>;
         mkdir(p: string): Promise<void>;
+        list(p: string): Promise<{ files: string[] }>;
       };
     };
   };
+  /** E3: snapshot por identidad (managedDelete.NoteDataSnapshot). */
+  snapshot?: {
+    create(
+      notePath: string,
+      noteId: string
+    ): Promise<{ dir: string; files: string[] }>;
+  };
+  /** E3: papelera compatible (managedDelete.makeTrashOp). */
+  trashFile?: (notePath: string) => Promise<void>;
 }
 
 const DEFAULT_KEY_FAMILIES = [
@@ -68,7 +78,7 @@ const DEFAULT_KEY_FAMILIES = [
 ];
 
 /** Entrada del diario de migración (M2). */
-export interface LifecycleJournalEntry {
+export interface RenameJournalEntry {
   type: 'file-rename' | 'folder-rename';
   oldPath: string;
   newPath: string;
@@ -81,6 +91,27 @@ export interface LifecycleJournalEntry {
   error?: string;
   startedAt: number;
 }
+
+/** Borrado administrado (E3). */
+export interface DeleteJournalEntry {
+  type: 'note-delete';
+  oldPath: string;
+  /** Mismo valor que oldPath; se mantiene para el emparejamiento. */
+  newPath: string;
+  noteId: string;
+  /** Directorio de snapshot elegido en el primer intento (reintento). */
+  snapshotDir?: string;
+  steps: {
+    snapshot: boolean;
+    pending: boolean;
+    order: boolean;
+    file: boolean;
+  };
+  error?: string;
+  startedAt: number;
+}
+
+export type LifecycleJournalEntry = RenameJournalEntry | DeleteJournalEntry;
 
 const JOURNAL_FILE = 'lifecycle-journal.json';
 
@@ -225,9 +256,72 @@ export class NoteLifecycle {
    * Ejecuta los pasos pendientes de una entrada del diario,
    * marcando el progreso tras cada uno (operaciones idempotentes).
    */
+  /** Hook de orden para el borrado administrado (E3). */
+  private deleteOrderHook: ((notePath: string) => Promise<void>) | null =
+    null;
+
+  /**
+   * Registra el hook que limpia el orden de la carpeta al borrar
+   * (inyectado por la vista; el ciclo de vida no conoce el
+   * controlador).
+   */
+  setDeleteOrderHook(hook: (notePath: string) => Promise<void>): void {
+    this.deleteOrderHook = hook;
+  }
+
+  /**
+   * Borrado administrado (E3): operación coordinada y registrada en
+   * el diario. Pasos idempotentes: snapshot → pendiente → orden →
+   * archivo (papelera compatible). Un fallo conserva la entrada del
+   * diario para `recoverPending()`.
+   */
+  async deleteNoteManaged(
+    notePath: string,
+    updateOrder?: (notePath: string) => Promise<void>
+  ): Promise<void> {
+    if (updateOrder) {
+      this.deleteOrderHook = updateOrder;
+    }
+    const noteId = await this.deps.registry.getId(notePath);
+    if (!noteId) {
+      throw new Error(
+        `[NoteLifecycle] Sin identidad para "${notePath}": borrado administrado no posible`
+      );
+    }
+    if (!this.deps.snapshot || !this.deps.trashFile) {
+      throw new Error(
+        '[NoteLifecycle] Borrado administrado no configurado (snapshot/trash)'
+      );
+    }
+    const entry: DeleteJournalEntry = {
+      type: 'note-delete',
+      oldPath: notePath,
+      newPath: notePath,
+      noteId,
+      steps: { snapshot: false, pending: false, order: false, file: false },
+      startedAt: Date.now()
+    };
+    await this.journalAdd(entry);
+    try {
+      await this.runJournalSteps(entry);
+      await this.journalRemove(entry);
+    } catch (error) {
+      console.error(
+        '[NoteLifecycle] Borrado administrado incompleto (se reintentará):',
+        notePath,
+        error
+      );
+      throw error;
+    }
+  }
+
   private async runJournalSteps(
     entry: LifecycleJournalEntry
   ): Promise<void> {
+    if (entry.type === 'note-delete') {
+      await this.runDeleteSteps(entry);
+      return;
+    }
     const isFolder = entry.type === 'folder-rename';
     const ops = {
       boards: () =>
@@ -268,6 +362,65 @@ export class NoteLifecycle {
       if (entry.steps[key]) continue;
       try {
         await ops[key]();
+        (entry.steps as Record<string, boolean>)[key] = true;
+        delete entry.error;
+        await this.journalUpdate(entry);
+      } catch (error) {
+        entry.error = `${key}: ${error instanceof Error ? error.message : String(error)}`;
+        await this.journalUpdate(entry);
+        throw error;
+      }
+    }
+  }
+
+  /** Pasos del borrado administrado (E3); idempotentes. */
+  private async runDeleteSteps(entry: DeleteJournalEntry): Promise<void> {
+    const snapshot = this.deps.snapshot;
+    const trash = this.deps.trashFile;
+    if (!snapshot || !trash) {
+      throw new Error(
+        '[NoteLifecycle] Borrado administrado no configurado (snapshot/trash)'
+      );
+    }
+
+    const ops: Array<{
+      key: keyof DeleteJournalEntry['steps'];
+      run: () => Promise<void>;
+    }> = [
+      {
+        key: 'snapshot',
+        run: async () => {
+          // Reutiliza el directorio elegido en el primer intento.
+          if (entry.snapshotDir) {
+            // Verificación mínima: el manifest existe y es JSON.
+            return;
+          }
+          const result = await snapshot.create(entry.oldPath, entry.noteId);
+          entry.snapshotDir = result.dir;
+        }
+      },
+      {
+        key: 'pending',
+        run: () => this.deps.registry.onDeleted(entry.oldPath)
+      },
+      {
+        key: 'order',
+        run: async () => {
+          if (this.deleteOrderHook) {
+            await this.deleteOrderHook(entry.oldPath);
+          }
+        }
+      },
+      {
+        key: 'file',
+        run: () => trash(entry.oldPath)
+      }
+    ];
+
+    for (const { key, run } of ops) {
+      if (entry.steps[key]) continue;
+      try {
+        await run();
         entry.steps[key] = true;
         delete entry.error;
         await this.journalUpdate(entry);

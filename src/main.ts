@@ -36,6 +36,7 @@ import { NoteIdentityRegistry } from './storage/NoteIdentityRegistry';
 import { NoteLifecycle } from './storage/NoteLifecycle';
 import { DraftStore } from './storage/DraftStore';
 import { LocalMirror } from './storage/localMirror';
+import { makeTrashOp, NoteDataSnapshot } from './storage/managedDelete';
 import { resolveVaultStorageId } from './utils/vault-storage';
 import { normalizeRootPath } from './utils/rootPath';
 import { runStartupMaintenance } from './storage/startupMaintenance';
@@ -305,7 +306,10 @@ export default class FolderLabPlugin extends Plugin {
       vaultId: resolveVaultStorageId(this.app),
       storage: typeof localStorage !== 'undefined' ? localStorage : null,
       getRootPath: rootPathFn,
-      journalApp: this.app
+      journalApp: this.app,
+      // E3: borrado administrado (snapshot + papelera compatible).
+      snapshot: new NoteDataSnapshot(this.app, rootPathFn),
+      trashFile: makeTrashOp(this.app)
     });
     this.draftStore = new DraftStore(
       this.app,

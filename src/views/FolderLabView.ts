@@ -119,6 +119,11 @@ export class FolderLabView extends ItemView {
       () => this.plugin.settings.bookRootPath
     );
     this.controller = new FolderLabController(plugin.app, plugin.settings, this.repository);
+    // E3: el borrado administrado del plugin gestiona snapshot+diario.
+    this.controller.setManagedLifecycle(plugin.noteLifecycle);
+    plugin.noteLifecycle?.setDeleteOrderHook((notePath) =>
+      this.controller.removeNoteFromOrder(notePath)
+    );
     this.state = this.controller.getState();
 
     this.filterMenu = new FilterMenu(this.controller, this.controller.filterService);
