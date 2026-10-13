@@ -90,6 +90,7 @@ async record(
   }
 
   await this.ensureLogDirectory();
+  await this.rotateIfNeeded();
 
   const line = [
     Date.now(),
@@ -407,17 +408,74 @@ async getRecentNotes(
 	  const masterPath = this.normalizePath(this.getMasterPath());
 
 	  const directory = masterPath
-		? `${masterPath}/${RecentActivityService.FOLDER_NAME}`
-		: RecentActivityService.FOLDER_NAME;
+	    ? `${masterPath}/${RecentActivityService.FOLDER_NAME}`
+	    : RecentActivityService.FOLDER_NAME;
 
 	  try {
-		if (!(await this.app.vault.adapter.exists(directory))) {
-		  await this.app.vault.adapter.mkdir(directory);
-		}
+	    if (!(await this.app.vault.adapter.exists(directory))) {
+	      await this.app.vault.adapter.mkdir(directory);
+	    }
 	  } catch (error) {
-		if (!(await this.app.vault.adapter.exists(directory))) {
-		  throw error;
-		}
+	    if (!(await this.app.vault.adapter.exists(directory))) {
+	      throw error;
+	    }
+	  }
+	}
+
+	/**
+	 * Etapa 4: rotación del log por tamaño.
+	 *
+	 * Política (documentada, no destructiva del log vigente):
+	 * - Umbral: 256 KiB. Al superarse, el contenido ACTUAL se
+	 *   conserva íntegro en `_activity-<timestamp>.log` y se inicia
+	 *   un log nuevo (los lectores siguen leyendo solo el vigente).
+	 * - Retención: se conservan los 24 archivos rotados más
+	 *   recientes; los anteriores se eliminan (el log es historial
+	 *   DERIVADO del ranking, no un original del usuario).
+	 * - Fallo de rotación: se emite aviso y se sigue añadiendo al
+	 *   log actual (nunca se pierde el registro por la rotación).
+	 */
+	private static readonly MAX_LOG_BYTES = 256 * 1024;
+	private static readonly MAX_ROTATED_LOGS = 24;
+
+	private async rotateIfNeeded(): Promise<void> {
+	  const path = this.getLogPath();
+	  try {
+	    if (!(await this.app.vault.adapter.exists(path))) return;
+	    const stat = await this.app.vault.adapter.stat(path);
+	    if (!stat || stat.size < RecentActivityService.MAX_LOG_BYTES) {
+	      return;
+	    }
+
+	    const separator = path.lastIndexOf('/');
+	    const directory =
+	      separator === -1
+	        ? RecentActivityService.FOLDER_NAME
+	        : path.slice(0, separator);
+
+	    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+	    const target = `${directory}/_activity-${stamp}.log`;
+
+	    await this.app.vault.adapter.rename(path, target);
+	    await this.pruneRotatedLogs(directory);
+	  } catch (error) {
+	    console.warn(
+	      "[Folder Lab] Rotación del log de actividad fallida:",
+	      error
+	    );
+	  }
+	}
+
+	private async pruneRotatedLogs(directory: string): Promise<void> {
+	  const listed = await this.app.vault.adapter.list(directory);
+	  const rotated = (listed.files || [])
+	    .filter((f) => /_activity-\d{4}-\d{2}-\d{2}T.*\.log$/.test(f))
+	    .sort();
+
+	  const excess =
+	    rotated.length - RecentActivityService.MAX_ROTATED_LOGS;
+	  for (let i = 0; i < excess; i++) {
+	    await this.app.vault.adapter.remove(rotated[i]);
 	  }
 	}
 

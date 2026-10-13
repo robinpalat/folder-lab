@@ -157,7 +157,9 @@ async function seedLegacyBoard(adapter, folder, store) {
 test('con identidad: saveNote escribe archivo por entidad', async () => {
   const { repo, adapter } = makeBoardRepo();
   await repo.saveNote('Libro/A.md', boardData('A'));
-  const keys = [...adapter.files.keys()];
+  const keys = [...adapter.files.keys()].filter((k) =>
+    k.startsWith('/Master/Folder Lab/boards/')
+  );
   assert.equal(keys.length, 1);
   assert.match(keys[0], /^\/Master\/Folder Lab\/boards\/id-.+\.json$/);
   const loaded = await repo.loadNote('Libro/A.md');

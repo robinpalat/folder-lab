@@ -1,6 +1,7 @@
 import { App } from 'obsidian';
 import { HiddenFolderManager } from './HiddenFolderManager';
 import { EntityFileStore } from './EntityFileStore';
+import { PolishHistory } from './PolishHistory';
 import { INTERNAL_FOLDER } from '../constants/view-types';
 
 const BOARD_FILE = '_board.json';
@@ -242,6 +243,7 @@ export class BoardRepository {
   private readonly identity?: (notePath: string) => Promise<string | null>;
   private readonly getRootPath?: () => string | null;
   private readonly entities: EntityFileStore<BoardData> | null;
+  private readonly polishHistory: PolishHistory | null;
 
   /*
    * P2-1: cola FIFO de operaciones sobre el almacén de la
@@ -278,12 +280,21 @@ export class BoardRepository {
             }
           })
         : null;
+    this.polishHistory =
+      this.getRootPath !== undefined
+        ? new PolishHistory(app, this.getRootPath)
+        : null;
   }
 
   /** Id estable de la nota si la identidad está disponible. */
   private async entityId(notePath: string): Promise<string | null> {
     if (!this.identity || !this.getRootPath?.()) return null;
     return this.identity(notePath);
+  }
+
+  /** Historial de versiones de Pulir (Etapa 4); null sin Master. */
+  getPolishHistory(): PolishHistory | null {
+    return this.polishHistory;
   }
 
   private enqueue<T>(op: () => Promise<T>): Promise<T> {
@@ -515,6 +526,22 @@ export class BoardRepository {
       if (id && this.entities) {
         await this.entities.read(id);
         await this.entities.write(id, notePath, data);
+        // Etapa 4: snapshot del historial de Pulir (best-effort;
+        // el estado vigente ya está en la entidad recién escrita).
+        if (this.polishHistory) {
+          try {
+            await this.polishHistory.append(
+              id,
+              notePath,
+              data.fragmentOverrides ?? []
+            );
+          } catch (error) {
+            console.error(
+              '[BoardRepository] Snapshot de Pulir fallido:',
+              error
+            );
+          }
+        }
         return;
       }
 
