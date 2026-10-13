@@ -12,6 +12,8 @@ import { OrderService } from '../services/OrderService';
 import { NoteService } from '../services/NoteService';
 import { ExportService } from '../services/ExportService';
 import { NavigationService } from '../services/NavigationService';
+import { BOARD_VIEW_TYPE } from '../constants/view-types';
+import { pickLeafStrategy } from '../utils/boardStability';
 import { StatsService } from '../services/StatsService';
 import { FilterService } from '../services/FilterService';
 import { FolderLabItem } from '../models/FolderLabItem';
@@ -560,7 +562,7 @@ getMasterName(): string {
     if (!item) return;
 
     if (item.isSpecial && item.file) {
-      await this.app.workspace.getLeaf().openFile(item.file);
+      await this.openNoteFileSafely(item.file);
       return;
     }
 
@@ -570,8 +572,29 @@ getMasterName(): string {
     }
 
     this.state.currentNoteType = item.file.name;
-    await this.app.workspace.getLeaf().openFile(item.file);
+    await this.openNoteFileSafely(item.file);
     this.notify({ type: 'selectionChanged', notePath: item.path });
+  }
+
+  /**
+   * Corrección B: abrir una nota sin reemplazar la pestaña del
+   * Board. Si el leaf activo contiene el Board, se usa una pestaña
+   * nueva; en cualquier otro caso se reutiliza el leaf activo
+   * (comportamiento previo de navegación).
+   */
+  private async openNoteFileSafely(file: TFile): Promise<void> {
+    const boardLeaves = this.app.workspace.getLeavesOfType(
+      BOARD_VIEW_TYPE
+    );
+    const strategy = pickLeafStrategy(
+      this.app.workspace.activeLeaf,
+      boardLeaves
+    );
+    if (strategy === 'new-tab') {
+      await this.app.workspace.getLeaf(true).openFile(file);
+    } else {
+      await this.app.workspace.getLeaf().openFile(file);
+    }
   }
 
   async loadNote(noteType: string): Promise<string> {

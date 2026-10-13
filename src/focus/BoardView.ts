@@ -7,8 +7,10 @@ import { Board, BoardDependencies } from './Board';
 import { BoardRepository } from '../storage/BoardRepository';
 import { WidgetManager } from './WidgetManager';
 import { WidgetController } from './controllers/WidgetController';
+import { BOARD_VIEW_TYPE } from '../constants/view-types';
 
-export const BOARD_VIEW_TYPE = 'folder-lab-board';
+// Re-export (fuente única: constants/view-types; Corrección B).
+export { BOARD_VIEW_TYPE };
 
 export interface BoardViewDependencies {
   widgetManager: WidgetManager;

@@ -8,7 +8,8 @@ import { ItemView, WorkspaceLeaf, TFolder, TFile, Notice, MarkdownView } from 'o
 import FolderLabPlugin from '../main';
 import { VIEW_TYPE_FOLDER_ORDER, INTERNAL_FOLDER } from '../constants/view-types';
 import { FolderLabController, FolderLabEvent } from '../core/FolderLabController';
-import { FolderLabState } from '../core/FolderLabState';
+import { FolderLabState, NavigationMode } from '../core/FolderLabState';
+import { boardMustCloseOnExit, pickLeafStrategy } from '../utils/boardStability';
 import { FolderRepository } from '../storage/FolderRepository';
 import { HeaderComponent } from '../layout/HeaderComponent';
 import { NoteListComponent, ListItem } from '../components/NoteListComponent';
@@ -351,16 +352,21 @@ export class FolderLabView extends ItemView {
   }
 
   private exitGlobalModes(): void {
+    // Corrección B: el Board solo se cierra si realmente existía un
+    // modo global activo; un clic/selección/refresco en modo normal
+    // no debe destruir la vista del Board.
+    const mustCloseBoard = boardMustCloseOnExit({
+      isFocusMode: this.state.isFocusMode,
+      navigationMode: this.state.navigationMode,
+      normalMode: NavigationMode.NORMAL
+    });
+
     this.state.exitGlobalModes();
     this.updateToolbarButtons();
 
-    /*
-     * El Board es subordinado a Focus: al desactivarse cualquier
-     * modo global, la vista del Board se cierra y se limpia su
-     * estado de presentación. La nota activa vuelve a su vista
-     * nativa (closeBoardView restaura el leaf markdown).
-     */
-    void this.closeBoardIfOpen();
+    if (mustCloseBoard) {
+      void this.closeBoardIfOpen();
+    }
   }
 
   /**
@@ -1246,7 +1252,19 @@ export class FolderLabView extends ItemView {
     if (!currentPath) return;
     if (!file.path.startsWith(currentPath)) return;
 
-    await this.app.workspace.getLeaf().openFile(file);
+    // Corrección B: no reemplazar la pestaña del Board.
+    const boardLeaves = this.app.workspace.getLeavesOfType(
+      BOARD_VIEW_TYPE
+    );
+    const strategy = pickLeafStrategy(
+      this.app.workspace.activeLeaf,
+      boardLeaves
+    );
+    if (strategy === 'new-tab') {
+      await this.app.workspace.getLeaf(true).openFile(file);
+    } else {
+      await this.app.workspace.getLeaf().openFile(file);
+    }
     this.state.currentNoteType = file.name;
   }
 
@@ -1818,7 +1836,19 @@ export class FolderLabView extends ItemView {
         const abstractFile = this.app.vault.getAbstractFileByPath(node.filePath);
         const file = abstractFile instanceof TFile ? abstractFile : null;
         if (file) {
-          await this.app.workspace.getLeaf().openFile(file);
+          // Corrección B: no reemplazar la pestaña del Board.
+          const boardLeaves = this.app.workspace.getLeavesOfType(
+            BOARD_VIEW_TYPE
+          );
+          const strategy = pickLeafStrategy(
+            this.app.workspace.activeLeaf,
+            boardLeaves
+          );
+          if (strategy === 'new-tab') {
+            await this.app.workspace.getLeaf(true).openFile(file);
+          } else {
+            await this.app.workspace.getLeaf().openFile(file);
+          }
           return;
         }
       }
