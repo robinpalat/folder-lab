@@ -569,12 +569,15 @@ export class FolderLabView extends ItemView {
           this.updateToolbarButtons();
           const currentPath = this.controller.getCurrentPath();
           if (currentPath) {
-            await this.loadFolder(currentPath);
+            // Corrección de la caché visual: refrescar el MODELO
+            // (state.items) desde disco antes de re-renderizar;
+            // el re-render llega por folderChanged.
+            await this.controller.loadFolder(currentPath);
           }
         } else {
           const currentPath = this.controller.getCurrentPath();
           if (currentPath) {
-            await this.loadFolder(currentPath);
+            await this.controller.loadFolder(currentPath);
           }
         }
         break;

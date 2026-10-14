@@ -91,6 +91,17 @@ onStatusChange: (file: TFile, status: string) => {
   void noteService
     .setNoteStatusByFile(file, status)
     .then(() => {
+      // Corrección de la caché visual: el modelo en memoria
+      // (state.items) conservaba el status anterior; al volver a
+      // la vista normal, renderNormalMode pintaba los iconos
+      // viejos del modelo cacheado. Se sincroniza el ítem (mismo
+      // objeto referenciado por la vista normal).
+      const items = this.state.items || [];
+      const target = items.find((it) => it.file?.path === file.path);
+      if (target) {
+        target.status = status || undefined;
+      }
+
       const element =
         this.noteElementsCache.get(file.path);
 
