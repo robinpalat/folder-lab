@@ -7,6 +7,7 @@
 import { App, Notice, TFolder, TFile } from 'obsidian';
 import { HiddenFolderManager } from './HiddenFolderManager';
 import { CentralOrderStore } from './CentralOrderStore';
+import { normalizeRootPath } from '../utils/rootPath';
 import { INTERNAL_FOLDER, ORDER_FILE } from '../constants/view-types';
 import { isHiddenFolderName, isIgnoredFolderName } from '../utils/folderUtils';
 import { i18n } from '../i18n/I18nService';
@@ -72,6 +73,22 @@ export class FolderRepository {
     this.tail = result.then(() => {}, () => {});
 
     return result;
+  }
+
+  /**
+   * Comparación de Master tolerante al formato (corrección de
+   * iconos de estado): file.parent.path es siempre limpio; la
+   * ruta de ajustes puede llevar barras iniciales/finales. Sin
+   * normalizar, la ramificación global/folders se partía y la
+   * vista normal no encontraba los estados escritos.
+   */
+  private isMasterPath(folderPath: string): boolean {
+    const master = this.masterPath;
+    if (master === null) return false;
+    const a = normalizeRootPath(folderPath);
+    const b = normalizeRootPath(master);
+    if (a === null || b === null) return false;
+    return a === b;
   }
 
   // ============================================================
@@ -410,7 +427,7 @@ export class FolderRepository {
       if (central) {
         // Semántica legada del master: el fichero compartido
         // (orden + notes) vive en `global`.
-        if (folderPath === this.masterPath && central.global !== null) {
+        if (this.isMasterPath(folderPath) && central.global !== null) {
           return central.global as unknown as {
             order: string[];
             notes?: Record<string, string>;
@@ -443,7 +460,7 @@ export class FolderRepository {
     legacy: FolderLabFileData
   ): Promise<void> {
     await this.central.mutate((data) => {
-      if (folderPath === this.masterPath) {
+      if (this.isMasterPath(folderPath)) {
         if (data.global === null) {
           data.global = legacy as unknown as GlobalOrderData;
         }
@@ -472,7 +489,7 @@ export class FolderRepository {
     mutator: (data: FolderLabFileData) => T
   ): Promise<T> {
     return this.enqueue(async () => {
-      const isMaster = folderPath === this.masterPath;
+      const isMaster = this.isMasterPath(folderPath);
       let data: FolderLabFileData | null = null;
 
       try {
@@ -570,11 +587,14 @@ export class FolderRepository {
       if (!this.globalOrderData) return null;
     }
 
-    if (folderPath === masterPath) {
+    const masterNorm = normalizeRootPath(masterPath) ?? '';
+    const folderNorm = normalizeRootPath(folderPath) ?? '';
+
+    if (folderNorm === masterNorm) {
       return this.globalOrderData.root.order || [];
     }
 
-    const relativePath = folderPath.replace(masterPath, '').split('/').filter(Boolean);
+    const relativePath = folderNorm.replace(masterNorm, '').split('/').filter(Boolean);
     let current: FolderOrderData = this.globalOrderData.root;
 
     for (const segment of relativePath) {
@@ -614,10 +634,12 @@ export class FolderRepository {
         return;
       }
 
-      if (folderPath === masterPath) {
+      const masterNorm = normalizeRootPath(masterPath) ?? '';
+      const folderNorm = normalizeRootPath(folderPath) ?? '';
+      if (folderNorm === masterNorm) {
         current.root.order = order;
       } else {
-        const relativePath = folderPath.replace(masterPath, '').split('/').filter(Boolean);
+        const relativePath = folderNorm.replace(masterNorm, '').split('/').filter(Boolean);
         let node: FolderOrderData = current.root;
 
         for (let i = 0; i < relativePath.length; i++) {

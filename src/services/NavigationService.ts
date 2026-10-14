@@ -4,6 +4,7 @@
 
 import { App } from 'obsidian';
 import { FolderRepository } from '../storage/FolderRepository';
+import { normalizeRootPath } from '../utils/rootPath';
 import { NavigationTree, NavigationNode, NavigationProvider, NavigationType } from '../models/Navigation';
 import { FolderNavigationProvider } from './navigation/FolderNavigationProvider';
 import { PropertyNavigationProvider } from './navigation/PropertyNavigationProvider';
@@ -33,7 +34,11 @@ export class NavigationService {
   // ============================================================
 
   setMasterPath(path: string): void {
-    this.masterPath = path;
+    // Normalización (corrección de iconos de estado): la ruta del
+    // Master se compara con file.parent.path (siempre limpia); una
+    // barra inicial/final en los ajustes partía los estados en dos
+    // cubetas del almacén central.
+    this.masterPath = normalizeRootPath(path);
   }
 
   getMasterPath(): string | null {
