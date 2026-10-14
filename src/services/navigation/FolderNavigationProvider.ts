@@ -22,7 +22,8 @@ export class FolderNavigationProvider implements NavigationProvider {
   async build(): Promise<NavigationTree> {
     const masterPath = this.repository.getMasterPath();
     this.masterPathForFilter = masterPath;
-    if (!masterPath) {
+    // Contrato de raíz: null = sin Master; '' = raíz del vault.
+    if (masterPath === null) {
       this.tree = { root: [], nodeMap: new Map(), flatNodes: [] };
       return this.tree;
     }
@@ -34,9 +35,15 @@ export class FolderNavigationProvider implements NavigationProvider {
     if (globalOrder) {
       await this.buildFromOrder(globalOrder, masterPath, nodes, nodeMap);
     } else {
-      const masterFolder = this.app.vault.getAbstractFileByPath(masterPath);
+      const masterFolder =
+        masterPath === ''
+          ? this.app.vault.getRoot()
+          : this.app.vault.getAbstractFileByPath(masterPath);
       if (masterFolder instanceof TFolder) {
-        await this.walkFolder(masterFolder, null, nodes, nodeMap);
+        // Corrección: los hijos del master se parentan al nodo raíz
+        // (id: masterPath) — con null, canGoBack era false y el
+        // botón de volver desaparecía en árboles de filesystem.
+        await this.walkFolder(masterFolder, masterPath, nodes, nodeMap);
       }
     }
 
