@@ -19,6 +19,7 @@
 // - Escrituras serializadas con cola propia; validación de forma.
 
 import type { GlobalOrderData, FolderLabFileData } from './FolderRepository';
+import { joinVaultRoot } from '../utils/rootPath';
 
 export interface CentralOrderData {
   version: 1;
@@ -38,14 +39,20 @@ export class CentralOrderStore {
     private getMasterPath: () => string | null
   ) {}
 
+  /**
+   * Raíz normalizada (contrato del sistema): null = sin Master;
+   * '' = raíz del vault; 'X' = subcarpeta. NO se re-normaliza.
+   */
   private master(): string | null {
     const m = this.getMasterPath();
-    return m && m.trim() ? m.replace(/^\/+|\/+$/g, '') : null;
+    if (m === null || m === undefined) return null;
+    return m.replace(/^\/+|\/+$/g, "");
   }
 
   path(): string | null {
     const master = this.master();
-    return master ? `${master}/Folder Lab/order.json` : null;
+    if (master === null) return null;
+    return joinVaultRoot(master, 'Folder Lab', 'order.json');
   }
 
   private enqueue<T>(op: () => Promise<T>): Promise<T> {

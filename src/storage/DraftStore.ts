@@ -22,6 +22,7 @@
 
 import { App } from 'obsidian';
 import type { NoteIdentityRegistry } from './NoteIdentityRegistry';
+import { joinVaultRoot } from '../utils/rootPath';
 
 export interface DraftData {
   draft: string;
@@ -60,8 +61,11 @@ export class DraftStore {
   ) {}
 
   private get masterPath(): string | null {
+    // Contrato del sistema (ya normalizado): null = sin Master;
+    // '' = raíz del vault.
     const p = this.getMasterPath();
-    return p && p.trim() ? p : null;
+    if (p === null || p === undefined) return null;
+    return p.replace(/^\/+|\/+$/g, "");
   }
 
   private async enqueue<T>(op: () => Promise<T>): Promise<T> {
@@ -75,7 +79,8 @@ export class DraftStore {
 
   private dirPath(): string | null {
     const master = this.masterPath;
-    return master ? `${master}/${ROOT_FOLDER}/${DRAFTS_FOLDER}` : null;
+    if (master === null) return null;
+    return joinVaultRoot(master, ROOT_FOLDER, DRAFTS_FOLDER);
   }
 
   private async filePathFor(notePath: string): Promise<string | null> {

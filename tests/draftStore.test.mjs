@@ -94,7 +94,7 @@ const { NoteIdentityRegistry } = await bundle(
 );
 const { DraftStore } = await bundle('src/storage/DraftStore.ts');
 
-function makeDraftStore({ master = '/Master' } = {}) {
+function makeDraftStore({ master = 'Master' } = {}) {
   const hidden = new FakeHidden();
   const registry = new NoteIdentityRegistry({}, () => master, hidden);
   const adapter = new FakeAdapter();
@@ -116,7 +116,7 @@ test('roundtrip: escribir y leer el borrador de la nota', async () => {
   // Archivo en la ubicación correcta.
   const keys = [...adapter.files.keys()];
   assert.equal(keys.length, 1);
-  assert.match(keys[0], /^\/Master\/Folder Lab\/drafts\/.+\.json$/);
+  assert.match(keys[0], /^Master\/Folder Lab\/drafts\/.+\.json$/);
 });
 
 test('parche parcial: draft no pisa blocks', async () => {
@@ -140,7 +140,7 @@ test('archivo ilegible: lanza y NO lo borra', async () => {
 });
 
 test('sin Master: write/read son no-op/ null', async () => {
-  const { store } = makeDraftStore({ master: '' });
+  const { store } = makeDraftStore({ master: null });
   await store.write('n.md', { draft: 'x' });
   assert.equal(await store.read('n.md'), null);
 });

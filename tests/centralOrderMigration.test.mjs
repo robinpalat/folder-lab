@@ -229,12 +229,13 @@ test('orden por carpeta: migración perezosa desde el legado', async () => {
 });
 
 test('sin Master: degradación segura (sin escrituras, sin .folder-lab)', async () => {
-  const { repo, adapter } = makeRepo({ master: '' });
-  const data = await repo.loadGlobalOrder('');
+  // Contrato: null = sin configurar ('' ahora significa raíz).
+  const { repo, adapter } = makeRepo({ master: null });
+  const data = await repo.loadGlobalOrder(null);
   assert.equal(data, null);
   // Escrituras: no-op con aviso, sin archivos nuevos.
-  await repo.saveGlobalOrder('', { root: { order: ['A.md'] }, version: 1 });
-  await repo.transactFolderLab('', (d) => {
+  await repo.saveGlobalOrder(null, { root: { order: ['A.md'] }, version: 1 });
+  await repo.transactFolderLab(null, (d) => {
     d.notes = {};
     return d;
   });

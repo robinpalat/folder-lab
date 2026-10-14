@@ -121,7 +121,7 @@ function contextData() {
   };
 }
 
-const MASTER = '/Master';
+const MASTER = 'Master';
 
 function makeBoardRepo({ withIdentity = true } = {}) {
   const hidden = new FakeHidden();
@@ -158,10 +158,10 @@ test('con identidad: saveNote escribe archivo por entidad', async () => {
   const { repo, adapter } = makeBoardRepo();
   await repo.saveNote('Libro/A.md', boardData('A'));
   const keys = [...adapter.files.keys()].filter((k) =>
-    k.startsWith('/Master/Folder Lab/boards/')
+    k.startsWith('Master/Folder Lab/boards/')
   );
   assert.equal(keys.length, 1);
-  assert.match(keys[0], /^\/Master\/Folder Lab\/boards\/id-.+\.json$/);
+  assert.match(keys[0], /^Master\/Folder Lab\/boards\/id-.+\.json$/);
   const loaded = await repo.loadNote('Libro/A.md');
   assert.equal(loaded.blocks[0].content, 'A');
 });
@@ -175,7 +175,7 @@ test('fallback legado + migración perezosa', async () => {
   assert.equal(loaded.blocks[0].content, 'legacy');
   // Tras la primera lectura existe el archivo de entidad.
   const entityKeys = [...adapter.files.keys()].filter((k) =>
-    k.startsWith('/Master/Folder Lab/boards/')
+    k.startsWith('Master/Folder Lab/boards/')
   );
   assert.equal(entityKeys.length, 1);
   // Y una segunda lectura sirve desde la entidad.
@@ -251,7 +251,7 @@ test('renombrar re-clava el notePath de la entidad', async () => {
   assert.equal(loaded.blocks[0].content, 'A');
   // El sobre refleja la nueva ruta.
   const envelopeKey = [...adapter.files.keys()].find((k) =>
-    k.startsWith('/Master/Folder Lab/boards/')
+    k.startsWith('Master/Folder Lab/boards/')
   );
   const envelope = JSON.parse(adapter.files.get(envelopeKey));
   assert.equal(envelope.notePath, 'Libro/B.md');
@@ -270,7 +270,7 @@ test('NoteRepository: entidad roundtrip y fallback legado', async () => {
   await repo.saveNote('Nota.md', contextData());
   assert.ok(
     [...adapter.files.keys()].some((k) =>
-      k.startsWith('/Master/Folder Lab/context/ctx-1.json')
+      k.startsWith('Master/Folder Lab/context/ctx-1.json')
     )
   );
   const loaded = await repo.loadNote('Nota.md');

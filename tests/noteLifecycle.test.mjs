@@ -153,7 +153,7 @@ const { NoteIdentityRegistry } = await bundle(
 );
 const { NoteLifecycle } = await bundle('src/storage/NoteLifecycle.ts');
 
-function makeRegistry(master = '/Master') {
+function makeRegistry(master = 'Master') {
   const hidden = new FakeHidden();
   const registry = new NoteIdentityRegistry(
     {},
@@ -163,7 +163,7 @@ function makeRegistry(master = '/Master') {
   return { registry, hidden };
 }
 
-function makeLifecycle({ master = '/Master', vaultId = 'vid', idGenerator } = {}) {
+function makeLifecycle({ master = 'Master', vaultId = 'vid', idGenerator } = {}) {
   const hidden = new FakeHidden();
   const registry = new NoteIdentityRegistry(
     {},
@@ -217,7 +217,7 @@ test('getId crea y persiste; segunda llamada devuelve el mismo id', async () => 
   const id2 = await registry.getId('Notas/a.md');
   assert.ok(id1 && id1.length > 0);
   assert.equal(id1, id2);
-  assert.ok(hidden.files.has('/Master/ids.json'));
+  assert.ok(hidden.files.has('Master/ids.json'));
 });
 
 test('sin Master: getId devuelve null (fallback a ruta)', async () => {
@@ -227,10 +227,10 @@ test('sin Master: getId devuelve null (fallback a ruta)', async () => {
 
 test('ids.json ilegible: no se pisa ni lanza', async () => {
   const hidden = new FakeHidden();
-  hidden.files.set('/Master/ids.json', { broken: true });
-  const registry = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  hidden.files.set('Master/ids.json', { broken: true });
+  const registry = new NoteIdentityRegistry({}, () => 'Master', hidden);
   assert.equal(await registry.getId('a.md'), null);
-  assert.deepEqual(hidden.files.get('/Master/ids.json'), { broken: true });
+  assert.deepEqual(hidden.files.get('Master/ids.json'), { broken: true });
 });
 
 // ------------------------------------------------------------
@@ -365,12 +365,12 @@ test('reconcile reporta huérfanos y pendientes existentes sin auto-restaurar', 
 
 test('reconcile detecta ids duplicados sin modificar nada', async () => {
   const hidden = new FakeHidden();
-  hidden.files.set('/Master/ids.json', {
+  hidden.files.set('Master/ids.json', {
     version: 1,
     ids: { 'a.md': 'same', 'b.md': 'same' },
     tombstones: {}
   });
-  const registry = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const registry = new NoteIdentityRegistry({}, () => 'Master', hidden);
   const report = await registry.reconcile(['a.md', 'b.md']);
   assert.deepEqual(report.duplicateIds, ['same']);
 });
@@ -384,10 +384,10 @@ test('E2: recuperación más allá de cualquier plazo (claim tardío)', async ()
   const oldId = await registry.getId('n.md');
   await registry.onDeleted('n.md');
   // Envejecer la pendencia años (sin ventana temporal en E2).
-  const file = hidden.files.get('/Master/ids.json');
+  const file = hidden.files.get('Master/ids.json');
   file.pending['n.md'].deletedAt = Date.now() - 365 * 24 * 60 * 60 * 1000;
 
-  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const fresh = new NoteIdentityRegistry({}, () => 'Master', hidden);
   const result = await fresh.claim('n.md');
   assert.equal(result.status, 'claimed');
   assert.equal(await fresh.findIdByPath('n.md'), oldId);
@@ -399,7 +399,7 @@ test('E2: creación nueva en ruta antigua recibe id nuevo; el reclamo recupera e
   await registry.onDeleted('n.md');
 
   // Nota nueva (sin reclamo): id nuevo; los datos viejos NO se asocian.
-  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const fresh = new NoteIdentityRegistry({}, () => 'Master', hidden);
   assert.equal(await fresh.onCreated('n.md'), null);
   const newId = await fresh.getId('n.md');
   assert.notEqual(newId, oldId);
@@ -409,7 +409,7 @@ test('E2: creación nueva en ruta antigua recibe id nuevo; el reclamo recupera e
   const claim = await fresh.claim('n.md');
   assert.equal(claim.status, 'conflict');
   // La pendencia se conserva (recuperable en el futuro).
-  const after = hidden.files.get('/Master/ids.json');
+  const after = hidden.files.get('Master/ids.json');
   assert.equal(after.pending['n.md'].id, oldId);
 });
 
@@ -418,7 +418,7 @@ test('E2: reconcile reporta pendientes existentes sin restaurar', async () => {
   const oldId = await registry.getId('n.md');
   await registry.onDeleted('n.md');
 
-  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const fresh = new NoteIdentityRegistry({}, () => 'Master', hidden);
   const report = await fresh.reconcile(['n.md']);
   assert.deepEqual(report.pendingExisting, ['n.md']);
   assert.equal(await fresh.findIdByPath('n.md'), null);
@@ -427,14 +427,14 @@ test('E2: reconcile reporta pendientes existentes sin restaurar', async () => {
 
 test('E2: ids.json v1 con tombstones migra a pending conservando datos', async () => {
   const hidden = new FakeHidden();
-  hidden.files.set('/Master/ids.json', {
+  hidden.files.set('Master/ids.json', {
     version: 1,
     ids: { 'viva.md': 'id-viva' },
     tombstones: {
       'muerta.md': { id: 'id-muerta', deletedAt: 1234567890 }
     }
   });
-  const registry = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const registry = new NoteIdentityRegistry({}, () => 'Master', hidden);
   // La carga migra: pendiente con las MISMAS fechas.
   const pending = await registry.getPendingFor('muerta.md');
   assert.equal(pending.length, 1);
@@ -443,7 +443,7 @@ test('E2: ids.json v1 con tombstones migra a pending conservando datos', async (
   // El id activo de la nota viva se conserva.
   assert.equal(await registry.findIdByPath('viva.md'), 'id-viva');
   // tombstones vacío tras la migración; los datos no se pierden.
-  const file = hidden.files.get('/Master/ids.json');
+  const file = hidden.files.get('Master/ids.json');
   assert.deepEqual(file.tombstones, {});
   assert.equal(file.pending['muerta.md'].id, 'id-muerta');
 });
@@ -453,10 +453,10 @@ test('E2: ambigüedad pending+archived no se resuelve arbitrariamente', async ()
   const pendingId = await registry.getId('n.md');
   await registry.onDeleted('n.md');
   // Sembrar además un archived para la MISMA ruta (id distinto).
-  const file = hidden.files.get('/Master/ids.json');
+  const file = hidden.files.get('Master/ids.json');
   file.archived = { 'n.md': { id: 'archived-id', deletedAt: 111 } };
 
-  const fresh = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const fresh = new NoteIdentityRegistry({}, () => 'Master', hidden);
   const result = await fresh.claim('n.md');
   assert.equal(result.status, 'ambiguous');
   assert.equal(result.candidates.length, 2);
@@ -465,7 +465,7 @@ test('E2: ambigüedad pending+archived no se resuelve arbitrariamente', async ()
   assert.equal(claimed.status, 'claimed');
   assert.equal(await fresh.findIdByPath('n.md'), pendingId);
   // El archivado se conserva.
-  const after = hidden.files.get('/Master/ids.json');
+  const after = hidden.files.get('Master/ids.json');
   assert.equal(after.archived['n.md'].id, 'archived-id');
 });
 
@@ -482,16 +482,16 @@ test('E2: claim idempotente (dos veces = mismo resultado)', async () => {
 
 test('A3: ids.json sin campo archived es compatible (se hidrata)', async () => {
   const hidden = new FakeHidden();
-  hidden.files.set('/Master/ids.json', {
+  hidden.files.set('Master/ids.json', {
     version: 1,
     ids: { 'a.md': 'id-a' },
     tombstones: {}
   });
-  const registry = new NoteIdentityRegistry({}, () => '/Master', hidden);
+  const registry = new NoteIdentityRegistry({}, () => 'Master', hidden);
   assert.equal(await registry.findIdByPath('a.md'), 'id-a');
   // Tras persistir, archived existe y los datos previos se conservan.
   await registry.getId('b.md');
-  const file = hidden.files.get('/Master/ids.json');
+  const file = hidden.files.get('Master/ids.json');
   assert.deepEqual(file.ids, { 'a.md': 'id-a', 'b.md': file.ids['b.md'] });
   assert.ok(file.archived);
 });
@@ -503,7 +503,7 @@ test('A3: ids.json sin campo archived es compatible (se hidrata)', async () => {
 test('M3: una colisión del generador se resuelve sin mezclar datos', async () => {
   const { registry, hidden } = makeRegistry();
   // Sembrar un id existente 'dup'.
-  hidden.files.set('/Master/ids.json', {
+  hidden.files.set('Master/ids.json', {
     version: 1,
     ids: { 'otra.md': 'dup' },
     tombstones: {},
@@ -512,7 +512,7 @@ test('M3: una colisión del generador se resuelve sin mezclar datos', async () =
   const answers = ['dup', 'dup', 'unico'];
   const fresh = new NoteIdentityRegistry(
     {},
-    () => '/Master',
+    () => 'Master',
     hidden,
     undefined,
     () => answers.shift() ?? 'fallback'
@@ -626,17 +626,18 @@ test('M1: un fallo en recoverPending no impide reconcile', async () => {
 test('M5: normalizeRootPath elimina barras iniciales/finales', async () => {
   const { normalizeRootPath } = await bundle('src/utils/rootPath.ts');
   assert.equal(normalizeRootPath('Master/'), 'Master');
-  assert.equal(normalizeRootPath('/Master'), 'Master');
+  assert.equal(normalizeRootPath('Master'), 'Master');
   assert.equal(normalizeRootPath(' /Master/ '), 'Master');
   assert.equal(normalizeRootPath('Libros/Mi Libro'), 'Libros/Mi Libro');
   assert.equal(normalizeRootPath(''), null);
   assert.equal(normalizeRootPath(null), null);
-  assert.equal(normalizeRootPath('///'), null);
+  // Solo barras = raíz del vault (contrato nuevo).
+  assert.equal(normalizeRootPath('///'), '');
 });
 
 test('M5: rutas con barra inicial y final producen la MISMA clave', async () => {
   const { normalizeRootPath } = await bundle('src/utils/rootPath.ts');
-  const a = normalizeRootPath('/Master/');
+  const a = normalizeRootPath('Master/');
   const b = normalizeRootPath('Master');
   const keyFor = (root) => {
     const { registry, hidden } = makeRegistry(root);

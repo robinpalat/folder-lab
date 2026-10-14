@@ -22,7 +22,9 @@ export class HiddenFolderManager {
   // ============================================================
 
   getHiddenFolderPath(folderPath: string): string {
-    return `${folderPath}/${this.folderName}`;
+    // Raíz del vault ('' tras normalizar) no produce barra inicial.
+    const base = (folderPath ?? '').replace(/^\/+|\/+$/g, "");
+    return base ? `${base}/${this.folderName}` : this.folderName;
   }
 
   private getFilePath(folderPath: string, fileName: string): string {

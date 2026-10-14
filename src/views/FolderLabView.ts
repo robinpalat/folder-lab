@@ -11,6 +11,7 @@ import { FolderLabController, FolderLabEvent } from '../core/FolderLabController
 import { FolderLabState, NavigationMode } from '../core/FolderLabState';
 import { boardMustCloseOnExit, pickLeafStrategy } from '../utils/boardStability';
 import { shouldReloadFolderOnModify } from '../utils/dataPath';
+import { normalizeRootPath } from '../utils/rootPath';
 import { FolderRepository } from '../storage/FolderRepository';
 import { HeaderComponent } from '../layout/HeaderComponent';
 import { NoteListComponent, ListItem } from '../components/NoteListComponent';
@@ -1071,7 +1072,7 @@ export class FolderLabView extends ItemView {
           !shouldReloadFolderOnModify(
             file.path,
             this.controller.getCurrentPath(),
-            this.plugin.settings.bookRootPath
+            normalizeRootPath(this.plugin.settings.bookRootPath)
           )
         ) {
           return;
@@ -1220,7 +1221,8 @@ export class FolderLabView extends ItemView {
   // ============================================================
 
   private async loadInitialFolder(): Promise<void> {
-    const masterPath = this.plugin.settings.bookRootPath;
+    // Normalizado: '' = raíz del vault ('/'); null = sin configurar.
+    const masterPath = normalizeRootPath(this.plugin.settings.bookRootPath);
     const lastFolder = this.plugin.settings.lastFolderPath;
 
     // ============================================================

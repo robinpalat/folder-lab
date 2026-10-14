@@ -16,6 +16,7 @@
 //   otras notas ni `ids.json` completo).
 
 import { App } from 'obsidian';
+import { joinVaultRoot } from '../utils/rootPath';
 
 export interface TrashOp {
   (notePath: string): Promise<void>;
@@ -60,8 +61,11 @@ export class NoteDataSnapshot {
   ) {}
 
   private root(): string | null {
+    // Contrato del sistema (ya normalizado): null = sin Master;
+    // '' = raíz del vault.
     const r = this.getRootPath();
-    return r && r.trim() ? r.replace(/^\/+|\/+$/g, "") : null;
+    if (r === null || r === undefined) return null;
+    return r.replace(/^\/+|\/+$/g, "");
   }
 
   /**
@@ -77,10 +81,14 @@ export class NoteDataSnapshot {
     }
     const adapter = this.app.vault.adapter;
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const dir = `${root}/Folder Lab/trash/${stamp}-${noteId}`;
+    const dir = joinVaultRoot(root, 'Folder Lab', 'trash', `${stamp}-${noteId}`);
 
     // Directorios.
-    for (const part of [`${root}/Folder Lab`, `${root}/Folder Lab/trash`, dir]) {
+    for (const part of [
+      joinVaultRoot(root, 'Folder Lab'),
+      joinVaultRoot(root, 'Folder Lab', 'trash'),
+      dir
+    ]) {
       if (!(await adapter.exists(part))) {
         await adapter.mkdir(part);
       }
@@ -104,7 +112,7 @@ export class NoteDataSnapshot {
       ["draft.json", "drafts"],
       ["polish.json", "polish"]
     ] as const) {
-      const src = `${root}/Folder Lab/${sub}/${noteId}.json`;
+      const src = joinVaultRoot(root, 'Folder Lab', sub, `${noteId}.json`);
       if (await adapter.exists(src)) {
         const raw = await adapter.read(src);
         JSON.parse(raw); // valida antes de copiar

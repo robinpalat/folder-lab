@@ -22,6 +22,8 @@
 
 export const ORPHAN_GRACE_MS = 24 * 60 * 60 * 1000;
 
+import { joinVaultRoot } from '../utils/rootPath';
+
 export const ORPHAN_SUBFOLDERS = ['boards', 'context', 'drafts', 'polish'] as const;
 
 export interface OrphanCandidate {
@@ -108,11 +110,17 @@ export async function runOrphanAudit(
   };
 
   const rootRaw = getRootPath();
-  const root = rootRaw && rootRaw.trim() ? rootRaw.replace(/^\/+|\/+$/g, '') : null;
-  if (!root) return report;
+  // Contrato: getRootPath entrega la raíz YA normalizada
+  // (main pasa rootPathFn): null = sin Master; '' = raíz del
+  // vault; 'X' = subcarpeta. Solo se limpian barras accidentales.
+  const root =
+    rootRaw === null || rootRaw === undefined
+      ? null
+      : rootRaw.replace(/^\/+|\/+$/g, "");
+  if (root === null) return report;
 
   const adapter = app.vault.adapter;
-  const base = `${root}/Folder Lab`;
+  const base = joinVaultRoot(root, 'Folder Lab');
   const existing = new Set(existingPaths);
 
   // --- ids.json crudo (sin persistir) ---

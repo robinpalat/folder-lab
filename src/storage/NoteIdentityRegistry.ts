@@ -168,8 +168,11 @@ export class NoteIdentityRegistry {
   }
 
   private get masterPath(): string | null {
-    const path = this.getMasterPath();
-    return path && path.trim() ? path : null;
+    // Contrato del sistema (ya normalizado): null = sin Master;
+    // '' = raíz del vault; 'X' = subcarpeta.
+    const p = this.getMasterPath();
+    if (p === null || p === undefined) return null;
+    return p.replace(/^\/+|\/+$/g, "");
   }
 
   /** Serializa operaciones de lectura-modificación-escritura. */
@@ -184,7 +187,7 @@ export class NoteIdentityRegistry {
 
   private async load(): Promise<IdentityStore | null> {
     const master = this.masterPath;
-    if (!master) return null;
+    if (master === null) return null;
     // B1: si el Master cambia en caliente, invalidar la caché.
     if (this.cache && this.lastMaster === master) return this.cache;
     this.lastMaster = master;
@@ -251,7 +254,7 @@ export class NoteIdentityRegistry {
 
   private async persist(): Promise<void> {
     const master = this.masterPath;
-    if (!master || !this.cache) return;
+    if (master === null || !this.cache) return;
     await this.hidden.writeJSON(master, IDS_FILE, this.cache);
   }
 

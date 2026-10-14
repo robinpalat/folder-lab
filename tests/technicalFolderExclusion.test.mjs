@@ -92,8 +92,11 @@ test('technicalDataRoot: normaliza el Master configurado', async () => {
   assert.equal(technicalDataRoot('/Master'), 'Master/Folder Lab');
   assert.equal(technicalDataRoot('  /Master/  '), 'Master/Folder Lab');
   assert.equal(technicalDataRoot('Libros/Mi Libro'), 'Libros/Mi Libro/Folder Lab');
-  assert.equal(technicalDataRoot(''), null);
+  // '' ahora significa RAÍZ DEL VAULT (configuración válida '/').
+  assert.equal(technicalDataRoot(''), 'Folder Lab');
+  // null = sin configurar.
   assert.equal(technicalDataRoot(null), null);
+  assert.equal(technicalDataRoot(undefined), null);
 });
 
 test('isTechnicalDataPath: raíz y descendientes; falsos positivos', async () => {
@@ -102,7 +105,7 @@ test('isTechnicalDataPath: raíz y descendientes; falsos positivos', async () =>
   assert.equal(isTechnicalDataPath('Master/Folder Lab', 'Master'), true);
   assert.equal(isTechnicalDataPath('Master/Folder Lab/exports', 'Master'), true);
   assert.equal(isTechnicalDataPath('Master/Folder Lab/exports/indice-a.md', 'Master'), true);
-  assert.equal(isTechnicalDataPath('Master/Folder Lab/drafts/id1.json', '/Master/'), true);
+  assert.equal(isTechnicalDataPath('Master/Folder Lab/drafts/id1.json', 'Master/'), true);
   // Falsos positivos: otras ubicaciones con el mismo nombre.
   assert.equal(isTechnicalDataPath('Notas/Folder Lab', 'Master'), false);
   assert.equal(isTechnicalDataPath('Folder Lab', 'Master'), false);

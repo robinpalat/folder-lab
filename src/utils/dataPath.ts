@@ -12,16 +12,20 @@
 // una carpeta de usuario llamada "Folder Lab" en otra ubicación NO
 // se oculta. Sin Master configurado no hay raíz técnica.
 
-import { normalizeRootPath } from './rootPath';
+import { normalizeRootPath, joinVaultRoot } from './rootPath';
 
 export const TECHNICAL_FOLDER_NAME = 'Folder Lab';
 
-/** Raíz técnica normalizada (`<Master>/Folder Lab`) o null. */
+/**
+ * Raíz técnica normalizada o null.
+ * Contrato: `masterRoot` llega YA normalizado (null = sin Master;
+ * '' = raíz del vault; 'X' = subcarpeta).
+ */
 export function technicalDataRoot(
   masterRoot: string | null | undefined
 ): string | null {
-  const master = normalizeRootPath(masterRoot);
-  return master ? `${master}/${TECHNICAL_FOLDER_NAME}` : null;
+  if (masterRoot === null || masterRoot === undefined) return null;
+  return joinVaultRoot(masterRoot, TECHNICAL_FOLDER_NAME);
 }
 
 /**
