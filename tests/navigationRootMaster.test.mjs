@@ -218,7 +218,7 @@ test('buildFromOrder con Master en subcarpeta: sin regresiones', async () => {
 // Estadísticas con Master en la raíz
 // ------------------------------------------------------------
 
-test('StatsService con Master raíz: 0 directas, 8 totales, 1 carpeta', async () => {
+test('StatsService con Master raíz: 0 directas, 8 totales, 1 carpeta (Folder Lab excluida)', async () => {
   const { StatsService } = await bundle('src/services/StatsService.ts');
   const TFolder = globalThis.__TFolder;
   const TFile = globalThis.__TFile;
@@ -234,10 +234,24 @@ test('StatsService con Master raíz: 0 directas, 8 totales, 1 carpeta', async ()
     n.extension = 'md';
     canciones.children.push(n);
   }
+  // Carpeta técnica con un .md (exportación) que NO debe contarse.
+  const folderLab = new TFolder();
+  folderLab.path = 'Folder Lab';
+  folderLab.name = 'Folder Lab';
+  const exported = new TFile();
+  exported.path = 'Folder Lab/exports/indice.md';
+  exported.name = 'indice.md';
+  exported.extension = 'md';
+  const exportsFolder = new TFolder();
+  exportsFolder.path = 'Folder Lab/exports';
+  exportsFolder.name = 'exports';
+  exportsFolder.children = [exported];
+  folderLab.children = [exportsFolder];
+
   const root = new TFolder();
   root.path = '';
   root.name = '';
-  root.children = [canciones];
+  root.children = [canciones, folderLab];
 
   const app = {
     vault: {
@@ -248,8 +262,37 @@ test('StatsService con Master raíz: 0 directas, 8 totales, 1 carpeta', async ()
   const service = new StatsService(app, '');
   const direct = service.countDirectNotesAndSubfolders('');
   assert.equal(direct.totalNotes, 0, 'sin notas directas en la raíz');
-  assert.equal(direct.totalSubfolders, 1, 'una subcarpeta');
+  assert.equal(direct.totalSubfolders, 1, 'Folder Lab no cuenta como subcarpeta');
   const book = service.countBookNotesAndFolders('');
-  assert.equal(book.totalNotes, 8, '8 notas del libro');
-  assert.equal(book.totalFolders, 1, '1 carpeta del libro');
+  assert.equal(book.totalNotes, 8, 'las exportaciones no cuentan como notas');
+  assert.equal(book.totalFolders, 1, 'Folder Lab no cuenta como carpeta del libro');
+});
+
+test('StatsService con Master en subcarpeta: la carpeta técnica hermana no cuenta', async () => {
+  const { StatsService } = await bundle('src/services/StatsService.ts');
+  const TFolder = globalThis.__TFolder;
+  const TFile = globalThis.__TFile;
+
+  const nota = new TFile();
+  nota.path = 'Libro/a.md';
+  nota.name = 'a.md';
+  nota.extension = 'md';
+  const folderLab = new TFolder();
+  folderLab.path = 'Libro/Folder Lab';
+  folderLab.name = 'Folder Lab';
+  const libro = new TFolder();
+  libro.path = 'Libro';
+  libro.name = 'Libro';
+  libro.children = [nota, folderLab];
+
+  const app = {
+    vault: {
+      getRoot: () => libro,
+      getAbstractFileByPath: (p) => (p === 'Libro' ? libro : null)
+    }
+  };
+  const service = new StatsService(app, 'Libro');
+  const direct = service.countDirectNotesAndSubfolders('Libro');
+  assert.equal(direct.totalSubfolders, 0, 'Folder Lab hermana excluida');
+  assert.equal(direct.totalNotes, 1);
 });

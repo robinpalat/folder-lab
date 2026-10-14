@@ -121,6 +121,9 @@ export class StatsService {
       if (child instanceof TFolder) {
         if (isHiddenFolderName(child.name)) continue;
         if (child.name === INTERNAL_FOLDER) continue;
+        // Exclusión idéntica al explorador: la carpeta técnica
+        // (Folder Lab/) no es una carpeta del usuario.
+        if (isTechnicalDataPath(child.path, this.masterRoot)) continue;
         totalSubfolders++;
         continue;
       }
@@ -173,20 +176,24 @@ export class StatsService {
     const walk = (current: TFolder): void => {
       for (const child of current.children) {
         if (child instanceof TFolder) {
-          // Elegibilidad de carpetas: idéntica a la navegación.
+          // Elegibilidad de carpetas: idéntica a la navegación
+          // (incluye la exclusión de la carpeta técnica).
           if (
             !isHiddenFolderName(child.name) &&
-            child.name !== INTERNAL_FOLDER
+            child.name !== INTERNAL_FOLDER &&
+            !isTechnicalDataPath(child.path, this.masterRoot)
           ) {
             totalFolders++;
           }
 
           // Descenso para notas: criterio histórico (sin
-          // internas ni carpetas '.'); conserva el total de
-          // notas existente.
+          // internas ni carpetas '.'); además NO se desciende a
+          // la carpeta técnica (sus exportaciones no son notas
+          // del libro).
           if (
             child.name === INTERNAL_FOLDER ||
-            child.name.startsWith('.')
+            child.name.startsWith('.') ||
+            isTechnicalDataPath(child.path, this.masterRoot)
           ) {
             continue;
           }
