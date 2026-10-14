@@ -384,7 +384,8 @@ export default class FolderLabPlugin extends Plugin {
       void runStartupMaintenance(
         this.app,
         noteIdentityRegistry,
-        this.noteLifecycle
+        this.noteLifecycle,
+        rootPathFn
       ).catch((error) => {
         console.error('[FolderLab] Mantenimiento de arranque fallido:', error);
       });

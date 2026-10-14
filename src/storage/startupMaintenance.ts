@@ -13,6 +13,7 @@
 import { App } from 'obsidian';
 import type { NoteIdentityRegistry } from './NoteIdentityRegistry';
 import type { NoteLifecycle } from './NoteLifecycle';
+import { runOrphanAudit, type OrphanAuditReport } from './orphanAudit';
 
 export interface MaintenanceReport {
   recoveredJournal: boolean;
@@ -20,18 +21,25 @@ export interface MaintenanceReport {
   /** Rutas con datos pendientes cuya nota ya existe (reclamar). */
   reconcilePendingExisting: number;
   reconcileDuplicateIds: number;
+  /** E4a: huérfanos elegibles (gracia cumplida); solo reporte. */
+  orphanCandidates: number;
+  /** Informe completo de la auditoría (E4a); null sin Master. */
+  orphanAudit: OrphanAuditReport | null;
 }
 
 export async function runStartupMaintenance(
   app: App,
   registry: NoteIdentityRegistry,
-  lifecycle: NoteLifecycle | null
+  lifecycle: NoteLifecycle | null,
+  getRootPath?: () => string | null
 ): Promise<MaintenanceReport> {
   const report: MaintenanceReport = {
     recoveredJournal: false,
     reconcileOrphans: 0,
     reconcilePendingExisting: 0,
-    reconcileDuplicateIds: 0
+    reconcileDuplicateIds: 0,
+    orphanCandidates: 0,
+    orphanAudit: null
   };
 
   if (lifecycle) {
@@ -46,8 +54,9 @@ export async function runStartupMaintenance(
     }
   }
 
+  let existingPaths: string[] = [];
   try {
-    const existingPaths = app.vault
+    existingPaths = app.vault
       .getMarkdownFiles()
       .map((f) => f.path);
     const reconcile = await registry.reconcile(existingPaths);
@@ -63,6 +72,36 @@ export async function runStartupMaintenance(
     }
   } catch (error) {
     console.error('[FolderLab] Reconciliación de identidad fallida:', error);
+  }
+
+  // E4a: auditoría de huérfanos en modo solo lectura (cero escrituras;
+  // lee ids.json/journal crudos, sin persistir migraciones).
+  if (getRootPath) {
+    try {
+      const audit = await runOrphanAudit(
+        app as unknown as Parameters<typeof runOrphanAudit>[0],
+        getRootPath,
+        existingPaths
+      );
+      report.orphanAudit = audit;
+      report.orphanCandidates = audit.candidates.length;
+      if (
+        audit.candidates.length ||
+        audit.identityOrphans.length ||
+        audit.ambiguous.length ||
+        audit.unreadable.length
+      ) {
+        console.info('[FolderLab] Auditoría de huérfanos (solo lectura):', {
+          candidates: audit.candidates,
+          identityOrphans: audit.identityOrphans,
+          ambiguous: audit.ambiguous.length,
+          unreadable: audit.unreadable.length,
+          recentOrphans: audit.recentOrphans.length
+        });
+      }
+    } catch (error) {
+      console.error('[FolderLab] Auditoría de huérfanos fallida:', error);
+    }
   }
 
   return report;
