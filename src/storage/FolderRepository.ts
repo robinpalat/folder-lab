@@ -6,6 +6,7 @@
 
 import { App, Notice, TFolder, TFile } from 'obsidian';
 import { HiddenFolderManager } from './HiddenFolderManager';
+import { CentralOrderStore } from './CentralOrderStore';
 import { INTERNAL_FOLDER, ORDER_FILE } from '../constants/view-types';
 import { isHiddenFolderName, isIgnoredFolderName } from '../utils/folderUtils';
 import { i18n } from '../i18n/I18nService';
@@ -40,6 +41,8 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 export class FolderRepository {
   private app: App;
   private hiddenManager: HiddenFolderManager;
+  /** Migración del orden a Folder Lab/order.json (sin escrituras en .folder-lab). */
+  private central: CentralOrderStore;
   private globalOrderData: GlobalOrderData | null = null;
   private parentIndex: Map<string, string> | null = null;
   private masterPath: string | null = null;
@@ -59,6 +62,7 @@ export class FolderRepository {
   constructor(app: App) {
     this.app = app;
     this.hiddenManager = new HiddenFolderManager(app, INTERNAL_FOLDER);
+    this.central = new CentralOrderStore(app, () => this.masterPath);
   }
 
   private enqueue<T>(op: () => Promise<T>): Promise<T> {
@@ -84,33 +88,55 @@ export class FolderRepository {
   private async readGlobalFile(
     masterPath: string
   ): Promise<GlobalOrderData | null> {
-    const data = await this.hiddenManager.readJSON<unknown>(
+    this.masterPath = masterPath;
+
+    // 1) Fuente de verdad: almacén central (Folder Lab/order.json).
+    const central = await this.central.load();
+    if (central && central.global !== null) {
+      return central.global;
+    }
+
+    // 2) Legado (solo LECTURA; `.folder-lab` no se crea ni se
+    //    escribe) + copia verificada a la central (idempotente; la
+    //    central válida prevalece — ver regla del punto 1).
+    if (!masterPath || !masterPath.trim()) return null;
+    const legacy = await this.hiddenManager.readJSON<unknown>(
       masterPath,
       ORDER_FILE
     );
 
-    if (data === null) {
+    if (legacy === null) {
       return null;
     }
 
     if (
-      !isPlainObject(data) ||
-      !isPlainObject(data.root) ||
-      !Array.isArray(data.root.order)
+      !isPlainObject(legacy) ||
+      !isPlainObject(legacy.root) ||
+      !Array.isArray(legacy.root.order)
     ) {
       throw new Error(
         `[FolderRepository] _folder_order.json de "${masterPath || '/'}" no tiene la forma esperada`
       );
     }
 
-    return data as unknown as GlobalOrderData;
+    await this.central.mutate((data) => {
+      if (data.global === null) {
+        data.global = legacy as unknown as GlobalOrderData;
+      }
+    });
+
+    return legacy as unknown as GlobalOrderData;
   }
 
   private async writeGlobalFile(
     masterPath: string,
     data: GlobalOrderData
   ): Promise<void> {
-    await this.hiddenManager.writeJSON(masterPath, ORDER_FILE, data);
+    this.masterPath = masterPath;
+    // Migración: las escrituras de orden YA NO crean `.folder-lab`.
+    await this.central.mutate((store) => {
+      store.global = data;
+    });
   }
 
   private commitGlobal(data: GlobalOrderData): void {
@@ -379,14 +405,54 @@ export class FolderRepository {
    */
   async loadFolderLab(folderPath: string): Promise<{ order: string[]; notes?: Record<string, string> } | null> {
     try {
-      const data = await this.hiddenManager.readJSON<{ order: string[]; notes?: Record<string, string> }>(
+      // 1) Central.
+      const central = await this.central.load();
+      if (central) {
+        // Semántica legada del master: el fichero compartido
+        // (orden + notes) vive en `global`.
+        if (folderPath === this.masterPath && central.global !== null) {
+          return central.global as unknown as {
+            order: string[];
+            notes?: Record<string, string>;
+          };
+        }
+        const entry = central.folders[folderPath];
+        if (entry) {
+          return { ...entry, order: entry.order ?? [] };
+        }
+      }
+
+      // 2) Legado (solo lectura) + copia verificada a la central.
+      const legacy = await this.hiddenManager.readJSON<FolderLabFileData>(
         folderPath,
         ORDER_FILE
       );
-      return data || { order: [] };
+      if (legacy) {
+        await this.migrateLegacyFolder(folderPath, legacy);
+        return { ...legacy, order: legacy.order ?? [] };
+      }
+      return { order: [] };
     } catch {
       return { order: [] };
     }
+  }
+
+  /** Copia una entrada legada a la central si no existe (idempotente). */
+  private async migrateLegacyFolder(
+    folderPath: string,
+    legacy: FolderLabFileData
+  ): Promise<void> {
+    await this.central.mutate((data) => {
+      if (folderPath === this.masterPath) {
+        if (data.global === null) {
+          data.global = legacy as unknown as GlobalOrderData;
+        }
+        return;
+      }
+      if (!data.folders[folderPath]) {
+        data.folders[folderPath] = legacy;
+      }
+    });
   }
 
   /**
@@ -406,18 +472,37 @@ export class FolderRepository {
     mutator: (data: FolderLabFileData) => T
   ): Promise<T> {
     return this.enqueue(async () => {
+      const isMaster = folderPath === this.masterPath;
       let data: FolderLabFileData | null = null;
 
       try {
-        data = await this.hiddenManager.readJSON<FolderLabFileData>(
-          folderPath,
-          ORDER_FILE
-        );
+        // 1) Central (en el master, `global` compartía orden+notes).
+        const central = await this.central.load();
+        if (isMaster) {
+          data =
+            central && central.global !== null
+              ? (central.global as unknown as FolderLabFileData)
+              : null;
+        } else if (central) {
+          data = central.folders[folderPath] ?? null;
+        }
+
+        // 2) Legado (solo lectura) + copia verificada.
+        if (data === null) {
+          const legacy = await this.hiddenManager.readJSON<FolderLabFileData>(
+            folderPath,
+            ORDER_FILE
+          );
+          if (legacy) {
+            await this.migrateLegacyFolder(folderPath, legacy);
+            data = legacy;
+          }
+        }
       } catch (error) {
         // JSON corrupto o ilegible: abortar la escritura para no
         // sustituir el fichero por un estado inventado.
         console.error(
-          `[FolderRepository] No se pudo leer _folder_order.json de "${folderPath}"; escritura abortada:`,
+          `[FolderRepository] No se pudo leer el orden de "${folderPath}"; escritura abortada:`,
           error
         );
         throw error;
@@ -429,19 +514,32 @@ export class FolderRepository {
 
       if (!isPlainObject(data)) {
         throw new Error(
-          `[FolderRepository] _folder_order.json de "${folderPath || '/'}" no tiene la forma esperada`
+          `[FolderRepository] Orden de "${folderPath || '/'}" no tiene la forma esperada`
         );
       }
 
       const result = mutator(data);
 
       if (result !== false) {
-        await this.hiddenManager.writeJSON(folderPath, ORDER_FILE, data);
+        // Escrituras SOLO en la central (nunca `.folder-lab`).
+        await this.central.mutate((store) => {
+          if (isMaster) {
+            store.global = data as unknown as GlobalOrderData;
+          } else {
+            store.folders[folderPath] = data;
+          }
+        });
 
         // Si el fichero tocado ES el maestro, refrescar la caché
         // del orden global (el mutador pudo alterar notes u otras
-        // claves, nunca el árbol de forma controlada).
-        if (folderPath === this.masterPath) {
+        // claves, nunca el árbol de forma controlada). Solo si la
+        // forma es la del orden global (con `root`): un master sin
+        // inicializar puede contener únicamente {order, notes}.
+        if (
+          isMaster &&
+          isPlainObject(data) &&
+          isPlainObject((data as unknown as GlobalOrderData).root)
+        ) {
           this.globalOrderData = data as unknown as GlobalOrderData;
           this.buildParentIndex();
         }

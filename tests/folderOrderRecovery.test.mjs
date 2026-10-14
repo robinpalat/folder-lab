@@ -80,7 +80,8 @@ const TFile = globalThis.__TFile;
 // Doble de adapter con inyección de fallos
 // ------------------------------------------------------------
 
-const ORDER_PATH = 'Libro/.folder-lab/_folder_order.json';
+// Migración: el orden vive ahora en Folder Lab/order.json (central).
+const ORDER_PATH = 'Libro/Folder Lab/order.json';
 
 function makeNote(name) {
   const f = new TFile();
@@ -140,20 +141,24 @@ function createHarness(initialFiles = {}) {
   return { files, adapter, app };
 }
 
-/** Fichero maestro con orden manual (no alfabético) y notes. */
+/** Almacén central (Folder Lab/order.json) con el orden global sembrado. */
 function seededGlobalFile(extra = {}) {
   return JSON.stringify(
     {
-      root: {
-        order: ['Zebra.md', 'Capitulo', 'Alpha.md'],
-        folders: {
-          Capitulo: { order: ['Gamma.md'], folders: {} }
+      version: 1,
+      global: {
+        root: {
+          order: ['Zebra.md', 'Capitulo', 'Alpha.md'],
+          folders: {
+            Capitulo: { order: ['Gamma.md'], folders: {} }
+          }
+        },
+        version: 1,
+        notes: {
+          'Alpha.md': '|STATUS|revisar|contenido especial de la nota'
         }
       },
-      version: 1,
-      notes: {
-        'Alpha.md': '|STATUS|revisar|contenido especial de la nota'
-      },
+      folders: {},
       ...extra
     },
     null,
@@ -162,7 +167,9 @@ function seededGlobalFile(extra = {}) {
 }
 
 function parseStore(files) {
-  return JSON.parse(files.get(ORDER_PATH));
+  const central = JSON.parse(files.get(ORDER_PATH));
+  // Los cuerpos de las pruebas trabajan sobre el orden global.
+  return central.global ?? central;
 }
 
 // ------------------------------------------------------------
@@ -235,7 +242,7 @@ test('3A-C1: JSON con forma inválida → error visible, sin regeneración ni es
 
   await assert.rejects(
     () => repo.loadGlobalOrder('Libro'),
-    /no tiene la forma esperada/
+    /Forma inválida|no tiene la forma esperada/
   );
   await assert.rejects(() => repo.initGlobalOrder('Libro', []));
 
@@ -381,6 +388,9 @@ test('3A-C6: una operación fallida no bloquea la cola (recuperación)', async (
 test('3A-C7: transactFolderLab sobre archivo ausente crea la base legada', async () => {
   const h = createHarness({});
   const repo = new FolderRepository(h.app);
+
+  // La sesión siempre carga el orden global al iniciar (initialize).
+  await repo.loadGlobalOrder('Libro');
 
   await repo.transactFolderLab('Libro', (data) => {
     if (!data.notes) data.notes = {};
