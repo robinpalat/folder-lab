@@ -114,7 +114,8 @@ export class NavigationService {
 	}
 
   navigateTo(folderPath: string): void {
-    if (!folderPath) return;
+    // '' es la raíz del vault (Master en la raíz): navegación válida.
+    if (folderPath === null || folderPath === undefined) return;
     this.currentPath = folderPath;
   }
 

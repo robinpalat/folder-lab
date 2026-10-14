@@ -161,7 +161,8 @@ export class FolderLabView extends ItemView {
   refresh(): void {
     if (this._isDisposed) return;
     const currentPath = this.controller.getCurrentPath();
-    if (currentPath) {
+    // '' = raíz del vault (carga válida).
+    if (currentPath !== null) {
       void this.controller.loadFolder(currentPath).catch((error) => {
         console.error('[FolderLab] Error cargando la carpeta:', error);
       });
@@ -209,7 +210,7 @@ export class FolderLabView extends ItemView {
       this.updateToolbarButtons();
 
       const currentPath = this.controller.getCurrentPath();
-      if (currentPath) {
+      if (currentPath !== null) {
         void this.loadFolder(currentPath).catch((error) => {
           console.error('[FolderLab] Error cargando la carpeta:', error);
         });
@@ -272,7 +273,7 @@ export class FolderLabView extends ItemView {
       this.updateToolbarButtons();
 
       const currentPath = this.controller.getCurrentPath();
-      if (currentPath) {
+      if (currentPath !== null) {
         void this.loadFolder(currentPath).catch((error) => {
           console.error('[FolderLab] Error cargando la carpeta:', error);
         });
@@ -435,7 +436,7 @@ export class FolderLabView extends ItemView {
       this.showExplorerMode();
       const currentPath = this.controller.getCurrentPath();
 
-      if (currentPath) {
+      if (currentPath !== null) {
         await this.loadFolder(currentPath);
       }
     }
@@ -569,7 +570,7 @@ export class FolderLabView extends ItemView {
           this.state.setFolderTreeMode();
           this.updateToolbarButtons();
           const currentPath = this.controller.getCurrentPath();
-          if (currentPath) {
+          if (currentPath !== null) {
             // Corrección de la caché visual: refrescar el MODELO
             // (state.items) desde disco antes de re-renderizar;
             // el re-render llega por folderChanged.
@@ -577,7 +578,7 @@ export class FolderLabView extends ItemView {
           }
         } else {
           const currentPath = this.controller.getCurrentPath();
-          if (currentPath) {
+          if (currentPath !== null) {
             await this.controller.loadFolder(currentPath);
           }
         }
@@ -595,7 +596,7 @@ export class FolderLabView extends ItemView {
         } else {
           const path = this.controller.getCurrentPath();
 
-          if (path) {
+          if (path !== null) {
             await this.loadFolder(path);
           }
         }
@@ -612,7 +613,7 @@ export class FolderLabView extends ItemView {
         } else {
           const currentPathFilter = this.controller.getCurrentPath();
 
-          if (currentPathFilter) {
+          if (currentPathFilter !== null) {
             await this.loadFolder(currentPathFilter);
           }
         }
@@ -1083,7 +1084,7 @@ export class FolderLabView extends ItemView {
         // llega vía order-changed tras sincronizar metadatos.
         if (!this.shouldSkipReloadDuringReorder()) {
           const currentPath = this.controller.getCurrentPath();
-          if (currentPath) {
+          if (currentPath !== null) {
             void this.controller.loadFolder(currentPath).catch((error) => {
               console.error('[FolderLab] Error cargando la carpeta:', error);
             });

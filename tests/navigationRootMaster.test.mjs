@@ -357,3 +357,59 @@ test('controller.loadFolder("") construye el modelo y notifica folderChanged', a
   );
   assert.deepEqual(controller.state.items, [], 'sin notas directas en la raíz');
 });
+
+// ------------------------------------------------------------
+// Raíz: currentPath debe quedar en '' (no null) tras la carga
+// ------------------------------------------------------------
+
+test('tras controller.loadFolder("") el currentPath es "" (botones de vista operativos)', async () => {
+  const { FolderLabController } = await bundle(
+    'src/core/FolderLabController.ts'
+  );
+  const TFolder = globalThis.__TFolder;
+  const root = new TFolder();
+  root.path = '';
+  root.name = '';
+  root.children = [];
+
+  const app = {
+    vault: {
+      getRoot: () => root,
+      getAbstractFileByPath: (p) => (p === '' ? root : null),
+      on: () => ({}),
+      getFileByPath: () => null,
+      getMarkdownFiles: () => []
+    },
+    workspace: { on: () => ({}) }
+  };
+  const repository = {
+    getGlobalOrder: () => null,
+    getMasterPath: () => '',
+    getFolderOrder: async () => null,
+    loadFolderLab: async () => ({ order: [] }),
+    transactFolderLab: async (_p, mut) => mut({ order: [] }),
+    updateFolderOrder: async () => {}
+  };
+  const controller = new FolderLabController(app, {}, repository);
+  await controller.loadFolder('');
+  assert.equal(
+    controller.getCurrentPath(),
+    '',
+    'currentPath en la raíz: "" y no null (los botones de vista lo comprueban con !== null)'
+  );
+});
+
+test('NavigationService.navigateTo acepta la raíz ("")', async () => {
+  const { NavigationService } = await bundle(
+    'src/services/NavigationService.ts'
+  );
+  const app = { vault: { on: () => ({}) }, workspace: { on: () => ({}) } };
+  const repo = {};
+  const svc = new NavigationService(app, repo, {});
+  svc.navigateTo('');
+  assert.equal(svc.getCurrentPath(), '', 'raíz registrada');
+  svc.navigateTo('Notas');
+  assert.equal(svc.getCurrentPath(), 'Notas');
+  svc.navigateTo(null);
+  assert.equal(svc.getCurrentPath(), 'Notas', 'null no cambia el estado');
+});

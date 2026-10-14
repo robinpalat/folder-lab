@@ -57,7 +57,11 @@ export function shouldReloadFolderOnModify(
   currentPath: string | null | undefined,
   masterRoot: string | null | undefined
 ): boolean {
-  if (!path || !currentPath) return false;
+  // '' = raíz del vault (currentPath válido); solo null/undefined
+  // desactivan la recarga.
+  if (!path || currentPath === null || currentPath === undefined) {
+    return false;
+  }
   if (path.includes(`/.folder-lab/`)) return false;
   if (isTechnicalDataPath(path, masterRoot)) return false;
   return path.startsWith(currentPath);
