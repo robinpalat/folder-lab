@@ -122,3 +122,134 @@ test('Master raíz + walkFolder: Folder Lab no aparece en el árbol', async () =
   assert.ok(!tree.nodeMap.get('Folder Lab'), 'carpeta técnica excluida');
   assert.ok(tree.nodeMap.get('Canciones'), 'carpeta de usuario presente');
 });
+
+// ------------------------------------------------------------
+// Orden global (buildFromOrder) con Master en la raíz
+// ------------------------------------------------------------
+
+test('buildFromOrder con Master raíz: ids sin barra y canGoBack true', async () => {
+  const { TFolder: TF, TFile: TFi } = {
+    TFolder: globalThis.__TFolder,
+    TFile: globalThis.__TFile
+  };
+  const canciones = new TF();
+  canciones.path = 'Canciones';
+  canciones.name = 'Canciones';
+  const a = new TFi();
+  a.path = 'Canciones/a.md';
+  a.name = 'a.md';
+  a.extension = 'md';
+  canciones.children = [a];
+  const root = new TF();
+  root.path = '';
+  root.name = '';
+  root.children = [canciones];
+
+  const app = {
+    vault: {
+      getRoot: () => root,
+      getAbstractFileByPath: (p) => {
+        const all = [root, canciones, a];
+        return all.find((f) => f.path === p) ?? null;
+      }
+    }
+  };
+  const globalOrder = {
+    root: { order: ['Canciones'], folders: { Canciones: { order: ['a.md'], folders: {} } } }
+  };
+  const repository = {
+    getMasterPath: () => '',
+    getGlobalOrder: () => globalOrder
+  };
+  const provider = new FolderNavigationProvider(app, repository);
+  const tree = await provider.build();
+
+  assert.ok(tree.nodeMap.get('Canciones'), 'id sin barra inicial');
+  assert.ok(tree.nodeMap.get('Canciones/a.md'), 'nota anidada con ruta real');
+  assert.ok(!tree.nodeMap.get('/Canciones'), 'sin id con barra inicial');
+  assert.equal(provider.canGoBack('Canciones'), true, 'volver disponible');
+  assert.equal(provider.canGoBack(''), false);
+});
+
+test('buildFromOrder con Master en subcarpeta: sin regresiones', async () => {
+  const { TFolder: TF, TFile: TFi } = {
+    TFolder: globalThis.__TFolder,
+    TFile: globalThis.__TFile
+  };
+  const capitulo = new TF();
+  capitulo.path = 'Libro/Capitulo';
+  capitulo.name = 'Capitulo';
+  const a = new TFi();
+  a.path = 'Libro/Capitulo/a.md';
+  a.name = 'a.md';
+  a.extension = 'md';
+  capitulo.children = [a];
+  const libro = new TF();
+  libro.path = 'Libro';
+  libro.name = 'Libro';
+  libro.children = [capitulo];
+
+  const app = {
+    vault: {
+      getAbstractFileByPath: (p) => {
+        const all = [libro, capitulo, a];
+        return all.find((f) => f.path === p) ?? null;
+      }
+    }
+  };
+  const globalOrder = {
+    root: {
+      order: ['Capitulo'],
+      folders: { Capitulo: { order: ['a.md'], folders: {} } }
+    }
+  };
+  const repository = {
+    getMasterPath: () => 'Libro',
+    getGlobalOrder: () => globalOrder
+  };
+  const provider = new FolderNavigationProvider(app, repository);
+  const tree = await provider.build();
+  assert.ok(tree.nodeMap.get('Libro/Capitulo'));
+  assert.ok(tree.nodeMap.get('Libro/Capitulo/a.md'));
+  assert.equal(provider.canGoBack('Libro/Capitulo'), true);
+});
+
+// ------------------------------------------------------------
+// Estadísticas con Master en la raíz
+// ------------------------------------------------------------
+
+test('StatsService con Master raíz: 0 directas, 8 totales, 1 carpeta', async () => {
+  const { StatsService } = await bundle('src/services/StatsService.ts');
+  const TFolder = globalThis.__TFolder;
+  const TFile = globalThis.__TFile;
+
+  const canciones = new TFolder();
+  canciones.path = 'Canciones';
+  canciones.name = 'Canciones';
+  canciones.children = [];
+  for (let i = 0; i < 8; i++) {
+    const n = new TFile();
+    n.path = `Canciones/n${i}.md`;
+    n.name = `n${i}.md`;
+    n.extension = 'md';
+    canciones.children.push(n);
+  }
+  const root = new TFolder();
+  root.path = '';
+  root.name = '';
+  root.children = [canciones];
+
+  const app = {
+    vault: {
+      getRoot: () => root,
+      getAbstractFileByPath: () => null
+    }
+  };
+  const service = new StatsService(app, '');
+  const direct = service.countDirectNotesAndSubfolders('');
+  assert.equal(direct.totalNotes, 0, 'sin notas directas en la raíz');
+  assert.equal(direct.totalSubfolders, 1, 'una subcarpeta');
+  const book = service.countBookNotesAndFolders('');
+  assert.equal(book.totalNotes, 8, '8 notas del libro');
+  assert.equal(book.totalFolders, 1, '1 carpeta del libro');
+});

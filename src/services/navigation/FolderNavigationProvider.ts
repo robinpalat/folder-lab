@@ -5,6 +5,7 @@ import { NavigationProvider, NavigationTree, NavigationNode } from '../../models
 import { FolderRepository } from '../../storage/FolderRepository';
 import { isHiddenFolderName } from '../../utils/folderUtils';
 import { isTechnicalDataPath } from '../../utils/dataPath';
+import { joinVaultRoot } from '../../utils/rootPath';
 
 export class FolderNavigationProvider implements NavigationProvider {
   readonly id = 'folders';
@@ -83,13 +84,15 @@ export class FolderNavigationProvider implements NavigationProvider {
     // ============================================================
     for (const itemName of orderData.order || []) {
        if (isHiddenFolderName(itemName)) continue;
+      // Raíz: currentPath '' no debe producir '/item' (los ids del
+      // árbol deben coincidir con las rutas reales del vault).
+      const itemPath = joinVaultRoot(currentPath, itemName);
       // E1: excluir la carpeta técnica del orden explícito.
-      if (isTechnicalDataPath(`${currentPath}/${itemName}`, masterPath)) {
+      if (isTechnicalDataPath(itemPath, masterPath)) {
         continue;
       }
       processed.add(itemName);
 
-      const itemPath = `${currentPath}/${itemName}`;
       const isFolder =
         !!orderData.folders &&
         !!orderData.folders[itemName];
@@ -127,11 +130,11 @@ export class FolderNavigationProvider implements NavigationProvider {
     // ============================================================
     for (const folderName of Object.keys(orderData.folders || {})) {
       if (isHiddenFolderName(folderName)) continue;
-      if (isTechnicalDataPath(`${currentPath}/${folderName}`, masterPath)) {
+      const folderPath = joinVaultRoot(currentPath, folderName);
+      if (isTechnicalDataPath(folderPath, masterPath)) {
         continue;
       }
 
-      const folderPath = `${currentPath}/${folderName}`;
       const folderData = orderData.folders[folderName];
 
       const file = this.app.vault.getAbstractFileByPath(folderPath);

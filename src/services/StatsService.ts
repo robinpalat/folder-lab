@@ -34,6 +34,20 @@ export class StatsService {
     private masterRoot: string | null = null
   ) {}
 
+  /**
+   * Resolución consistente de carpetas (Master en la raíz): con la
+   * ruta normalizada '' la raíz física solo se obtiene con
+   * vault.getRoot(); getAbstractFileByPath('') devuelve null y los
+   * contadores se quedaban en cero.
+   */
+  private resolveFolder(folderPath: string): TFolder | null {
+    const folder =
+      folderPath === ''
+        ? this.app.vault.getRoot()
+        : this.app.vault.getAbstractFileByPath(folderPath);
+    return folder instanceof TFolder ? folder : null;
+  }
+
   // ============================================================
   // ESTADÍSTICAS DE UNA CARPETA
   // ============================================================
@@ -46,7 +60,7 @@ export class StatsService {
     if (isTechnicalDataPath(folderPath, this.masterRoot)) {
       return { totalNotes: 0, completedNotes: 0, emptyNotes: 0, percentage: 0 };
     }
-    const folder = this.app.vault.getAbstractFileByPath(folderPath);
+    const folder = this.resolveFolder(folderPath);
     if (!(folder instanceof TFolder)) {
       return { totalNotes: 0, completedNotes: 0, emptyNotes: 0, percentage: 0 };
     }
@@ -94,7 +108,7 @@ export class StatsService {
     totalNotes: number;
     totalSubfolders: number;
   } {
-    const folder = this.app.vault.getAbstractFileByPath(folderPath);
+    const folder = this.resolveFolder(folderPath);
 
     if (!(folder instanceof TFolder)) {
       return { totalNotes: 0, totalSubfolders: 0 };
@@ -147,7 +161,7 @@ export class StatsService {
     totalNotes: number;
     totalFolders: number;
   } {
-    const folder = this.app.vault.getAbstractFileByPath(folderPath);
+    const folder = this.resolveFolder(folderPath);
 
     if (!(folder instanceof TFolder)) {
       return { totalNotes: 0, totalFolders: 0 };
@@ -224,7 +238,7 @@ export class StatsService {
    * Calcula estadísticas de todas las notas de una carpeta y subcarpetas
    */
   async calculateRecursiveStats(folderPath: string): Promise<FolderStats> {
-    const folder = this.app.vault.getAbstractFileByPath(folderPath);
+    const folder = this.resolveFolder(folderPath);
     if (!(folder instanceof TFolder)) {
       return { totalNotes: 0, completedNotes: 0, emptyNotes: 0, percentage: 0 };
     }
