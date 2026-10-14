@@ -2429,7 +2429,8 @@ export class FolderLabView extends ItemView {
 
     await this.navigationService.refresh();
 
-    const masterPath = this.plugin.settings.bookRootPath;
+    // Normalizado: '' = raíz del vault ('/'); null = sin configurar.
+    const masterPath = normalizeRootPath(this.plugin.settings.bookRootPath);
 
     // El root del vault se representa mediante "".
     if (masterPath === '') {

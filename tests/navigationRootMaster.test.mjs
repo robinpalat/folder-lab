@@ -22,8 +22,12 @@ const OBSIDIAN_STUB = `
 export class App {}
 export class TFile {}
 export class TFolder {}
-globalThis.__TFile = TFile;
+export class Notice { constructor(m){ (globalThis.__notices ??= []).push(String(m)); } }
+export class Menu { addItem(){return this;} showAtPosition(){} }
+export class Modal { constructor(){} open(){} close(){} }
+export class FuzzySuggestModal { constructor(){} open(){} close(){} setPlaceholder(){} }
 globalThis.__TFolder = TFolder;
+globalThis.__TFile = TFile;
 export default {};
 export class FileSystemAdapter { getBasePath(){return '/s';} }
 `;
@@ -295,4 +299,61 @@ test('StatsService con Master en subcarpeta: la carpeta técnica hermana no cuen
   const direct = service.countDirectNotesAndSubfolders('Libro');
   assert.equal(direct.totalSubfolders, 0, 'Folder Lab hermana excluida');
   assert.equal(direct.totalNotes, 1);
+});
+
+// ------------------------------------------------------------
+// Inicio con Master en la raíz: controller.loadFolder('') carga
+// (no es no-op) y emite folderChanged (base de las estadísticas).
+// ------------------------------------------------------------
+
+test('controller.loadFolder("") construye el modelo y notifica folderChanged', async () => {
+  const { FolderLabController } = await bundle(
+    'src/core/FolderLabController.ts'
+  );
+  const TFolder = globalThis.__TFolder;
+  const TFile = globalThis.__TFile;
+
+  const root = new TFolder();
+  root.path = '';
+  root.name = '';
+  const canciones = new TFolder();
+  canciones.path = 'Canciones';
+  canciones.name = 'Canciones';
+  const nota = new TFile();
+  nota.path = 'Canciones/n.md';
+  nota.name = 'n.md';
+  nota.extension = 'md';
+  canciones.children = [nota];
+  root.children = [canciones];
+
+  const app = {
+    vault: {
+      getRoot: () => root,
+      getAbstractFileByPath: (p) => (p === '' ? root : null),
+      on: () => ({}),
+      getFileByPath: () => null,
+      getMarkdownFiles: () => [nota]
+    },
+    workspace: { on: () => ({}) }
+  };
+  const repository = {
+    getGlobalOrder: () => null,
+    getMasterPath: () => '',
+    getFolderOrder: async () => null,
+    loadFolderLab: async () => ({ order: [] }),
+    transactFolderLab: async (_p, mut) => mut({ order: [] }),
+    updateFolderOrder: async () => {}
+  };
+  const controller = new FolderLabController(app, {}, repository);
+
+  const events = [];
+  controller.onStateChange((e) => events.push(e.type));
+
+  await controller.loadFolder('');
+
+  assert.ok(
+    events.includes('folderChanged'),
+    'folderChanged emitido (antes: no-op con Master raíz)'
+  );
+  assert.deepEqual(controller.state.items, [], 'sin notas directas en la raíz');
 });

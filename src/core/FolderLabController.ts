@@ -270,7 +270,9 @@ export class FolderLabController {
   // ============================================================
 
   async loadFolder(folderPath: string): Promise<void> {
-    if (!folderPath) return;
+    // '' es la raíz del vault (Master en la raíz): carga válida.
+    // Solo se ignora una ruta nula/inespecífica.
+    if (folderPath === null || folderPath === undefined) return;
 
 
     this.navigationService.navigateTo(folderPath);
@@ -864,10 +866,12 @@ getCachedBookGoalProgress(): { words: number; target: number } | null {
   }
 
   /**
-   * Modelo de encabezado de una SUBCARPETA: notas y subcarpetas
-   * directas (mismos filtros que las listas visibles). Sin total
-   * del libro ni porcentaje.
-   *
+   * Modelo de encabezado de una CARPETA (cualquier nivel del árbol;
+   * una carpeta es una carpeta con independencia de su posición):
+   * notas y subcarpetas directas (mismos filtros que las listas
+   * visibles). Sin total del libro ni porcentaje — esos agregados
+   * solo existen en la raíz del Master, que es un ámbito distinto
+   * (el libro completo), no una categoría de carpeta superior.
    * Sincrónico y barato: no lee contenidos ni recorre el libro.
    */
   getFolderHeaderStats(): HeaderStatsModel {
