@@ -174,11 +174,15 @@ const executionControls =
       const iconElement =
         existingIcon instanceof HTMLElement
           ? existingIcon
-          : document.createElement('span');
+          : status.createEl('span', {
+              cls: 'fl-control-icon'
+            });
 
       iconElement.className = 'fl-control-icon';
 
       if (!existingIcon) {
+        // createEl lo adjunta al final; colocarlo en la posición
+        // original (antes de la etiqueta o al principio).
         status.insertBefore(
           iconElement,
           label ?? status.firstChild

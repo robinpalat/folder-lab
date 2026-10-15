@@ -438,14 +438,12 @@ if (definition.identity.color) {
 
         name.onclick = () => {
 
-          const input =
-            document.createElement('input');
+          const input = name.createEl('input', {
+            cls: 'fl-widget-manager-instance-name-input',
+            attr: { type: 'text' }
+          });
 
-          input.type = 'text';
           input.value = instance.name;
-
-          input.className =
-            'fl-widget-manager-instance-name-input';
 
           name.replaceWith(input);
 

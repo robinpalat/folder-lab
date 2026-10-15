@@ -447,15 +447,10 @@ export class Board
       cls: 'fl-board-surface'
     });
 
-    this.connectionLayer = document.createElementNS(
-      'http://www.w3.org/2000/svg',
-      'svg'
-    );
-    this.connectionLayer.classList.add(
-      'fl-board-connection-layer'
-    );
-    this.connectionLayer.setAttribute('aria-hidden', 'true');
-    this.surface.appendChild(this.connectionLayer);
+    this.connectionLayer = this.surface.createSvg('svg', {
+      cls: 'fl-board-connection-layer',
+      attr: { 'aria-hidden': 'true' }
+    });
 
     this.blockLayer = this.surface.createEl('div', {
       cls: 'fl-board-card-grid'
@@ -2386,65 +2381,46 @@ export class Board
        * Cada conexión se compone como un grupo:
        *   hit (zona de clic) + línea + control de borrado (cruz)
        */
-      const group = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'g'
-      );
-      group.classList.add('fl-board-connection-group');
-      layer.appendChild(group);
+      const group = layer.createSvg('g', {
+        cls: 'fl-board-connection-group'
+      });
 
-      const hitPath = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'path'
-      );
-      hitPath.classList.add('fl-board-connection-hit');
-      hitPath.setAttribute('d', route.data);
+      const hitPath = group.createSvg('path', {
+        cls: 'fl-board-connection-hit',
+        attr: { d: route.data }
+      });
       hitPath.addEventListener('click', (event) => {
         event.stopPropagation();
         this.removeConnection(connection.id);
       });
-      group.appendChild(hitPath);
 
-      const path = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'path'
-      );
-      path.classList.add('fl-board-connection-line');
-      path.setAttribute('d', route.data);
-      group.appendChild(path);
+      group.createSvg('path', {
+        cls: 'fl-board-connection-line',
+        attr: { d: route.data }
+      });
 
       const midpoint = this.polylineMidpoint(route.points);
 
-      const deleteControl = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'g'
-      );
-      deleteControl.classList.add('fl-board-connection-delete');
-      deleteControl.setAttribute(
-        'transform',
-        `translate(${midpoint.x} ${midpoint.y})`
-      );
+      const deleteControl = group.createSvg('g', {
+        cls: 'fl-board-connection-delete',
+        attr: {
+          transform: `translate(${midpoint.x} ${midpoint.y})`
+        }
+      });
       deleteControl.addEventListener('click', (event) => {
         event.stopPropagation();
         this.removeConnection(connection.id);
       });
-      group.appendChild(deleteControl);
 
-      const deleteBg = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'circle'
-      );
-      deleteBg.classList.add('fl-board-connection-delete-bg');
-      deleteBg.setAttribute('r', '8');
-      deleteControl.appendChild(deleteBg);
+      deleteControl.createSvg('circle', {
+        cls: 'fl-board-connection-delete-bg',
+        attr: { r: '8' }
+      });
 
-      const deleteX = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'path'
-      );
-      deleteX.classList.add('fl-board-connection-delete-x');
-      deleteX.setAttribute('d', 'M -3 -3 L 3 3 M 3 -3 L -3 3');
-      deleteControl.appendChild(deleteX);
+      deleteControl.createSvg('path', {
+        cls: 'fl-board-connection-delete-x',
+        attr: { d: 'M -3 -3 L 3 3 M 3 -3 L -3 3' }
+      });
 
       // Puntos en los extremos (tarjeta o contenedor)
       this.renderEndpointDot(
