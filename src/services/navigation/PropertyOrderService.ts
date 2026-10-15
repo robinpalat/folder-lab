@@ -1,5 +1,10 @@
 import { App, Events, TFile } from 'obsidian';
 
+/** Frontera con frontmatter (JSON externo del metadata cache). */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
  * Gestiona el orden de navegación basado en propiedades
  * (por ejemplo, nav_order de Jekyll / Just the Docs).
@@ -61,16 +66,18 @@ async reorder(
 
     const cachePrevio =
       this.app.metadataCache.getFileCache(file);
+    const rawPrevio: unknown = cachePrevio?.frontmatter;
 
     valoresAnteriores.push({
       archivo: file.name,
-      anterior:
-        cachePrevio?.frontmatter?.[orderProperty] ?? '(sin valor)'
+      anterior: isPlainObject(rawPrevio)
+        ? (rawPrevio[orderProperty] ?? '(sin valor)')
+        : '(sin valor)'
     });
 
     await this.app.fileManager.processFrontMatter(
       file,
-      (frontmatter) => {
+      (frontmatter: Record<string, unknown>) => {
         frontmatter[orderProperty] = order;
       }
     );
@@ -91,9 +98,11 @@ async reorder(
       const expectedOrder = index + 1;
 
       const cache = this.app.metadataCache.getFileCache(file);
-      const frontmatter = cache?.frontmatter;
+      const frontmatter: unknown = cache?.frontmatter;
 
-      const cachedOrder = frontmatter?.[orderProperty];
+      const cachedOrder = isPlainObject(frontmatter)
+        ? frontmatter[orderProperty]
+        : undefined;
 
       if (Number(cachedOrder) !== expectedOrder) {
         cacheIsUpdated = false;
