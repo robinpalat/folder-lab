@@ -47,6 +47,8 @@ import {
   prepareQuarantineCommand,
   quarantineCandidate
 } from './storage/quarantineCommand';
+import { QuarantineManager } from './storage/quarantine';
+import { createStillOrphanPredicate } from './storage/stillOrphan';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
 import { WidgetController } from './focus/controllers/WidgetController';
@@ -132,10 +134,34 @@ export default class FolderLabPlugin extends Plugin {
   noteLifecycle: NoteLifecycle | null = null;
   draftStore: DraftStore | null = null;
   private noteIdentityRegistry: NoteIdentityRegistry | null = null;
+  /**
+   * Instancia COMPARTIDA de QuarantineManager (E4c-1): una sola por
+   * plugin; su cola serializa cuarentena y restauración. NUNCA se
+   * crea un manager por invocación (dos instancias concurrentes
+   * perderían entradas del manifiesto por lectura-escritura cruzada).
+   */
+  private quarantineManagerInstance: QuarantineManager | null = null;
   private startupMaintenanceDone = false;
   /** Espejo LS aislado por identidad (Corrección A). */
   localMirror: LocalMirror | null = null;
 
+
+  /**
+   * Devuelve (creándola la primera vez) la instancia compartida de
+   * QuarantineManager. Requiere el registro de identidad ya creado.
+   */
+  private getQuarantineManager(): QuarantineManager | null {
+    if (this.quarantineManagerInstance) return this.quarantineManagerInstance;
+    const registry = this.noteIdentityRegistry;
+    if (!registry) return null;
+    const getRootPath = () => normalizeRootPath(this.settings.bookRootPath);
+    this.quarantineManagerInstance = new QuarantineManager(
+      this.app,
+      getRootPath,
+      createStillOrphanPredicate(this.app, registry, getRootPath)
+    );
+    return this.quarantineManagerInstance;
+  }
 
   async onload() {
     await this.loadSettings();
@@ -390,17 +416,20 @@ export default class FolderLabPlugin extends Plugin {
       callback: () => {
         const registry = this.noteIdentityRegistry;
         const rootPathFn = () => normalizeRootPath(this.settings.bookRootPath);
-        if (!registry) {
+        const manager = this.getQuarantineManager();
+        if (!registry || !manager) {
           new Notice('Folder Lab: identidad no inicializada.');
           return;
         }
-        void prepareQuarantineCommand({
+        const deps = {
           app: this.app,
           registry,
           getRootPath: rootPathFn,
           getExistingPaths: () =>
-            this.app.vault.getMarkdownFiles().map((f) => f.path)
-        })
+            this.app.vault.getMarkdownFiles().map((f) => f.path),
+          manager
+        };
+        void prepareQuarantineCommand(deps)
           .then((outcome) => {
             switch (outcome.status) {
               case 'no-master':
@@ -419,13 +448,7 @@ export default class FolderLabPlugin extends Plugin {
                   outcome.candidates,
                   async (candidate) => {
                     const result = await quarantineCandidate(
-                      {
-                        app: this.app,
-                        registry,
-                        getRootPath: rootPathFn,
-                        getExistingPaths: () =>
-                          this.app.vault.getMarkdownFiles().map((f) => f.path)
-                      },
+                      deps,
                       candidate
                     );
                     notifyQuarantineResult(result, candidate);

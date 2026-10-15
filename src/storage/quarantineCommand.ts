@@ -22,8 +22,10 @@ import { App } from 'obsidian';
 import type { NoteIdentityRegistry } from './NoteIdentityRegistry';
 import type { OrphanAuditReport, OrphanCandidate } from './orphanAudit';
 import { runOrphanAudit } from './orphanAudit';
-import { createStillOrphanPredicate } from './stillOrphan';
-import { QuarantineManager, type QuarantineResult } from './quarantine';
+import {
+  QuarantineManager,
+  type QuarantineResult
+} from './quarantine';
 
 export interface QuarantineCommandDeps {
   app: App;
@@ -31,6 +33,13 @@ export interface QuarantineCommandDeps {
   getRootPath: () => string | null;
   /** Lista de notas markdown actuales (vault.getMarkdownFiles). */
   getExistingPaths: () => string[];
+  /**
+   * Instancia COMPARTIDA de QuarantineManager (una sola por plugin):
+   * su cola interna serializa cuarentena/restauración en el
+   * dispositivo. NUNCA se crea un manager por invocación (dos
+   * managers concurrentes perderían entradas del manifiesto).
+   */
+  manager: QuarantineManager;
 }
 
 export type QuarantineCommandOutcome =
@@ -85,21 +94,12 @@ export async function prepareQuarantineCommand(
 
 /**
  * Paso 2 del comando: cuarentena de UN candidato ya confirmado por
- * el usuario. Revalida stillOrphan en vivo dentro de QuarantineManager.
+ * el usuario. Delega en el manager COMPARTIDO (su cola serializa
+ * incluso confirmaciones simultáneas de varias filas del modal).
  */
 export async function quarantineCandidate(
   deps: QuarantineCommandDeps,
   candidate: OrphanCandidate
 ): Promise<QuarantineResult> {
-  const stillOrphan = createStillOrphanPredicate(
-    deps.app as unknown as Parameters<typeof createStillOrphanPredicate>[0],
-    deps.registry,
-    deps.getRootPath
-  );
-  const manager = new QuarantineManager(
-    deps.app,
-    deps.getRootPath,
-    stillOrphan
-  );
-  return manager.quarantine(candidate);
+  return deps.manager.quarantine(candidate);
 }

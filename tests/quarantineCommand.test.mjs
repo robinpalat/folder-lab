@@ -68,6 +68,7 @@ const { prepareQuarantineCommand, quarantineCandidate } = await bundle(
 const { NoteIdentityRegistry } = await bundle(
   'src/storage/NoteIdentityRegistry.ts'
 );
+const { QuarantineManager } = await bundle('src/storage/quarantine.ts');
 
 function makeHidden(adapter) {
   // Emula HiddenFolderManager(app, 'Folder Lab') sobre el MISMO
@@ -128,17 +129,21 @@ function makeSystem({ master = 'Master' } = {}) {
   const hidden = makeHidden(adapter);
   const registry = new NoteIdentityRegistry({}, () => master, hidden);
   const app = { vault: { adapter } };
+  const getRootPath = () => (master === null ? null : master);
+  // Manager COMPARTIDO (E4c-1): la cola serializa operaciones.
+  const manager = new QuarantineManager(app, getRootPath);
   const deps = {
     app,
     registry,
-    getRootPath: () => (master === null ? null : master),
-    getExistingPaths: () => ['viva.md']
+    getRootPath,
+    getExistingPaths: () => ['viva.md'],
+    manager
   };
   adapter.files.set(
     `${master}/Folder Lab/boards/id-huerfano.json`,
     FIXTURE_CONTENT
   );
-  return { hidden, adapter, registry, deps };
+  return { hidden, adapter, registry, deps, manager };
 }
 
 test('C1: sin Master → no-master', async () => {
@@ -201,7 +206,7 @@ test('C5: identidad activa impide la cuarentena (protección en dos niveles)', a
 });
 
 test('C5b: si un candidato llega a confirmarse, stillOrphan rechaza con identidad activa', async () => {
-  const { adapter, registry, deps } = makeSystem();
+  const { adapter, registry, deps, manager } = makeSystem();
   const idsPath = 'Master/Folder Lab/ids.json';
   adapter.files.set(
     idsPath,
@@ -210,7 +215,17 @@ test('C5b: si un candidato llega a confirmarse, stillOrphan rechaza con identida
   registry.refresh();
 
   // Nivel 2: el núcleo rechaza aunque la UI pase un candidato.
-  const result = await quarantineCandidate(deps, {
+  // (Como en main.ts: manager compartido con predicado stillOrphan
+  // construido con el registro real.)
+  const { createStillOrphanPredicate } = await bundle(
+    'src/storage/stillOrphan.ts'
+  );
+  const guarded = new QuarantineManager(
+    deps.app,
+    deps.getRootPath,
+    createStillOrphanPredicate(deps.app, registry, deps.getRootPath)
+  );
+  const result = await guarded.quarantine({
     path: 'Master/Folder Lab/boards/id-huerfano.json',
     noteId: 'id-huerfano',
     subfolder: 'boards',
@@ -287,4 +302,64 @@ test('C9 (regresión QA): modal con acción de confirmación por candidato y con
   assert.ok(/this\.processed\.size >= this\.candidates\.length/.test(src));
   // El resultado de cada confirmación se entrega al modal.
   assert.ok(/Promise<QuarantineResult \| void>/.test(src));
+});
+
+// ------------------------------------------------------------
+// E4c-1: manager COMPARTIDO — concurrencia sin pérdida de
+// entradas del manifiesto. Dos confirmaciones simultáneas del
+// modal (dos filas) deben serializarse en la cola del manager.
+// ------------------------------------------------------------
+test('C10: dos cuarentenas concurrentes vía manager compartido conservan ambas entradas', async () => {
+  const { adapter, deps } = makeSystem();
+  const FIX_B = JSON.stringify({ version: 1, notePath: 'tampoco.md', data: { b: true } });
+  adapter.files.set('Master/Folder Lab/boards/id-b.json', FIX_B);
+
+  const outcome = await prepareQuarantineCommand(deps);
+  assert.equal(outcome.status, 'needs-confirmation');
+  assert.equal(outcome.candidates.length, 2);
+
+  // Confirmaciones SIMULTÁNEAS (sin await intermedio), como dos
+  // filas del modal pulsadas en paralelo.
+  const [r1, r2] = await Promise.all([
+    quarantineCandidate(deps, outcome.candidates[0]),
+    quarantineCandidate(deps, outcome.candidates[1])
+  ]);
+  assert.equal(r1.status, 'quarantined');
+  assert.equal(r2.status, 'quarantined');
+
+  const manifest = JSON.parse(
+    adapter.files.get('Master/Folder Lab/quarantine/manifest.json')
+  );
+  assert.equal(manifest.entries.length, 2, 'sin pérdida de entradas del manifiesto');
+  const origins = manifest.entries.map((e) => e.originPath).sort();
+  assert.deepEqual(origins, [
+    'Master/Folder Lab/boards/id-b.json',
+    'Master/Folder Lab/boards/id-huerfano.json'
+  ]);
+  // Ambos originales retirados; ambas copias presentes.
+  assert.equal(adapter.files.has('Master/Folder Lab/boards/id-huerfano.json'), false);
+  assert.equal(adapter.files.has('Master/Folder Lab/boards/id-b.json'), false);
+  for (const e of manifest.entries) {
+    assert.ok(adapter.files.has(e.quarantinePath), 'copia presente');
+  }
+});
+
+test('C11: el comando delega en el manager INYECTADO (nunca crea uno nuevo)', () => {
+  const src = readFileSync(
+    join(root, 'src/storage/quarantineCommand.ts'),
+    'utf8'
+  );
+  assert.ok(
+    !src.includes('new QuarantineManager'),
+    'quarantineCommand no debe instanciar QuarantineManager'
+  );
+  assert.ok(src.includes('deps.manager.quarantine'), 'usa deps.manager');
+  // main.ts: una única instancia compartida, no por invocación.
+  const main = readFileSync(join(root, 'src/main.ts'), 'utf8');
+  assert.ok(main.includes('getQuarantineManager'), 'main expone el getter compartido');
+  assert.equal(
+    (main.match(/new QuarantineManager\(/g) || []).length,
+    1,
+    'una sola construcción del manager en main'
+  );
 });

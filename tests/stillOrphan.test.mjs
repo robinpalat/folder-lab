@@ -205,16 +205,29 @@ test('S6: ciclo completo cuarentena → restauración con verificación', async 
 });
 
 test('S7: la integración NO se ejecuta en el arranque', () => {
-  // Verificación estática: ni startupMaintenance ni main importan
-  // stillOrphan/createStillOrphanPredicate (solo el futuro activador).
+  // Verificación estática: ni startupMaintenance ni el bloque de
+  // arranque de main (onLayoutReady → runStartupMaintenance)
+  // tocan stillOrphan ni la cuarentena. Desde E4c-1, main construye
+  // el manager COMPARTIDO dentro del getter perezoso
+  // getQuarantineManager(), usado SOLO por los comandos manuales.
   const maintenance = readFileSync(
     join(root, 'src/storage/startupMaintenance.ts'),
     'utf8'
   );
   const main = readFileSync(join(root, 'src/main.ts'), 'utf8');
   assert.ok(!maintenance.includes('stillOrphan'));
-  assert.ok(!main.includes('stillOrphan'));
-  assert.ok(!main.includes('QuarantineManager'));
+  const readyIdx = main.indexOf('onLayoutReady(');
+  const maintIdx = main.indexOf('runStartupMaintenance(');
+  assert.ok(readyIdx >= 0 && maintIdx > readyIdx, 'bloque de arranque localizable');
+  const startupBlock = main.slice(readyIdx, maintIdx);
+  assert.ok(!startupBlock.includes('stillOrphan'), 'sin stillOrphan en el arranque');
+  assert.ok(!startupBlock.includes('Quarantine'), 'sin cuarentena en el arranque');
+  // El predicado se construye exactamente una vez (en el getter).
+  assert.equal(
+    (main.match(/createStillOrphanPredicate\(/g) || []).length,
+    1,
+    'una única construcción del predicado (getter perezoso)'
+  );
 });
 
 // ------------------------------------------------------------
