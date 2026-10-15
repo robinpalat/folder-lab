@@ -6,7 +6,6 @@ import {
   PromptDomainDefinition,
   ExternalCapabilityDefinition
 } from '../types';
-import type { ResolvedWidgetSource } from '../context/ContextResolver';
 
 // Importar el manifiesto generado (resolveJsonModule + loader JSON de esbuild)
 import manifestJson from '../prompts/generated/manifest.json';
@@ -94,13 +93,21 @@ buildUser(): string {
        * plano heredado (additional.snips solo se construye en
        * resolve), por lo que no se mantiene compatibilidad con él.
        */
-      const sources = this.context.additional?.snips;
+      const sources: unknown = this.context.additional?.snips;
 
       content = (Array.isArray(sources) ? sources : [])
-        .flatMap((entry: ResolvedWidgetSource) =>
-          Array.isArray(entry?.items) ? entry.items : []
-        )
-        .map((item) => (typeof item?.text === 'string' ? item.text : ''))
+        .flatMap((entry) => {
+          if (typeof entry !== 'object' || entry === null) return [];
+          const items = (entry as { items?: unknown }).items;
+          return Array.isArray(items) ? items : [];
+        })
+        .map((item) => {
+          if (typeof item === 'object' && item !== null) {
+            const text = (item as { text?: unknown }).text;
+            return typeof text === 'string' ? text : '';
+          }
+          return '';
+        })
         .filter((text: string) => !!text.trim())
         .join('\n\n---\n\n');
 
@@ -109,7 +116,8 @@ buildUser(): string {
     }
 
     case 'notes': {
-      content = this.context.additional?.notes || '';
+      const notes: unknown = this.context.additional?.notes;
+      content = typeof notes === 'string' ? notes : '';
       target = 'Apuntes:';
       break;
     }
@@ -121,18 +129,23 @@ buildUser(): string {
        * alternativa heredada de formas de ítem). Sin productores
        * de string o plano, esas ramas se retiran.
        */
-      const sources = this.context.additional?.tasks;
+      const sources: unknown = this.context.additional?.tasks;
 
       content = (Array.isArray(sources) ? sources : [])
-        .flatMap((entry: ResolvedWidgetSource) =>
-          Array.isArray(entry?.items) ? entry.items : []
-        )
+        .flatMap((entry) => {
+          if (typeof entry !== 'object' || entry === null) return [];
+          const items = (entry as { items?: unknown }).items;
+          return Array.isArray(items) ? items : [];
+        })
         .map((item) => {
-          if (typeof item?.text === 'string' && item.text) {
-            return item.text;
-          }
-          if (typeof item?.title === 'string' && item.title) {
-            return item.title;
+          if (typeof item === 'object' && item !== null) {
+            const record = item as { text?: unknown; title?: unknown };
+            if (typeof record.text === 'string' && record.text) {
+              return record.text;
+            }
+            if (typeof record.title === 'string' && record.title) {
+              return record.title;
+            }
           }
           return '';
         })

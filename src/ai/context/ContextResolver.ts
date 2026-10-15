@@ -37,7 +37,7 @@ export interface WorkspaceContext {
     path: string;
     name: string;
     content: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   };
   folder: {
     path: string;
@@ -104,7 +104,7 @@ export class ContextResolver {
     notePath: string;
     noteName: string;
     noteContent: string;
-    noteMetadata?: Record<string, any>;
+    noteMetadata?: Record<string, unknown>;
     folderPath: string;
     folderName: string;
     resolveBook?: boolean;
@@ -208,7 +208,7 @@ export class ContextResolver {
     let noteContent = '';
     let noteName = '';
     let notePath = '';
-    let noteMetadata: Record<string, any> = {};
+    let noteMetadata: Record<string, unknown> = {};
 
     if (request.activeNotePath) {
       const abstractFile = this.app.vault.getAbstractFileByPath(request.activeNotePath);

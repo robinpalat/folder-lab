@@ -67,7 +67,7 @@ export interface ExecutableContext {
     path: string;
     name: string;
     content: string;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   };
 
   folder: {
@@ -108,14 +108,14 @@ export interface ExecutableContext {
    */
   aiService?: AIService;
 
-  additional?: Record<string, any>;
+  additional?: Record<string, unknown>;
 }
 
 export interface ToolResult {
   success: boolean;
   content: string;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface Tool {

@@ -42,7 +42,10 @@ export interface CapabilityResult {
     };
     processingTime?: number;
     wordCount?: number;  // wordCount es válido
-    [key: string]: any;  // permitir metadata adicional
+    // Contrato deliberado de transporte (3C1): el executor no
+    // inspecciona estos campos; los consumidores validan en sus
+    // propios bordes. Se mantiene `any` por compatibilidad nominal.
+    [key: string]: any;
   };
 }
 
@@ -63,6 +66,7 @@ export interface CapabilityGroup {
  * El executor no sabe qué contiene. Solo lo transporta.
  */
 export interface Context {
+  // Transporte opaco deliberado (ver comentario arriba).
   [key: string]: any;
 }
 

@@ -1,4 +1,4 @@
-import { Modal } from 'obsidian';
+import { App, Modal } from 'obsidian';
 import { CapabilityRegistry } from './CapabilityRegistry';
 import type { Capability } from './types';
 import { i18n } from '../../i18n/I18nService';
@@ -32,7 +32,7 @@ export class CapabilityBrowser extends Modal {
   private capabilitiesContainer: HTMLElement | null = null;
   private selectedCapabilityElement: HTMLElement | null = null;
 
-  constructor(app: any, options: CapabilityBrowserOptions) {
+  constructor(app: App, options: CapabilityBrowserOptions) {
     super(app);
 
     this.registry = options.registry;
