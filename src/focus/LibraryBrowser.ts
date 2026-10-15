@@ -1,4 +1,4 @@
-import { Modal, setIcon } from 'obsidian';
+import { App, Modal, setIcon } from 'obsidian';
 
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
 import { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
@@ -55,7 +55,7 @@ export class LibraryBrowser extends Modal {
   private draftInstances: WidgetInstance[] = [];
 
   constructor(
-    app: any,
+    app: App,
     widgetRegistry: FocusWidgetRegistry,
     capabilityRegistry: CapabilityRegistry,
     widgetManager: WidgetManager

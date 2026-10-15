@@ -40,7 +40,7 @@ export class ResourceService {
 
     try {
       const content = await this.app.vault.read(file);
-      const data = JSON.parse(content);
+      const data: unknown = JSON.parse(content);
       return data as ResourceMetadata;
     } catch (error) {
       console.warn('Error loading resource metadata:', error);

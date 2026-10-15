@@ -853,7 +853,9 @@ export default class FolderLabPlugin extends Plugin {
         ? currentMapping
         : DEFAULT_JEKYLL_MAPPING),
       ignoredFolders: Array.isArray(legacyIgnored)
-        ? legacyIgnored
+        ? legacyIgnored.filter(
+            (folder): folder is string => typeof folder === 'string'
+          )
         : []
     };
 

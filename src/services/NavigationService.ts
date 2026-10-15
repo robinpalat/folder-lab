@@ -21,7 +21,10 @@ export class NavigationService {
   private isBuilding: boolean = false;
   private isInitialized: boolean = false;
 
-  private boundHandleOrderChanged = this.handleOrderChanged.bind(this);
+  // Wrapper tipado (bind sin strictBindCallApply devuelve any).
+  private boundHandleOrderChanged = (): void => {
+    void this.handleOrderChanged();
+  };
 
   constructor(app: App, repository: FolderRepository, settings: FolderOrderSettings) {
     this.app = app;

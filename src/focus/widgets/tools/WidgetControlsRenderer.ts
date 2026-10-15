@@ -713,11 +713,9 @@ private static renderSourceSelector(
      * Estado del indicador: al cerrarse el menú, el chevron
      * vuelve a apuntar hacia abajo (aria-expanded=false).
      */
-    if (typeof (menu as any).onHide === 'function') {
-      (menu as any).onHide(() => {
-        anchor.setAttribute('aria-expanded', 'false');
-      });
-    }
+    menu.onHide(() => {
+      anchor.setAttribute('aria-expanded', 'false');
+    });
 
     for (const option of options) {
 

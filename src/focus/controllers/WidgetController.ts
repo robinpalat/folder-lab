@@ -186,7 +186,7 @@ export class WidgetController {
             : { notePath, items: [] };
 
         const items: WidgetRecord[] = Array.isArray(record.items)
-          ? record.items
+          ? (record.items as WidgetRecord[])
           : [];
         record.items = items;
 
@@ -216,10 +216,13 @@ export class WidgetController {
 
     ): Promise<void> => {
 
+      const rawId: unknown = item.id;
+      const rawCreatedAt: unknown = item.createdAt;
       const normalizedItem = {
         ...item,
-        id: item.id ?? this.generateId(storageKey),
-        createdAt: item.createdAt ?? Date.now()
+        id: typeof rawId === 'string' ? rawId : this.generateId(storageKey),
+        createdAt:
+          typeof rawCreatedAt === 'number' ? rawCreatedAt : Date.now()
       };
 
       await this.storage.mutateItems(
@@ -494,16 +497,22 @@ export class WidgetController {
 
         if (primary) {
 
-          const av =
-            a[primary.field];
+          // Valores de orden del registro abierto de widget;
+          // en la práctica son number|string (aserción documentada).
+          const av = a[primary.field] as number | string | undefined;
 
-          const bv =
-            b[primary.field];
+          const bv = b[primary.field] as number | string | undefined;
 
           if (av !== bv) {
 
+            // Con any, un undefined comparado daba false (→ 1);
+            // se conserva exactamente esa semántica.
             const comparison =
-              av < bv ? -1 : 1;
+              av !== undefined &&
+              bv !== undefined &&
+              av < bv
+                ? -1
+                : 1;
 
             return primary.direction === 'ascending'
               ? comparison
