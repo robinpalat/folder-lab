@@ -36,12 +36,9 @@ export function makeTrashOp(app: App): TrashOp {
       trashFile?: (f: unknown) => Promise<void>;
     };
     if (typeof fileManager.trashFile === 'function') {
-      try {
-        await fileManager.trashFile(file);
-      } catch (error) {
-        // Sin fallback destructivo (E3 §3).
-        throw error;
-      }
+      // Sin fallback destructivo (E3 §3): si trashFile existe y
+      // falla, el error se propaga al llamante.
+      await fileManager.trashFile(file);
       return;
     }
     // Compatibilidad 1.4.4: trashFile no existe.

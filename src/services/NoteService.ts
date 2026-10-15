@@ -6,6 +6,7 @@
 
 import { App, TFile, Notice } from 'obsidian';
 import { FolderRepository } from '../storage/FolderRepository';
+import { makeTrashOp } from '../storage/managedDelete';
 import { FolderOrderSettings } from '../config/settings';
 import { INTERNAL_FOLDER } from '../constants/view-types';
 import { isNoteEmpty as isNoteEmptyUtil } from '../utils/string-utils';
@@ -255,7 +256,9 @@ export class NoteService {
       return true;
     });
 
-    await this.app.vault.delete(file);
+    // Respeta la preferencia de papelera del usuario (trashFile
+    // cuando existe; vault.delete solo como compat 1.4.4).
+    await makeTrashOp(this.app)(file.path);
     new Notice(i18n.t('notes.deleted', { name: file.name }));
     return true;
   }

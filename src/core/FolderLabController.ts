@@ -14,6 +14,7 @@ import { ExportService } from '../services/ExportService';
 import { NavigationService } from '../services/NavigationService';
 import { BOARD_VIEW_TYPE } from '../constants/view-types';
 import { pickLeafStrategy } from '../utils/boardStability';
+import { makeTrashOp } from '../storage/managedDelete';
 import { StatsService } from '../services/StatsService';
 import { FilterService } from '../services/FilterService';
 import { FolderLabItem } from '../models/FolderLabItem';
@@ -685,7 +686,9 @@ getMasterName(): string {
     try {
       await this.removeNoteFromOrder(file.path);
 
-      await this.app.vault.delete(file);
+      // Respeta la preferencia de papelera del usuario (trashFile
+      // cuando existe; vault.delete solo como compat 1.4.4).
+      await makeTrashOp(this.app)(file.path);
       new Notice(i18n.t('notes.deleted', { name: file.name }));
 
       await this.loadFolder(currentPath);
