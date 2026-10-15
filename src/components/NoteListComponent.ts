@@ -357,7 +357,9 @@ onStatusChange: (file: TFile, status: string) => {
       );
 
     allItems.forEach((el, index) => {
-      if (el instanceof HTMLElement) {
+      // instanceOf: chequeo cross-window seguro (los pop-outs tienen
+      // su propio realm; `instanceof HTMLElement` fallaría allí).
+      if (el.instanceOf(HTMLElement)) {
         el.setAttribute(
           'data-normal-index',
           index.toString()
@@ -572,7 +574,8 @@ onStatusChange: (file: TFile, status: string) => {
     allItems.forEach(
       el => {
         if (
-          el instanceof HTMLElement
+          // instanceOf: cross-window seguro (ver comentario arriba).
+          el.instanceOf(HTMLElement)
         ) {
           items.push(el);
         }
