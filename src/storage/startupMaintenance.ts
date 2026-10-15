@@ -79,7 +79,7 @@ export async function runStartupMaintenance(
   if (getRootPath) {
     try {
       const audit = await runOrphanAudit(
-        app as unknown as Parameters<typeof runOrphanAudit>[0],
+        app,
         getRootPath,
         existingPaths
       );

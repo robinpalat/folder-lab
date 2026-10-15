@@ -182,7 +182,7 @@ export class WidgetController {
 
         const record: WidgetRecord =
           stored && typeof stored === 'object'
-            ? (stored as WidgetRecord)
+            ? stored
             : { notePath, items: [] };
 
         if (!Array.isArray(record.items)) {

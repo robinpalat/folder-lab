@@ -67,7 +67,7 @@ export async function prepareQuarantineCommand(
   let audit: OrphanAuditReport;
   try {
     audit = await runOrphanAudit(
-      deps.app as unknown as Parameters<typeof runOrphanAudit>[0],
+      deps.app,
       deps.getRootPath,
       deps.getExistingPaths()
     );

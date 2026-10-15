@@ -75,26 +75,6 @@ export class FocusPane {
 
     this.createAndRenderWidget(this.widgetInstanceId);
 
-    window.requestAnimationFrame(() => {
-      const measure = (el: HTMLElement | null) => {
-        if (!el) return null;
-        const r = el.getBoundingClientRect();
-        const cs = getComputedStyle(el);
-        return {
-          height: Math.round(r.height * 100) / 100,
-          cssHeight: cs.height,
-          minHeight: cs.minHeight,
-          maxHeight: cs.maxHeight,
-          flex: cs.flex,
-          display: cs.display,
-          overflowY: cs.overflowY
-        };
-      };
-
-      const widget =
-        this.widgetContainer?.querySelector(".fl-widget-notes") as HTMLElement | null;
-
-          });
   }
 
   private createAndRenderWidget(instanceId: string): void {
@@ -398,7 +378,7 @@ export class FocusPane {
         menuEl.querySelectorAll(
           '.menu-scroll .menu-item'
         )
-      ) as HTMLElement[];
+      );
 
     items.forEach(
       (itemEl, index) => {

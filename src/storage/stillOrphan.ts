@@ -10,7 +10,6 @@
 // Cualquier error de lectura PROPAGA (quarantine aborta y conserva
 // el original). La clasificación histórica de E4a no basta.
 
-import { App } from 'obsidian';
 import type { NoteIdentityRegistry } from './NoteIdentityRegistry';
 import { joinVaultRoot } from '../utils/rootPath';
 

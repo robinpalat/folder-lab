@@ -902,7 +902,7 @@ export class Board
 
       const label = card?.querySelector(
         '.fl-board-block-badge-label'
-      ) as HTMLElement | null;
+      );
 
       if (label) {
         label.textContent = this.resolveBlockTitle(block);
@@ -2298,7 +2298,7 @@ export class Board
         endpoint.kind === 'block'
           ? `[data-board-block-id="${endpoint.id}"]`
           : `[data-board-group-id="${endpoint.id}"]`
-      ) as HTMLElement | null;
+      );
 
     const endpointOf = (connection: BoardConnection): {
       source: Endpoint | null;

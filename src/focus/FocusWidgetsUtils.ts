@@ -434,7 +434,7 @@ export class FolderLabDragDrop {
     this.sourceInstalled = true;
 
     document.addEventListener('dragstart', (event) => {
-      const e = event as DragEvent;
+      const e = event;
       const dt = e.dataTransfer;
       if (!dt) return;
 

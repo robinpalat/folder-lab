@@ -216,7 +216,7 @@ constructor(
   /**
    * Exporta todas las notas de la carpeta actual y subcarpetas
    */
-  async exportAllSubfolderNotes(folderPath: string): Promise<void> {
+  async exportAllSubfolderNotes(_folderPath: string): Promise<void> {
     // TODO: Implementar exportación recursiva de todas las subcarpetas
     new Notice('Exportando todas las subcarpetas... (próximamente)');
   }

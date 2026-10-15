@@ -120,10 +120,10 @@ export class FolderLabState {
    * registra toda transición de navigationMode con pila.
    */
   private static traceModeTransition(
-    caller: string,
-    anterior: NavigationMode,
-    nuevo: NavigationMode,
-    motivo?: string
+    _caller: string,
+    _anterior: NavigationMode,
+    _nuevo: NavigationMode,
+    _motivo?: string
   ): void {
       }
 

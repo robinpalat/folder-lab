@@ -1318,8 +1318,6 @@ export class FolderLabView extends ItemView {
       return;
     }
 
-    const navType = this.navigationService?.getNavigationType() || 'folders';
-
     const folder =
       folderPath === ''
         ? this.app.vault.getRoot()
@@ -1527,7 +1525,7 @@ export class FolderLabView extends ItemView {
             console.error('[FolderLab] Error abriendo la carpeta:', error);
           });
         },
-        (newOrder: string[]) => {
+        (_newOrder: string[]) => {
           // El refresco de Properties lo gestiona
           // NavigationService mediante order-changed.
         }
@@ -2172,7 +2170,7 @@ export class FolderLabView extends ItemView {
   // MODOS DE RENDERIZADO (EXPLORER)
   // ============================================================
 
-  private async renderNormalMode(folder: TFolder): Promise<void> {
+  private async renderNormalMode(_folder: TFolder): Promise<void> {
 
     /*
      * Navegación normal: modelo EXPLÍCITO según el ámbito.
@@ -2320,7 +2318,7 @@ export class FolderLabView extends ItemView {
     });
   }
 
-  private async renderCombinedMode(folder: TFolder): Promise<void> {
+  private async renderCombinedMode(_folder: TFolder): Promise<void> {
     this.listContainer.empty();
     const message = this.listContainer.createEl('p', { cls: 'folder-lab-empty' });
     message.textContent = i18n.t('empty.combinedModeSoon');

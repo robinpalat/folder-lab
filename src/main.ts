@@ -901,7 +901,7 @@ export default class FolderLabPlugin extends Plugin {
     }
 
     await this.dataStore.saveOwnedSettings(
-      this.settings as unknown as Record<string, any>,
+      this.settings,
       ownedKeys
     );
 

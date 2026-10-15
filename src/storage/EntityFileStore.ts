@@ -19,7 +19,7 @@ export interface EntityEnvelope<T> {
   data: T;
 }
 
-export interface EntityFileStoreOptions<T> {
+export interface EntityFileStoreOptions {
   /** Carpeta bajo `<root>/Folder Lab/` (p. ej. 'boards', 'context'). */
   subfolder: string;
   /** Validador de `data` al leer; lanza si la forma es incorrecta. */
@@ -32,7 +32,7 @@ export class EntityFileStore<T> {
 
   constructor(
     private app: App,
-    private options: EntityFileStoreOptions<T>
+    private options: EntityFileStoreOptions
   ) {}
 
   private root(): string | null {

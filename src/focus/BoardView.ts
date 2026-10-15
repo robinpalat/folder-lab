@@ -48,8 +48,8 @@ export class BoardView extends TextFileView {
   }
 
   async setViewData(
-    data: string,
-    clear: boolean
+    _data: string,
+    _clear: boolean
   ): Promise<void> {
 
     const generation = ++this.renderGeneration;

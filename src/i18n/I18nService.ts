@@ -240,6 +240,6 @@ export class I18nService {
 // ============================================================
 
 export const i18n = new I18nService({
-  es: defaultEs as unknown as Catalog,
-  en: defaultEn as unknown as Catalog
+  es: defaultEs,
+  en: defaultEn
 });

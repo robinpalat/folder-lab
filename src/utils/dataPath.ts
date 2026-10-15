@@ -12,7 +12,7 @@
 // una carpeta de usuario llamada "Folder Lab" en otra ubicación NO
 // se oculta. Sin Master configurado no hay raíz técnica.
 
-import { normalizeRootPath, joinVaultRoot } from './rootPath';
+import { joinVaultRoot } from './rootPath';
 
 export const TECHNICAL_FOLDER_NAME = 'Folder Lab';
 

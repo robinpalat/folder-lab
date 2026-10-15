@@ -311,7 +311,7 @@ export class NotesWidget implements FocusWidget {
           this.callbacks.onWidgetSelect?.();
         },
 
-        onSourceSelect: (sourceId) => {
+        onSourceSelect: (_sourceId) => {
 
           this.callbacks.onSourceSelect?.();
         },

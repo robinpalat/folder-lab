@@ -753,7 +753,7 @@ export class FolderRepository {
   private buildParentIndexRecursive(
     node: FolderOrderData,
     currentPath: string,
-    parentPath: string
+    _parentPath: string
   ): void {
     if (!node.folders) return;
 

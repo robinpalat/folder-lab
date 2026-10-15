@@ -107,7 +107,7 @@ export class FocusSplitter {
     this.onDrag(newRatio);
   }
 
-  private handleMouseUp(e: MouseEvent): void {
+  private handleMouseUp(_e: MouseEvent): void {
     if (!this.isDragging) return;
 
     this.isDragging = false;
