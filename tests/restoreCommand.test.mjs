@@ -244,3 +244,52 @@ test('R9: el núcleo de restauración NO se invoca en el arranque', () => {
   assert.ok(!startupBlock.includes('restore'));
   assert.ok(!startupBlock.includes('Restore'));
 });
+
+// ------------------------------------------------------------
+// E4c-4: interfaz — modal de restauración y registro del comando
+// ------------------------------------------------------------
+test('R10: modal de restauración con acción por entrada, resultados y advertencia', () => {
+  const src = readFileSync(
+    join(root, 'src/modals/RestoreQuarantineModal.ts'),
+    'utf8'
+  );
+  // Acción «Restaurar» por entrada + «Cancelar» global.
+  assert.ok(/for \(const entry of this\.outcome\.pending\)/.test(src));
+  assert.ok(src.includes("text: 'Restaurar'"));
+  assert.ok(src.includes("text: 'Cancelar'"));
+  assert.ok(/cancelBtn\.onclick = \(\) => this\.close\(\);/.test(src));
+  // La fila no se borra sin constancia; resultado por fila.
+  assert.ok(!/\.remove\(\)/.test(src), 'sin borrado silencioso de filas');
+  assert.ok(src.includes('resultEl.setText'));
+  assert.ok(src.includes('this.processed'));
+  // Ruta original + fecha de cuarentena visibles.
+  assert.ok(src.includes('entry.originPath'));
+  assert.ok(src.includes('entry.quarantinedAt'));
+  // Destino ocupado explicado claramente.
+  assert.ok(src.includes('destination-changed'));
+  assert.ok(src.includes('Nada se ha sobrescrito'));
+  // Advertencia: restaurar ≠ reactivar identidad.
+  assert.ok(src.includes('NO reactiva la identidad'));
+  assert.ok(src.includes('ids.json'));
+  // Cierre solo tras procesar todas; callback con resultado.
+  assert.ok(/this\.processed\.size >= this\.outcome\.pending\.length/.test(src));
+  assert.ok(/Promise<RestoreResult \| void>/.test(src));
+});
+
+test('R11: comando registrado en main, fuera del arranque, con modal enlazado', () => {
+  const main = readFileSync(join(root, 'src/main.ts'), 'utf8');
+  assert.ok(main.includes("id: 'restore-quarantine-data'"));
+  assert.ok(main.includes("name: 'Restaurar datos en cuarentena…'"));
+  // Registro ANTES del bloque de arranque.
+  const cmdIdx = main.indexOf("id: 'restore-quarantine-data'");
+  const readyIdx = main.indexOf('onLayoutReady(');
+  const maintIdx = main.indexOf('runStartupMaintenance(');
+  assert.ok(cmdIdx >= 0 && cmdIdx < readyIdx && readyIdx < maintIdx);
+  // Sin new QuarantineManager en el comando (usa el compartido).
+  const cmdBlock = main.slice(cmdIdx, readyIdx);
+  assert.ok(!cmdBlock.includes('new QuarantineManager'));
+  assert.ok(cmdBlock.includes('getQuarantineManager'));
+  // Modal enlazado con resultado notificado.
+  assert.ok(main.includes('new RestoreQuarantineModal('));
+  assert.ok(main.includes('notifyRestoreResult(result, entry)'));
+});

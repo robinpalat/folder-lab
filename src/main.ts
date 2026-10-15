@@ -44,9 +44,17 @@ import { registerLifecycleListeners } from './storage/vaultLifecycleListeners';
 import { ClaimDataModal } from './modals/ClaimDataModal';
 import { QuarantineCandidateModal, notifyQuarantineResult } from './modals/QuarantineCandidateModal';
 import {
+  RestoreQuarantineModal,
+  notifyRestoreResult
+} from './modals/RestoreQuarantineModal';
+import {
   prepareQuarantineCommand,
   quarantineCandidate
 } from './storage/quarantineCommand';
+import {
+  prepareRestoreCommand,
+  restoreEntry
+} from './storage/restoreCommand';
 import { QuarantineManager } from './storage/quarantine';
 import { createStillOrphanPredicate } from './storage/stillOrphan';
 declare const require: (modulePath: string) => unknown;
@@ -462,6 +470,62 @@ export default class FolderLabPlugin extends Plugin {
           .catch((error) => {
             console.error('[FolderLab] Comando de cuarentena fallido:', error);
             new Notice('Folder Lab: error al preparar la cuarentena.');
+          });
+      }
+    });
+
+    // ============================================================
+    // COMANDO MANUAL DE RESTAURACIÓN (E4c) — nunca en el arranque
+    // ============================================================
+    this.addCommand({
+      id: 'restore-quarantine-data',
+      name: 'Restaurar datos en cuarentena…',
+      callback: () => {
+        const rootPathFn = () => normalizeRootPath(this.settings.bookRootPath);
+        const manager = this.getQuarantineManager();
+        if (!manager) {
+          new Notice('Folder Lab: identidad no inicializada.');
+          return;
+        }
+        const deps = {
+          app: this.app,
+          getRootPath: rootPathFn,
+          manager
+        };
+        void prepareRestoreCommand(deps)
+          .then((outcome) => {
+            switch (outcome.status) {
+              case 'no-master':
+                new Notice('Folder Lab: Master no configurado.');
+                break;
+              case 'no-entries':
+                new Notice(
+                  'Folder Lab: no hay datos en cuarentena pendientes de restaurar.'
+                );
+                break;
+              case 'error':
+                new Notice(
+                  `Folder Lab: manifiesto de cuarentena ilegible (${outcome.error}).`
+                );
+                break;
+              case 'needs-confirmation': {
+                // Confirmación explícita UNA A UNA antes de restaurar.
+                new RestoreQuarantineModal(
+                  this.app,
+                  outcome,
+                  async (entry) => {
+                    const result = await restoreEntry(deps, entry.entryId);
+                    notifyRestoreResult(result, entry);
+                    return result;
+                  }
+                ).open();
+                break;
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('[FolderLab] Comando de restauración fallido:', error);
+            new Notice('Folder Lab: error al preparar la restauración.');
           });
       }
     });
