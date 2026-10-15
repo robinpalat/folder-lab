@@ -6,6 +6,11 @@ import { i18n } from '../../i18n/I18nService';
 const VIRTUAL_ROOT_ID = 'virtual:root';
 const VIRTUAL_ROOT_PATH = '';
 
+/** Frontera con el frontmatter (JSON externo del metadata cache). */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export class PropertyNavigationProvider implements NavigationProvider {
   readonly id = 'properties';
   readonly name = 'Propiedades de las notas';
@@ -23,7 +28,7 @@ export class PropertyNavigationProvider implements NavigationProvider {
   /**
    * ✅ Verifica si un archivo debe ser excluido según las reglas configuradas
    */
-private isExcluded(frontmatter: Record<string, any>): boolean {
+private isExcluded(frontmatter: Record<string, unknown>): boolean {
   const exclusions = this.mapping.exclusions || [];
   
   for (const rule of exclusions) {
@@ -79,18 +84,28 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
       if (file.parent && file.name === `${file.parent.name}.md`) continue;
 
       const cache = this.app.metadataCache.getFileCache(file);
-      const frontmatter = cache?.frontmatter || {};
+      // Frontera metadata: frontmatter es JSON externo → unknown +
+      // guard de objeto plano.
+      const rawFrontmatter: unknown = cache?.frontmatter;
+      const frontmatter: Record<string, unknown> = isPlainObject(
+        rawFrontmatter
+      )
+        ? rawFrontmatter
+        : {};
 
       // ✅ Verificar reglas de exclusión (nav_exclude, etc.)
       if (this.isExcluded(frontmatter)) {
         continue;
       }
 
-      const title = this.getProperty(frontmatter, this.mapping.title) || 
-                    file.name.replace(/\.[^/.]+$/, '');
+      const rawTitle = this.getProperty(frontmatter, this.mapping.title);
+      const title =
+        typeof rawTitle === 'string' && rawTitle
+          ? rawTitle
+          : file.name.replace(/\.[^/.]+$/, '');
       const parentRef = this.getProperty(frontmatter, this.mapping.parent);
       const order = this.getProperty(frontmatter, this.mapping.order);
-      
+
             const hasChildren = this.getProperty(frontmatter, this.mapping.hasChildren);
       const permalink = this.getProperty(frontmatter, this.mapping.permalink);
       const layout = frontmatter.layout;
@@ -391,13 +406,16 @@ private isExcluded(frontmatter: Record<string, any>): boolean {
 
 
 
-  private getProperty(frontmatter: Record<string, any>, key: string): any {
+  private getProperty(
+    frontmatter: Record<string, unknown>,
+    key: string
+  ): unknown {
     if (!key) return undefined;
     if (key.includes('.')) {
       const parts = key.split('.');
-      let value = frontmatter;
+      let value: unknown = frontmatter;
       for (const part of parts) {
-        if (value === undefined || value === null) return undefined;
+        if (!isPlainObject(value)) return undefined;
         value = value[part];
       }
       return value;

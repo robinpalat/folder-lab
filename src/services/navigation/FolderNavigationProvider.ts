@@ -2,7 +2,11 @@
 
 import { App, TFolder, TFile } from 'obsidian';
 import { NavigationProvider, NavigationTree, NavigationNode } from '../../models/Navigation';
-import { FolderRepository } from '../../storage/FolderRepository';
+import {
+  FolderRepository,
+  type FolderOrderData,
+  type GlobalOrderData
+} from '../../storage/FolderRepository';
 import { isHiddenFolderName } from '../../utils/folderUtils';
 import { isTechnicalDataPath } from '../../utils/dataPath';
 import { joinVaultRoot } from '../../utils/rootPath';
@@ -54,7 +58,7 @@ export class FolderNavigationProvider implements NavigationProvider {
   }
 
   private async buildFromOrder(
-  globalOrder: any,
+  globalOrder: GlobalOrderData,
   masterPath: string,
   nodes: NavigationNode[],
   nodeMap: Map<string, NavigationNode>
@@ -73,11 +77,12 @@ export class FolderNavigationProvider implements NavigationProvider {
   nodeMap.set(masterPath, rootNode);
 
   const traverseOrder = (
-    orderData: any,
+    orderData: FolderOrderData,
     currentPath: string,
     parentPath: string | null
   ): void => {
     const processed = new Set<string>();
+    const folders = orderData.folders;
 
     // ============================================================
     // 1. PROCESAR EL ORDEN EXPLÍCITO
@@ -93,9 +98,7 @@ export class FolderNavigationProvider implements NavigationProvider {
       }
       processed.add(itemName);
 
-      const isFolder =
-        !!orderData.folders &&
-        !!orderData.folders[itemName];
+      const isFolder = !!folders && !!folders[itemName];
 
       const file = this.app.vault.getAbstractFileByPath(itemPath);
 
@@ -115,9 +118,9 @@ export class FolderNavigationProvider implements NavigationProvider {
       nodeMap.set(itemPath, node);
 
       // Si es carpeta, recorrer su estructura interna
-      if (isFolder) {
+      if (isFolder && folders) {
         traverseOrder(
-          orderData.folders[itemName],
+          folders[itemName],
           itemPath,
           itemPath
         );
@@ -128,14 +131,14 @@ export class FolderNavigationProvider implements NavigationProvider {
     // 2. PROCESAR CARPETAS DECLARADAS EN "folders"
     //    QUE NO ESTÉN EN "order"
     // ============================================================
-    for (const folderName of Object.keys(orderData.folders || {})) {
+    for (const folderName of Object.keys(folders || {})) {
       if (isHiddenFolderName(folderName)) continue;
       const folderPath = joinVaultRoot(currentPath, folderName);
       if (isTechnicalDataPath(folderPath, masterPath)) {
         continue;
       }
 
-      const folderData = orderData.folders[folderName];
+      const folderData = folders?.[folderName];
 
       const file = this.app.vault.getAbstractFileByPath(folderPath);
 
@@ -155,11 +158,13 @@ export class FolderNavigationProvider implements NavigationProvider {
       nodeMap.set(folderPath, node);
 
       // Recorrer contenido de la carpeta
-      traverseOrder(
-        folderData,
-        folderPath,
-        folderPath
-      );
+      if (folderData) {
+        traverseOrder(
+          folderData,
+          folderPath,
+          folderPath
+        );
+      }
     }
   };
 
