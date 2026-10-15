@@ -216,3 +216,43 @@ test('S7: la integración NO se ejecuta en el arranque', () => {
   assert.ok(!main.includes('stillOrphan'));
   assert.ok(!main.includes('QuarantineManager'));
 });
+
+// ------------------------------------------------------------
+// Coherencia de la caché (misma instancia, sin reinstanciar)
+// ------------------------------------------------------------
+
+test('S8: coherencia en la misma instancia — getId/onDeleted/claim vs stillOrphan', async () => {
+  const { stillOrphan, registry } = makeSystem();
+  // Activa → no huérfano.
+  const id = await registry.getId('viva.md');
+  assert.equal(await stillOrphan(id), false, 'activa bloquea');
+  // Borrada → pendiente → no huérfano.
+  await registry.onDeleted('viva.md');
+  assert.equal(await stillOrphan(id), false, 'pendiente bloquea');
+  // Reclamada (misma instancia) → activa otra vez → no huérfano.
+  const claim = await registry.claim('viva.md', 'pending');
+  assert.equal(claim.status, 'claimed');
+  assert.equal(await stillOrphan(id), false, 'reclamada bloquea');
+});
+
+test('S9: refresh() incorpora cambios EXTERNOS de ids.json (sync/u otro dispositivo)', async () => {
+  const { stillOrphan, registry, hidden } = makeSystem();
+  // Estado inicial del registro en disco (aún sin ids activos).
+  hidden.files.set(
+    'Master/ids.json',
+    { version: 1, ids: {}, tombstones: {}, pending: {}, archived: {} }
+  );
+  // Huérfano según la caché actual.
+  assert.equal(await stillOrphan('id-huerfano'), true);
+
+  // Escritura EXTERNA: el id pasa a estar activo (otro dispositivo).
+  const file = hidden.files.get('Master/ids.json');
+  file.ids['nota-nueva.md'] = 'id-huerfano';
+
+  // Caché vieja: aún diría huérfano (coherente con el contrato).
+  assert.equal(await stillOrphan('id-huerfano'), true);
+
+  // Tras refresh() (la futura pasarela de activación lo llamaría):
+  registry.refresh();
+  assert.equal(await stillOrphan('id-huerfano'), false, 'ya no huérfano');
+});

@@ -258,6 +258,18 @@ export class NoteIdentityRegistry {
     await this.hidden.writeJSON(master, IDS_FILE, this.cache);
   }
 
+  /**
+   * Invalida la caché en memoria (próxima lectura relee disco).
+   * Uso: antes de una sesión de cuarentena (E4b) o tras cambios
+   * EXTERNOS de ids.json (sincronización entre dispositivos).
+   * Las operaciones internas del registro siempre actualizan la
+   * caché; esta invalidación cubre solo escrituras ajenas.
+   */
+  refresh(): void {
+    this.cache = null;
+    this.lastMaster = null;
+  }
+
   /** Id estable de la nota; la crea y persiste si no existe. */
   async getId(notePath: string): Promise<string | null> {
     return this.enqueue(async () => {
