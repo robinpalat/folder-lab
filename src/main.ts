@@ -925,6 +925,15 @@ export default class FolderLabPlugin extends Plugin {
 // ============================================================
 // 4. PESTAÑA DE CONFIGURACIÓN
 // ============================================================
+/*
+ * PluginSettingTab sin getSettingDefinitions (API declarativa
+ * @since 1.13.0): es una RECOMENDACIÓN opcional del linter, no un
+ * incumplimiento para minAppVersion 1.4.4. Adoptarla exigiría
+ * reescribir el renderizado completo de esta pestaña (display() +
+ * auto-refresco en 3 puntos) con riesgo real de alterar la
+ * pantalla de ajustes del usuario. Mejora futura con alcance
+ * propio si se eleva el mínimo soportado.
+ */
 class FolderLabSettingTab extends PluginSettingTab {
   plugin: FolderLabPlugin;
 
