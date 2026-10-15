@@ -8,6 +8,9 @@ import {
   WidgetRegistration
 } from './WidgetDefinition';
 
+import type { WidgetController } from './controllers/WidgetController';
+import type { App } from 'obsidian';
+
 import {
   DeclarativeWidgetFactory
 } from './DeclarativeWidget';
@@ -27,8 +30,8 @@ export class FocusWidgetRegistry {
 
 
   constructor(
-    private controller?: any,
-    private app?: any
+    private controller?: WidgetController,
+    private app?: App
   ) {}
 
 
@@ -66,6 +69,15 @@ export class FocusWidgetRegistry {
   registerDeclarative(
     definition: WidgetDefinition
   ): void {
+
+    // La factory declarativa exige controller y app en runtime;
+    // sin ellos el registro produciría widgets inoperantes.
+    if (!this.controller || !this.app) {
+      console.error(
+        '[FolderLab] registerDeclarative requiere controller y app inicializados'
+      );
+      return;
+    }
 
     const factory =
       new DeclarativeWidgetFactory(

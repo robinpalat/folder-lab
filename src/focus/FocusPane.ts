@@ -1,4 +1,4 @@
-import { Menu } from 'obsidian';
+import { App, Menu } from 'obsidian';
 import { FocusWidget } from './FocusWidget';
 import { FocusContext } from './FocusContext';
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
@@ -38,7 +38,7 @@ export class FocusPane {
     registry: FocusWidgetRegistry,
     widgetManager: WidgetManager,
     context: FocusContext,
-    app: any,
+    app: App,
     onWidgetSelect?: (instanceId: string) => void
   ) {
     this.container = container;

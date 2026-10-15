@@ -85,15 +85,22 @@ export class FolderLabView extends ItemView {
   // NAVEGACIÓN VIRTUAL (MODO PROPERTIES)
   // ============================================================
   private currentNavigationNode: NavigationNode | null = null;
-  private boundHandleNavigationTreeChanged = this.handleNavigationTreeChanged.bind(this);
   /*
    * 3B: handlers de document como campos estables. Registrar con
    * `.bind(this)` inline y remover con OTRO `.bind(this)` no
    * elimina nada (identidad distinta): los listeners sobrevivían
    * al cierre de la vista y seguían actuando sobre ella dispuesta.
+   * Wrappers flecha tipados (bind sin strictBindCallApply devuelve any).
    */
-  private boundHandleExportEvent = this.handleExportEvent.bind(this);
-  private boundHandleRefreshEvent = this.handleRefreshEvent.bind(this);
+  private boundHandleNavigationTreeChanged = (): void => {
+    void this.handleNavigationTreeChanged();
+  };
+  private boundHandleExportEvent = (event: Event): void => {
+    void this.handleExportEvent(event);
+  };
+  private boundHandleRefreshEvent = (event: Event): void => {
+    void this.handleRefreshEvent(event);
+  };
   /**
  * LEGACY — mantenido temporalmente para compatibilidad
  * con goBackVirtual() y limpieza de estado existente.
@@ -467,7 +474,7 @@ export class FolderLabView extends ItemView {
     return 'folder';
   }
 
-  getFocusWorkspace(): any {
+  getFocusWorkspace(): FocusWorkspace | null {
     return this.focusWorkspace;
   }
 
@@ -2351,7 +2358,7 @@ export class FolderLabView extends ItemView {
     // vista dispuesta.
     if (this._isDisposed) return;
 
-    const customEvent = event as CustomEvent;
+    const customEvent = event as CustomEvent<{ folderPath?: string } | undefined>;
     const folderPath = customEvent.detail?.folderPath || this.controller.getCurrentPath();
     if (folderPath) {
       await this.controller.exportAllNotes();
@@ -2370,7 +2377,7 @@ export class FolderLabView extends ItemView {
       return;
     }
 
-    const customEvent = event as CustomEvent;
+    const customEvent = event as CustomEvent<{ folderPath?: string } | undefined>;
     const folderPath =
       customEvent.detail?.folderPath ||
       this.controller.getCurrentPath();

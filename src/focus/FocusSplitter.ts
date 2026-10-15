@@ -31,9 +31,16 @@ export class FocusSplitter {
     this.onDragStart = onDragStart;
     this.onDragEnd = onDragEnd;
     
-    this.boundOnMouseDown = this.handleMouseDown.bind(this);
-    this.boundOnMouseMove = this.handleMouseMove.bind(this);
-    this.boundOnMouseUp = this.handleMouseUp.bind(this);
+    // Wrappers tipados (bind sin strictBindCallApply devuelve any).
+    this.boundOnMouseDown = (e: MouseEvent): void => {
+      this.handleMouseDown(e);
+    };
+    this.boundOnMouseMove = (e: MouseEvent): void => {
+      this.handleMouseMove(e);
+    };
+    this.boundOnMouseUp = (e: MouseEvent): void => {
+      this.handleMouseUp(e);
+    };
   }
 
   render(): HTMLElement {
@@ -143,7 +150,9 @@ export class FocusSplitter {
     document.removeEventListener('mouseup', this.boundOnMouseUp);
     
     if (this.container) {
-      this.container.removeEventListener('mousedown', this.handleMouseDown.bind(this));
+      // Misma identidad que el addEventListener (un bind nuevo no
+      // elimina el listener original).
+      this.container.removeEventListener('mousedown', this.boundOnMouseDown);
     }
     
     if (this.element) {

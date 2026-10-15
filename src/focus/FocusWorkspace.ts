@@ -1,4 +1,4 @@
-import { TFile, setIcon } from "obsidian";
+import { App, TFile, setIcon } from 'obsidian';
 import { FocusSplitter } from "./FocusSplitter";
 import { FocusPane, FocusPanePosition } from "./FocusPane";
 import { FocusContext, createFocusContext, updateFocusContext } from "./FocusContext";
@@ -15,7 +15,7 @@ export class FocusWorkspace {
   private id = FocusWorkspace.nextId++;
 
   private container: HTMLElement;
-  private app: any;
+  private app: App;
   private controller: FolderLabController;
   private state: FolderLabState;
   private registry: FocusWidgetRegistry;
@@ -44,7 +44,7 @@ export class FocusWorkspace {
 
   constructor(
     container: HTMLElement,
-    app: any,
+    app: App,
     controller: FolderLabController,
     state: FolderLabState,
     registry: FocusWidgetRegistry,

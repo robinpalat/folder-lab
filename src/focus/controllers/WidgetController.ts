@@ -185,11 +185,12 @@ export class WidgetController {
             ? stored
             : { notePath, items: [] };
 
-        if (!Array.isArray(record.items)) {
-          record.items = [];
-        }
+        const items: WidgetRecord[] = Array.isArray(record.items)
+          ? record.items
+          : [];
+        record.items = items;
 
-        mutator(record.items, record);
+        mutator(items, record);
 
         all[key] = record;
         full[storageKey] = all;

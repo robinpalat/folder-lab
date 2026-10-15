@@ -1,5 +1,5 @@
 
-import { setIcon } from 'obsidian';
+import { TFile, setIcon } from 'obsidian';
 import { i18n } from '../i18n/I18nService';
 export class FocusTitle {
   private element: HTMLElement | null = null;
@@ -11,7 +11,7 @@ export class FocusTitle {
     this.onClose = onClose;
   }
 
-  render(activeFile: any): void {
+  render(activeFile: TFile | null): void {
     if (this.element) {
       this.element.remove();
     }
@@ -58,7 +58,7 @@ export class FocusTitle {
     };
   }
 
-  update(activeFile: any): void {
+  update(activeFile: TFile | null): void {
     this.render(activeFile);
   }
 

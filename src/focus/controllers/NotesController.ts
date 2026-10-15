@@ -99,17 +99,18 @@ export class NotesController {
         return '';
       }
 
-      const parsed = JSON.parse(serialized);
+      const parsed: unknown = JSON.parse(serialized);
 
       if (!Array.isArray(parsed)) {
         return '';
       }
 
       const activeBlock = parsed.find(
-        (block: NotesBlock) =>
-          block &&
-          block.active === true &&
-          typeof block.text === 'string'
+        (block): block is NotesBlock =>
+          typeof block === 'object' &&
+          block !== null &&
+          (block as NotesBlock).active === true &&
+          typeof (block as NotesBlock).text === 'string'
       );
 
       if (activeBlock?.text?.trim()) {
