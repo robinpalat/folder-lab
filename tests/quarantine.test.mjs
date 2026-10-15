@@ -65,6 +65,8 @@ const { QuarantineManager, contentHash } = await bundle(
 class FakeAdapter {
   files = new Map();
   dirs = new Set();
+  /** E4c-2: registro de escrituras (para aserciones de no-reescritura). */
+  writeLog = [];
   failWritePrefix = null;
   failRemove = false;
   failWriteManifest = false;
@@ -85,6 +87,7 @@ class FakeAdapter {
     if (this.failWriteManifest && p.endsWith('manifest.json')) {
       throw new Error('EIO manifiesto');
     }
+    this.writeLog.push(p);
     this.files.set(p, c);
   }
   async remove(p) {
@@ -474,4 +477,145 @@ test('E4b-15 (regresión QA): protección intacta — ruta sin Folder Lab sigue 
   assert.equal(result.status, 'skipped');
   assert.ok(result.reason.includes('ruta fuera de Folder Lab'));
   assert.equal(adapter.files.has('Other/boards/id-x.json'), true, 'original intacto');
+});
+
+// ------------------------------------------------------------
+// E4c-2: endurecimiento de la restauración
+// ------------------------------------------------------------
+async function tamperManifestEntry(adapter, mutate) {
+  const mpath = 'Master/Folder Lab/quarantine/manifest.json';
+  const manifest = JSON.parse(adapter.files.get(mpath));
+  mutate(manifest.entries[0]);
+  adapter.files.set(mpath, JSON.stringify(manifest));
+  return manifest.entries[0];
+}
+
+test('E4c-2-1: destino idéntico → NO se reescribe; restoredAt sellado', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+
+  // Primera restauración: escribe y sella.
+  const first = await manager.restore(q.entry.entryId);
+  assert.equal(first.status, 'restored');
+  assert.equal(first.rewrote, true);
+
+  // Segunda restauración (destino ya existe con el mismo contenido):
+  // SIN escritura en el destino.
+  adapter.writeLog = [];
+  const second = await manager.restore(q.entry.entryId);
+  assert.equal(second.status, 'restored');
+  assert.equal(second.rewrote, false);
+  assert.ok(
+    !adapter.writeLog.includes(q.entry.originPath),
+    'el destino idéntico no se reescribe'
+  );
+  // La copia en cuarentena se conserva siempre.
+  assert.equal(adapter.files.get(q.entry.quarantinePath), CONTENT);
+});
+
+test('E4c-2-2: originPath fuera de Folder Lab → rechazo conservador', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+  adapter.writeLog = [];
+  await tamperManifestEntry(adapter, (e) => {
+    e.originPath = 'Master/Notas/robo.json';
+  });
+  const r = await manager.restore(q.entry.entryId);
+  assert.equal(r.status, 'failed');
+  assert.ok(r.error.includes('inválida'));
+  assert.equal(adapter.files.get(q.entry.quarantinePath), CONTENT, 'cuarentena intacta');
+  assert.ok(!adapter.files.has('Master/Notas/robo.json'), 'sin escrituras fuera');
+});
+
+test('E4c-2-3: ruta con «..» → rechazo conservador', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+  await tamperManifestEntry(adapter, (e) => {
+    e.originPath = 'Master/Folder Lab/boards/../../Notas/x.json';
+  });
+  const r = await manager.restore(q.entry.entryId);
+  assert.equal(r.status, 'failed');
+  assert.ok(r.error.includes('«..»'));
+  assert.equal(adapter.files.get(q.entry.quarantinePath), CONTENT);
+});
+
+test('E4c-2-4: quarantinePath fuera de Folder Lab/quarantine → rechazo', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+  await tamperManifestEntry(adapter, (e) => {
+    e.quarantinePath = 'Master/Folder Lab/boards/copia-ajena.json';
+  });
+  const r = await manager.restore(q.entry.entryId);
+  assert.equal(r.status, 'failed');
+  assert.ok(r.error.includes('cuarentena'));
+});
+
+test('E4c-2-5: forma inválida de entrada (campos no string/número) → rechazo', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+  await tamperManifestEntry(adapter, (e) => {
+    e.originPath = 12345;
+  });
+  const r = await manager.restore(q.entry.entryId);
+  assert.equal(r.status, 'failed');
+  assert.ok(r.error.includes('inválida'));
+  assert.equal(adapter.files.get(q.entry.quarantinePath), CONTENT);
+});
+
+test('E4c-2-6: subcarpeta incoherente con el origen → rechazo', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+  await tamperManifestEntry(adapter, (e) => {
+    e.subfolder = 'drafts'; // el origen sigue en boards/
+  });
+  const r = await manager.restore(q.entry.entryId);
+  assert.equal(r.status, 'failed');
+  assert.ok(r.error.includes('incoherente'));
+});
+
+test('E4c-2-7: restauración con Master en la raíz del vault', async () => {
+  const adapter = new FakeAdapter();
+  const app = { vault: { adapter } };
+  const manager = new QuarantineManager(app, () => '');
+  adapter.files.set('Folder Lab/boards/id-huerfano.json', CONTENT);
+  const q = await manager.quarantine(
+    candidate({
+      path: 'Folder Lab/boards/id-huerfano.json',
+      noteId: 'id-huerfano',
+      subfolder: 'boards'
+    })
+  );
+  assert.equal(q.status, 'quarantined');
+  const r = await manager.restore(q.entry.entryId);
+  assert.equal(r.status, 'restored');
+  assert.equal(adapter.files.get('Folder Lab/boards/id-huerfano.json'), CONTENT);
+  const mpath = 'Folder Lab/quarantine/manifest.json';
+  const manifest = JSON.parse(adapter.files.get(mpath));
+  assert.ok(manifest.entries[0].restoredAt, 'restoredAt sellado en manifiesto raíz');
+});
+
+test('E4c-2-8: restauraciones concurrentes de la misma entrada se serializan', async () => {
+  const { adapter, manager } = makeSystem();
+  await seed(adapter);
+  const q = await manager.quarantine(candidate());
+  const [r1, r2] = await Promise.all([
+    manager.restore(q.entry.entryId),
+    manager.restore(q.entry.entryId)
+  ]);
+  assert.equal(r1.status, 'restored');
+  assert.equal(r2.status, 'restored');
+  // Exactamente una escritura del destino (la otra es no-reescritura).
+  const destWrites = adapter.writeLog.filter(
+    (p) => p === q.entry.originPath
+  );
+  assert.equal(destWrites.length, 1, 'una sola escritura del destino');
+  assert.equal(adapter.files.get(q.entry.originPath), CONTENT);
+  const manifest = await manager.readManifest();
+  assert.ok(manifest.entries[0].restoredAt);
 });

@@ -59,7 +59,15 @@ export type QuarantineResult =
   | { status: 'failed'; error: string };
 
 export type RestoreResult =
-  | { status: 'restored'; entry: QuarantineManifestEntry }
+  | {
+      status: 'restored';
+      entry: QuarantineManifestEntry;
+      /**
+       * false = el destino ya contenía el contenido exacto (hash
+       * coincidente) y NO se reescribió; solo se selló restoredAt.
+       */
+      rewrote: boolean;
+    }
   | { status: 'not-found'; entryId: string }
   | { status: 'destination-changed'; entry: QuarantineManifestEntry }
   | { status: 'failed'; error: string };
@@ -121,6 +129,90 @@ export class QuarantineManager {
     return (
       QUARANTINE_ELIGIBLE_SUBFOLDERS as readonly string[]
     ).includes(candidate.subfolder);
+  }
+
+  /**
+   * E4c-2: valida la forma y las RUTAS de una entrada del manifiesto
+   * (defensa frente a manifiestos alterados a mano o por conflictos
+   * de sincronización). Devuelve null si es válida, o el motivo.
+   */
+  static validateEntryShape(
+    root: string,
+    entry: QuarantineManifestEntry
+  ): string | null {
+    const stringFields: Array<keyof QuarantineManifestEntry> = [
+      'entryId',
+      'originPath',
+      'quarantinePath',
+      'noteId',
+      'subfolder',
+      'reason',
+      'contentHash'
+    ];
+    for (const field of stringFields) {
+      const value = entry[field];
+      if (typeof value !== 'string' || value.length === 0) {
+        return `campo «${field}» ausente o no válido`;
+      }
+    }
+    if (!Number.isFinite(entry.size) || !Number.isFinite(entry.quarantinedAt)) {
+      return 'campos numéricos «size» o «quarantinedAt» no válidos';
+    }
+    if (entry.restoredAt !== undefined && !Number.isFinite(entry.restoredAt)) {
+      return 'campo «restoredAt» no válido';
+    }
+    if (
+      !(
+        QUARANTINE_ELIGIBLE_SUBFOLDERS as readonly string[]
+      ).includes(entry.subfolder)
+    ) {
+      return `subcarpeta «${entry.subfolder}» no elegible`;
+    }
+
+    const originPrefix = root ? `${root}/Folder Lab/` : 'Folder Lab/';
+    const quarantinePrefix = root
+      ? `${root}/Folder Lab/quarantine/`
+      : 'Folder Lab/quarantine/';
+    for (const path of [entry.originPath, entry.quarantinePath]) {
+      if (path.startsWith('/') || path.includes('\\')) {
+        return `ruta sospechosa «${path}»`;
+      }
+      if (path.split('/').includes('..')) {
+        return `ruta con «..» rechazada «${path}»`;
+      }
+    }
+    if (!entry.originPath.startsWith(originPrefix)) {
+      return `origen fuera de Folder Lab «${entry.originPath}»`;
+    }
+    const originRest = entry.originPath.slice(originPrefix.length);
+    const originMatch = originRest.match(
+      /^([a-z]+)\/([^/]+)\.json$/
+    );
+    if (
+      !originMatch ||
+      !(
+        QUARANTINE_ELIGIBLE_SUBFOLDERS as readonly string[]
+      ).includes(originMatch[1])
+    ) {
+      return `origen no elegible «${entry.originPath}»`;
+    }
+    if (originMatch[1] !== entry.subfolder) {
+      return `subcarpeta incoherente «${entry.subfolder}» vs origen «${entry.originPath}»`;
+    }
+    if (!entry.quarantinePath.startsWith(quarantinePrefix)) {
+      return `ruta de cuarentena fuera de Folder Lab/quarantine «${entry.quarantinePath}»`;
+    }
+    const quarantineRest = entry.quarantinePath.slice(
+      quarantinePrefix.length
+    );
+    if (
+      !quarantineRest.match(
+        /^[^/]+\/(boards|context|drafts|polish)\/[^/]+\.json$/
+      )
+    ) {
+      return `ruta de cuarentena no elegible «${entry.quarantinePath}»`;
+    }
+    return null;
   }
 
   async readManifest(): Promise<QuarantineManifest> {
@@ -370,8 +462,15 @@ export class QuarantineManager {
   }
 
   /**
-   * Restauración explícita. Comprueba el destino: si existe y su
-   * contenido difiere del hash registrado, se RECHAZA sin tocar nada.
+   * Restauración explícita (E4c-2 endurecida):
+   * - valida la forma y las rutas de la entrada (solo dentro de
+   *   Folder Lab; sin «..»; subcarpeta elegible y coherente);
+   * - verifica el hash de la copia en cuarentena;
+   * - si el destino existe con contenido DISTINTO → destination-changed
+   *   (sin sobrescribir);
+   * - si el destino existe con contenido IDÉNTICO → NO se reescribe;
+   *   solo se sella restoredAt tras verificar;
+   * - la copia en cuarentena nunca se elimina.
    */
   async restore(
     entryId: string
@@ -380,6 +479,10 @@ export class QuarantineManager {
   }
 
   private async restoreUnsafe(entryId: string): Promise<RestoreResult> {
+    const root = this.root();
+    if (root === null) {
+      return { status: 'failed', error: 'sin Master configurado' };
+    }
     const adapter = this.app.vault.adapter;
     let manifest: QuarantineManifest;
     try {
@@ -393,6 +496,14 @@ export class QuarantineManager {
     const entry = manifest.entries.find((e) => e.entryId === entryId);
     if (!entry) {
       return { status: 'not-found', entryId };
+    }
+    // E4c-2: forma y rutas de la entrada verificadas antes de tocar nada.
+    const invalid = QuarantineManager.validateEntryShape(root, entry);
+    if (invalid !== null) {
+      return {
+        status: 'failed',
+        error: `entrada del manifiesto inválida: ${invalid}`
+      };
     }
     if (!(await adapter.exists(entry.quarantinePath))) {
       return {
@@ -420,7 +531,8 @@ export class QuarantineManager {
       };
     }
 
-    // Destino: si existe, solo se sobrescribe si no cambió.
+    // Destino: si existe con contenido DISTINTO → rechazo total.
+    let rewrote = true;
     if (await adapter.exists(entry.originPath)) {
       let current: string;
       try {
@@ -436,21 +548,26 @@ export class QuarantineManager {
       if (contentHash(current) !== entry.contentHash) {
         return { status: 'destination-changed', entry };
       }
+      // Contenido idéntico: NO se reescribe (requisito de no
+      // sobrescritura); se sella restoredAt tras verificar.
+      rewrote = false;
     }
 
-    try {
-      await adapter.write(entry.originPath, raw);
-      const check = await adapter.read(entry.originPath);
-      if (check !== raw) {
-        throw new Error('la relectura del destino no coincide');
+    if (rewrote) {
+      try {
+        await adapter.write(entry.originPath, raw);
+        const check = await adapter.read(entry.originPath);
+        if (check !== raw) {
+          throw new Error('la relectura del destino no coincide');
+        }
+      } catch (error) {
+        return {
+          status: 'failed',
+          error: `restauración: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        };
       }
-    } catch (error) {
-      return {
-        status: 'failed',
-        error: `restauración: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      };
     }
 
     entry.restoredAt = Date.now();
@@ -467,6 +584,6 @@ export class QuarantineManager {
         } (archivo ya restaurado)`
       };
     }
-    return { status: 'restored', entry };
+    return { status: 'restored', entry, rewrote };
   }
 }
