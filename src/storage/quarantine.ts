@@ -117,10 +117,13 @@ export class QuarantineManager {
     } catch {
       throw new Error(`[Quarantine] manifiesto ilegible en "${path}"`);
     }
-    if (!isPlainObject(parsed) || !Array.isArray((parsed as QuarantineManifest).entries)) {
+    if (
+      !isPlainObject(parsed) ||
+      !Array.isArray((parsed as unknown as QuarantineManifest).entries)
+    ) {
       throw new Error(`[Quarantine] manifiesto con forma inválida en "${path}"`);
     }
-    return parsed as QuarantineManifest;
+    return parsed as unknown as QuarantineManifest;
   }
 
   private async writeManifest(manifest: QuarantineManifest): Promise<void> {
