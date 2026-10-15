@@ -158,7 +158,8 @@
       "invalidFile": "❌ Invalid file",
       "emptyName": "The name cannot be empty",
       "duplicateName": "A note named \"{name}\" already exists",
-      "deleteFailed": "❌ Error deleting the note"
+      "deleteFailed": "❌ Error deleting the note",
+      "openFailed": "❌ Error opening the note"
     },
     "wordCount": {
       "noRootConfigured": "❌ Configure the root folder in Settings → Folder Lab",

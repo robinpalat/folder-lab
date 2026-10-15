@@ -158,7 +158,8 @@
       "invalidFile": "❌ Archivo no válido",
       "emptyName": "El nombre no puede estar vacío",
       "duplicateName": "Ya existe una nota con el nombre \"{name}\"",
-      "deleteFailed": "❌ Error al eliminar la nota"
+      "deleteFailed": "❌ Error al eliminar la nota",
+      "openFailed": "❌ Error al abrir la nota"
     },
     "wordCount": {
       "noRootConfigured": "❌ Configura la carpeta raíz en Ajustes → Folder Lab",

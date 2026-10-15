@@ -1037,7 +1037,9 @@ this.contextResolver = new ContextResolver(
           domain: this.selectedDomain,
           capability: this.selectedCapability
         };
-        this.plugin.saveSettings();
+        void this.plugin.saveSettings().catch((error) => {
+          console.warn('[MemoryWidget] Error guardando ajustes:', error);
+        });
       }
     } catch { /* ignorar */ }
   }

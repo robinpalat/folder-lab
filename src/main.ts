@@ -658,7 +658,10 @@ export default class FolderLabPlugin extends Plugin {
     // RIBBON ICON
     // ============================================================
     this.addRibbonIcon('folder', i18n.t('common.appName'), () => {
-      this.openFolderLabView();
+      void this.openFolderLabView().catch((error) => {
+        console.error('[FolderLab] Error abriendo el panel:', error);
+        new Notice(i18n.t('errors.openSidePanel'));
+      });
     });
 
     // ============================================================

@@ -434,7 +434,13 @@ export class ResourcesWidget implements FocusWidget {
       const file = abstractFile instanceof TFile ? abstractFile : null;
 
       if (file) {
-        this.app.workspace.getLeaf().openFile(file);
+        void this.app.workspace
+          .getLeaf()
+          .openFile(file)
+          .catch((error) => {
+            console.error('[FolderLab] Error abriendo el archivo:', error);
+            new Notice(i18n.t('errors.note.openFailed'));
+          });
       } else {
         new Notice(i18n.t('resources.notice.fileNotFound'));
       }

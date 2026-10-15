@@ -1211,7 +1211,9 @@ export class FolderLabView extends ItemView {
           activeFile.path.startsWith(currentPath)
         ) {
           this.plugin.settings.lastOpenedNote = activeFile.path;
-          this.plugin.saveSettings();
+          void this.plugin.saveSettings().catch((error) => {
+            console.error('[FolderLab] Error guardando ajustes:', error);
+          });
         }
       })
     );
@@ -1943,7 +1945,9 @@ export class FolderLabView extends ItemView {
 
     // Nota real → abrir
     if (item.file) {
-      this.controller.openNote(item);
+      void this.controller.openNote(item).catch((error) => {
+        console.error('[FolderLab] Error abriendo la nota:', error);
+      });
     }
   }
 

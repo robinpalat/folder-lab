@@ -183,7 +183,9 @@ export class NoteItemComponent {
           .setIcon('trash-2')
           .onClick(() => {
             if (this.item?.file) {
-              this.controller.deleteNote(this.item.file);
+              // deleteNote gestiona internamente sus errores (Notice +
+              // console) y siempre resuelve; no hay rechazo que capturar.
+              void this.controller.deleteNote(this.item.file);
             }
           });
       });
