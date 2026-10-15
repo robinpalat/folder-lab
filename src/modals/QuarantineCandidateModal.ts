@@ -6,12 +6,18 @@
 
 import { App, Modal, Notice } from 'obsidian';
 import type { OrphanCandidate } from '../storage/orphanAudit';
+import type { QuarantineResult } from '../storage/quarantine';
 
 export class QuarantineCandidateModal extends Modal {
+  /** Seguimiento de candidatos ya procesados en esta sesión. */
+  private processed = new Set<OrphanCandidate>();
+
   constructor(
     app: App,
     private readonly candidates: OrphanCandidate[],
-    private readonly onConfirm: (candidate: OrphanCandidate) => Promise<void>
+    private readonly onConfirm: (
+      candidate: OrphanCandidate
+    ) => Promise<QuarantineResult | void>
   ) {
     super(app);
   }
@@ -37,18 +43,39 @@ export class QuarantineCandidateModal extends Modal {
       row.createEl('div', {
         text: `identidad: ${candidate.noteId} · motivo: ${candidate.reason}`
       });
+      const resultEl = row.createEl('div', {
+        cls: 'folder-lab-quarantine-result'
+      });
       const btnRow = row.createEl('div');
       const confirmBtn = btnRow.createEl('button', {
         text: 'Cuarentenar'
       });
       confirmBtn.onclick = () => {
         confirmBtn.setAttr('disabled', 'true');
-        void this.onConfirm(candidate).then(() => {
-          row.remove();
-          if (this.candidates.every((c) => c !== candidate)) {
-            this.close();
-          }
-        });
+        void this.onConfirm(candidate)
+          .then((result) => {
+            // El resultado se muestra en la propia fila (la fila
+            // NO desaparece sin dejar constancia).
+            resultEl.setText(
+              result?.status === 'quarantined'
+                ? 'Movido a cuarentena.'
+                : result?.status === 'skipped'
+                  ? `No se movió: ${result.reason ?? 'rechazado'}.`
+                  : result?.status === 'failed'
+                    ? `Fallo: ${result.error ?? 'error'}; el original se conserva.`
+                    : 'Resultado desconocido; el original se conserva.'
+            );
+            this.processed.add(candidate);
+            if (this.processed.size >= this.candidates.length) {
+              this.close();
+            }
+          })
+          .catch((error) => {
+            resultEl.setText(
+              `Fallo inesperado: ${error instanceof Error ? error.message : String(error)}; el original se conserva.`
+            );
+            this.processed.add(candidate);
+          });
       };
     }
 

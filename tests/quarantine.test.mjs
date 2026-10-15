@@ -420,3 +420,58 @@ test('extra: reintentos preservan los originales ante errores repetidos', async 
   const ok = await manager.quarantine(candidate());
   assert.equal(ok.status, 'quarantined');
 });
+
+// ------------------------------------------------------------
+// Regresión QA manual (bug 1): Master en la raíz del vault.
+// La auditoría entrega "Folder Lab/boards/…" SIN barra inicial;
+// la validación de ruta debe aceptarlo (sin debilitar la
+// protección: sigue exigiendo el segmento Folder Lab/ y
+// subcarpeta elegible).
+// ------------------------------------------------------------
+test('E4b-14 (regresión QA): Master en la raíz — candidato "Folder Lab/…" sin barra inicial se cuarentena', async () => {
+  const adapter = new FakeAdapter();
+  const app = { vault: { adapter } };
+  // Raíz del vault: normalizeRootPath('') → '' internamente.
+  const manager = new QuarantineManager(app, () => '');
+  adapter.files.set('Folder Lab/boards/id-huerfano.json', CONTENT);
+
+  const result = await manager.quarantine(
+    candidate({
+      path: 'Folder Lab/boards/id-huerfano.json',
+      noteId: 'id-huerfano',
+      subfolder: 'boards'
+    })
+  );
+  assert.equal(result.status, 'quarantined');
+  // Original retirado; copia bajo Folder Lab/quarantine/ (sin prefijo).
+  assert.equal(adapter.files.has('Folder Lab/boards/id-huerfano.json'), false);
+  const qpath = [...adapter.files.keys()].find(
+    (p) =>
+      p.startsWith('Folder Lab/quarantine/') &&
+      p.includes('/boards/') &&
+      !p.endsWith('manifest.json')
+  );
+  assert.ok(qpath, 'archivo en cuarentena bajo Folder Lab/quarantine/');
+  assert.equal(adapter.files.get(qpath), CONTENT);
+  // Manifiesto también en la raíz del vault.
+  const mpath = 'Folder Lab/quarantine/manifest.json';
+  assert.ok(adapter.files.has(mpath), 'manifiesto en Folder Lab/quarantine/');
+  const manifest = JSON.parse(adapter.files.get(mpath));
+  assert.equal(manifest.entries[0].originPath, 'Folder Lab/boards/id-huerfano.json');
+  assert.equal(manifest.entries[0].quarantinePath, qpath);
+});
+
+test('E4b-15 (regresión QA): protección intacta — ruta sin Folder Lab sigue rechazada', async () => {
+  const { adapter, manager } = makeSystem();
+  adapter.files.set('Other/boards/id-x.json', CONTENT);
+  const result = await manager.quarantine(
+    candidate({
+      path: 'Other/boards/id-x.json',
+      noteId: 'id-x',
+      subfolder: 'boards'
+    })
+  );
+  assert.equal(result.status, 'skipped');
+  assert.ok(result.reason.includes('ruta fuera de Folder Lab'));
+  assert.equal(adapter.files.has('Other/boards/id-x.json'), true, 'original intacto');
+});

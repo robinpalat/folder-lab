@@ -429,6 +429,7 @@ export default class FolderLabPlugin extends Plugin {
                       candidate
                     );
                     notifyQuarantineResult(result, candidate);
+                    return result;
                   }
                 ).open();
                 break;

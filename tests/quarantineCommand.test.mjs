@@ -259,3 +259,32 @@ test('C8: el comando NO se ejecuta en el arranque (estático en main)', () => {
   const cmdId = main.indexOf("id: 'quarantine-orphan-data'");
   assert.ok(cmdId > 0 && cmdId < maintCall, 'el comando se registra antes del mantenimiento de arranque');
 });
+
+// ------------------------------------------------------------
+// Regresión QA manual (bug 2): el modal debe ofrecer la acción
+// «Cuarentenar» POR CANDIDATO y dejar constancia del resultado
+// en la propia fila (antes la fila se borraba sin dejar rastro
+// y solo quedaba «Cancelar»).
+// ------------------------------------------------------------
+test('C9 (regresión QA): modal con acción de confirmación por candidato y constancia de resultado', () => {
+  const src = readFileSync(
+    join(root, 'src/modals/QuarantineCandidateModal.ts'),
+    'utf8'
+  );
+  // Una fila por candidato con su propio botón «Cuarentenar».
+  assert.ok(/for \(const candidate of this\.candidates\)/.test(src));
+  assert.ok(src.includes("text: 'Cuarentenar'"));
+  // Botón «Cancelar» global que cierra sin operar.
+  assert.ok(src.includes("text: 'Cancelar'"));
+  assert.ok(/cancelBtn\.onclick = \(\) => this\.close\(\);/.test(src));
+  // La fila NO se elimina sin dejar constancia del resultado.
+  assert.ok(!/\.remove\(\)/.test(src), 'la fila no debe borrarse sin dejar constancia');
+  assert.ok(src.includes('resultEl.setText'));
+  assert.ok(src.includes('Movido a cuarentena'));
+  assert.ok(src.includes('el original se conserva'));
+  // El modal se cierra solo tras procesar todos los candidatos.
+  assert.ok(src.includes('this.processed'));
+  assert.ok(/this\.processed\.size >= this\.candidates\.length/.test(src));
+  // El resultado de cada confirmación se entrega al modal.
+  assert.ok(/Promise<QuarantineResult \| void>/.test(src));
+});

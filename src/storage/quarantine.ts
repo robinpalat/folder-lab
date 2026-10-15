@@ -219,15 +219,24 @@ export class QuarantineManager {
 
     // Rutas coherentes con el origen del candidato (que ya incluye
     // la raíz: '<root>/Folder Lab/<sub>/…' o 'Folder Lab/<sub>/…'
-    // en la raíz del vault).
+    // en la raíz del vault, sin barra inicial).
     const marker = '/Folder Lab/';
-    const markerIdx = origin.indexOf(marker);
-    if (markerIdx === -1) {
-      return { status: 'skipped', reason: 'ruta fuera de Folder Lab/' };
+    let prefix: string;
+    if (origin.startsWith('Folder Lab/')) {
+      // Raíz del vault: la ruta comienza en la carpeta técnica.
+      prefix = '';
+    } else {
+      const markerIdx = origin.indexOf(marker);
+      if (markerIdx === -1) {
+        return { status: 'skipped', reason: 'ruta fuera de Folder Lab/' };
+      }
+      prefix = origin.slice(0, markerIdx);
     }
-    const prefix = origin.slice(0, markerIdx);
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const quarantineRel = `${prefix}/Folder Lab/quarantine/${stamp}/${candidate.subfolder}/${candidate.noteId}.json`;
+    const quarantineBase = prefix
+      ? `${prefix}/Folder Lab/quarantine`
+      : 'Folder Lab/quarantine';
+    const quarantineRel = `${quarantineBase}/${stamp}/${candidate.subfolder}/${candidate.noteId}.json`;
 
     // Idempotencia: entrada previa completa → omitir.
     const existing = manifest.entries.find(
