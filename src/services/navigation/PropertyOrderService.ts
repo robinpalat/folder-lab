@@ -1,4 +1,4 @@
-import { App, TFile } from 'obsidian';
+import { App, Events, TFile } from 'obsidian';
 
 /**
  * Gestiona el orden de navegación basado en propiedades
@@ -112,7 +112,7 @@ async reorder(
   }
 
   // 3. Notificar SOLO después de que el cache esté sincronizado.
-  (this.app.workspace as any).trigger(
+  (this.app.workspace as unknown as Events).trigger(
     'folder-lab:order-changed'
   );
 

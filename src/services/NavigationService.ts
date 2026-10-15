@@ -2,7 +2,7 @@
 // SERVICES: NavigationService
 // ============================================================
 
-import { App } from 'obsidian';
+import { App, Events } from 'obsidian';
 import { FolderRepository } from '../storage/FolderRepository';
 import { normalizeRootPath } from '../utils/rootPath';
 import { NavigationTree, NavigationNode, NavigationProvider, NavigationType } from '../models/Navigation';
@@ -59,7 +59,7 @@ export class NavigationService {
     
     this.isInitialized = true;
     
-    (this.app.workspace as any).on('folder-lab:order-changed', this.boundHandleOrderChanged);
+    (this.app.workspace as unknown as Events).on('folder-lab:order-changed', this.boundHandleOrderChanged);
   }
 
   private selectProvider(type: NavigationType): NavigationProvider {
@@ -83,7 +83,7 @@ export class NavigationService {
     
     try {
       await this.refresh();
-      (this.app.workspace as any).trigger('folder-lab:navigation-tree-changed');
+      (this.app.workspace as unknown as Events).trigger('folder-lab:navigation-tree-changed');
     } catch (error) {
       console.error('[NAVIGATION] Error al refrescar árbol:', error);
     }

@@ -4,7 +4,7 @@
 // Renderiza la vista. SOLO CONSUME estado de navegación.
 // ============================================================
 
-import { ItemView, WorkspaceLeaf, TFolder, TFile, Notice, MarkdownView } from 'obsidian';
+import { Events, ItemView, MarkdownView, Notice, TFile, TFolder, WorkspaceLeaf } from 'obsidian';
 import FolderLabPlugin from '../main';
 import { VIEW_TYPE_FOLDER_ORDER, INTERNAL_FOLDER } from '../constants/view-types';
 import { FolderLabController, FolderLabEvent } from '../core/FolderLabController';
@@ -662,7 +662,7 @@ export class FolderLabView extends ItemView {
       await this.navigationService.initialize();
 
       // Escuchar cambios en el árbol de navegación
-      (this.app.workspace as any).on('folder-lab:navigation-tree-changed', this.boundHandleNavigationTreeChanged);
+      (this.app.workspace as unknown as Events).on('folder-lab:navigation-tree-changed', this.boundHandleNavigationTreeChanged);
     }
 
     const navType = this.navigationService?.getNavigationType() || 'folders';
@@ -881,7 +881,7 @@ export class FolderLabView extends ItemView {
     await this.closeBoardIfOpen();
 
     // Limpiar eventos
-    (this.app.workspace as any).off('folder-lab:navigation-tree-changed', this.boundHandleNavigationTreeChanged);
+    (this.app.workspace as unknown as Events).off('folder-lab:navigation-tree-changed', this.boundHandleNavigationTreeChanged);
     document.removeEventListener('folder-lab-export', this.boundHandleExportEvent);
     document.removeEventListener('folder-lab-refresh', this.boundHandleRefreshEvent);
 

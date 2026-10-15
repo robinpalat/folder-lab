@@ -1,6 +1,14 @@
 import type { Plugin } from 'obsidian';
 
 /**
+ * Frontera con data.json: el contenido es JSON externo. Se estrecha
+ * a `unknown` y solo se acepta si es un objeto plano.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
  * Pipeline ÚNICO y serializado de lectura-modificación-escritura
  * sobre el data.json del plugin (plugin.loadData/saveData).
  *
@@ -21,10 +29,11 @@ export class PluginDataStore {
     private readonly plugin: Plugin
   ) {}
 
-  /** Lectura directa del estado actual. */
-  async read(): Promise<Record<string, any>> {
+  /** Lectura directa del estado actual (objeto plano validado). */
+  async read(): Promise<Record<string, unknown>> {
     try {
-      return (await this.plugin.loadData()) ?? {};
+      const raw: unknown = await this.plugin.loadData();
+      return isPlainObject(raw) ? raw : {};
     } catch (error) {
       console.error(
         '[FolderLab] Error leyendo data.json del plugin:',
@@ -39,10 +48,11 @@ export class PluginDataStore {
    * guarda el resultado, en cola (una escritura a la vez).
    */
   transact(
-    mutator: (data: Record<string, any>) => void | Promise<void>
+    mutator: (data: Record<string, unknown>) => void | Promise<void>
   ): Promise<void> {
     const run = async (): Promise<void> => {
-      const data = (await this.plugin.loadData()) ?? {};
+      const raw: unknown = await this.plugin.loadData();
+      const data: Record<string, unknown> = isPlainObject(raw) ? raw : {};
       await mutator(data);
       await this.plugin.saveData(data);
     };
@@ -68,13 +78,14 @@ export class PluginDataStore {
    * los datos de los widgets guardados durante la sesión.
    */
   saveOwnedSettings(
-    settings: Record<string, any>,
+    settings: object,
     ownedKeys: string[]
   ): Promise<void> {
     return this.transact((data) => {
+      const source = settings as Record<string, unknown>;
       for (const key of ownedKeys) {
         if (key in settings) {
-          data[key] = settings[key];
+          data[key] = source[key];
         }
       }
     });

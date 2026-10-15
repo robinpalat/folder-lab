@@ -522,19 +522,32 @@ getMasterName(): string {
     }
 
     try {
-      const view = this.getFolderLabView();
-      if (view && typeof view.showWordCountModal === 'function') {
-        view.showWordCountModal(result);
-      }
+      this.getFolderLabView()?.showWordCountModal(result);
     } catch (error) {
       console.warn('No se pudo mostrar el modal de conteo de palabras:', error);
     }
   }
 
-  private getFolderLabView(): any {
+  /**
+   * Vista del panel conduck (duck-typing verificado): se acepta
+   * solo si expone showWordCountModal como función. Sin `any`.
+   */
+  private getFolderLabView(): {
+    showWordCountModal: (result: WordCountResult) => void;
+  } | null {
     const leaves = this.app.workspace.getLeavesOfType('folder-lab-view');
     if (leaves.length === 0) return null;
-    return leaves[0].view;
+    const view: unknown = leaves[0].view;
+    if (
+      typeof view === 'object' &&
+      view !== null &&
+      typeof (view as { showWordCountModal?: unknown }).showWordCountModal === 'function'
+    ) {
+      return view as {
+        showWordCountModal: (result: WordCountResult) => void;
+      };
+    }
+    return null;
   }
 
   // ============================================================

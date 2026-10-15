@@ -5,7 +5,7 @@
 // NO mantiene estado del árbol.
 // ============================================================
 
-import { App, TFolder } from 'obsidian';
+import { App, Events, TFolder } from 'obsidian';
 import { FolderRepository } from '../storage/FolderRepository';
 import { FolderOrderSettings } from '../config/settings';
 import { isHiddenFolderName, isIgnoredFolderName } from '../utils/folderUtils';
@@ -30,7 +30,7 @@ export class OrderService {
    * Solo se emite si la operación de persistencia fue exitosa.
    */
   private async notifyOrderChanged(): Promise<void> {
-    (this.app.workspace as any).trigger('folder-lab:order-changed');
+    (this.app.workspace as unknown as Events).trigger('folder-lab:order-changed');
   }
 
   // ============================================================

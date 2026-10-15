@@ -205,10 +205,12 @@ constructor(
       // Esperar y recargar
       await new Promise((r) => window.setTimeout(r, 300));
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al exportar:', error);
       new Notice(i18n.t('errors.withMessage', {
-        message: error?.message || i18n.t('common.unknownError')
+        message:
+          (error instanceof Error ? error.message : undefined) ||
+          i18n.t('common.unknownError')
       }));
     }
   }
