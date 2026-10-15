@@ -742,9 +742,10 @@ export default class FolderLabPlugin extends Plugin {
   async openFolderLabView() {
     const existing = this.getViewInstance();
     if (existing) {
-      this.app.workspace.revealLeaf(
-        this.app.workspace.getLeavesOfType(VIEW_TYPE_FOLDER_ORDER)[0]
-      );
+      // setActiveLeaf (0.16.3+) en lugar de revealLeaf (1.7.2+):
+      // compatible con minAppVersion 1.4.4, mismo efecto de foco.
+      const existingLeaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_FOLDER_ORDER)[0];
+      this.app.workspace.setActiveLeaf(existingLeaf, { focus: true });
       return;
     }
 
@@ -759,7 +760,7 @@ export default class FolderLabPlugin extends Plugin {
       active: true,
     });
 
-    this.app.workspace.revealLeaf(leaf);
+    this.app.workspace.setActiveLeaf(leaf, { focus: true });
 
     const view = leaf.view;
     if (view instanceof FolderLabView) {

@@ -217,10 +217,8 @@ export class FocusPane {
 
       surface.style.maskImage = mask;
       surface.style.setProperty('-webkit-mask-image', mask);
-      surface.style.maskRepeat = 'no-repeat';
-      surface.style.setProperty('-webkit-mask-repeat', 'no-repeat');
-      surface.style.maskSize = '100% 100%';
-      surface.style.setProperty('-webkit-mask-size', '100% 100%');
+      // Constantes (siempre iguales): en clase CSS, no en línea.
+      surface.addClass('fl-focus-surface-mask-fixed');
     };
 
     const registerSurface = (surface: HTMLElement): void => {

@@ -5023,12 +5023,22 @@ body.focus-splitter-dragging {
 
 /* Selección de texto de resultados IA: el código aplicaba
    user-select/cursor al objetivo y a TODOS sus descendientes tras
-   renderizar el markdown; el selector descendiente reproduce el
-   mismo conjunto y se actualiza con futuros re-renderizados. */
+   renderizar el markdown; el selector descendiente reproduce
+   el mismo conjunto y se actualiza con futuros re-renderizados. */
 .fl-memory-selectable,
 .fl-memory-selectable * {
   user-select: text;
   cursor: text;
+}
+
+/* Máscara de desvanecimiento de las superficies del panel Focus:
+   propiedades constantes (antes en línea); la mask-image dinámica
+   sigue asignándose desde el código. */
+.fl-focus-surface-mask-fixed {
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
 }
 
 /* El indicador de carga conserva cursor neutral pese al selector

@@ -1,4 +1,4 @@
-import { MarkdownRenderer, Notice, TFile } from 'obsidian';
+import { Component, MarkdownRenderer, Notice, TFile } from 'obsidian';
 import { i18n } from '../../i18n/I18nService';
 /* 3E-1 (W3): el plugin se obtiene de app.plugins.plugins['folder-lab']
  * (origen any); el campo se tipa con el tipo real del proyecto
@@ -81,6 +81,14 @@ export class MemoryWidget implements FocusWidget {
   private currentResponse: string = '';
 
   private resultDragCleanups = new Map<string, () => void>();
+
+  /*
+   * Ciclo de vida del renderizado de markdown: el Component que se
+   * pasa a MarkdownRenderer.render debe ser propio del widget (no
+   * el plugin, cuyo ciclo de vida es el de toda la app y retendría
+   * listeners/child-components hasta el unload del plugin).
+   */
+  private renderLifecycle: Component | null = null;
 
   private resultElements =
     new Map<string, HTMLElement>();
@@ -186,6 +194,9 @@ this.contextResolver = new ContextResolver(
 
 
   destroy(): void {
+
+    this.renderLifecycle?.unload();
+    this.renderLifecycle = null;
 
     for (const cleanup of this.resultDragCleanups.values()) {
       cleanup();
@@ -648,14 +659,19 @@ this.contextResolver = new ContextResolver(
     }
 
     try {
-      // 4-2: API actual (renderMarkdown está obsoleta); el
-      // argumento `app` explícito es el que exige la firma nueva.
+      // 4-2: API actual (renderMarkdown está obsoleta). El
+      // componente se limita al ciclo de vida del widget: se
+      // descarga el anterior antes de cada render y en destroy().
+      this.renderLifecycle?.unload();
+      const lifecycle = new Component();
+      lifecycle.load();
+      this.renderLifecycle = lifecycle;
       await MarkdownRenderer.render(
         this.app,
         content,
         target,
         this.currentFile?.path || '',
-        this.plugin
+        lifecycle
       );
     } catch (error) {
       console.warn(

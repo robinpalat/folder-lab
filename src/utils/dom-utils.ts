@@ -295,11 +295,9 @@ export function createIconButton(
   setIcon(iconEl, icon);
   
   if (size === 'sm') {
-    iconEl.style.width = '14px';
-    iconEl.style.height = '14px';
+    iconEl.setCssProps({ width: '14px', height: '14px' });
   } else if (size === 'lg') {
-    iconEl.style.width = '20px';
-    iconEl.style.height = '20px';
+    iconEl.setCssProps({ width: '20px', height: '20px' });
   }
   
   btn.onclick = onClick;

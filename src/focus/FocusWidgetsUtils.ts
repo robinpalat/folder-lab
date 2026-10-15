@@ -219,10 +219,12 @@ export function createExpandableText(
     root.toggleClass('is-collapsed', !expanded);
 
     if (expanded) {
-      content.style.maxHeight = '';
-      content.style.overflow = '';
+      // Limpieza de los overrides en línea del estado colapsado
+      // (equivalente a asignar '', sin valores estáticos en línea).
+      content.style.removeProperty('max-height');
+      content.style.removeProperty('overflow');
 
-      collapseAction.style.display = 'block';
+      collapseAction.setCssProps({ display: 'block' });
 
       content.removeClass(
         'fl-expandable-text-preview'
@@ -239,10 +241,10 @@ export function createExpandableText(
       }
 
 
-      content.style.overflow = 'hidden';
+      content.setCssProps({ overflow: 'hidden' });
 
       content.addClass('fl-expandable-text-preview');
-      collapseAction.style.display = 'none';
+      collapseAction.setCssProps({ display: 'none' });
     }
   };
 
