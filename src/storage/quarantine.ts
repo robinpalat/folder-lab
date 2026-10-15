@@ -79,10 +79,29 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 export class QuarantineManager {
+  /** Cola interna (M3): serializa cuarentena/restauración en el dispositivo. */
+  private tail: Promise<unknown> = Promise.resolve();
+
   constructor(
     private app: App,
-    private getRootPath: () => string | null
+    private getRootPath: () => string | null,
+    /**
+     * M1: revalidación EN VIVO antes de retirar el original.
+     * true = el id sigue siendo huérfano (sin identidad activa,
+     * pending, archived ni referencia de journal). Si falla o
+     * devuelve false, se aborta conservando el original.
+     */
+    private stillOrphan?: (noteId: string) => Promise<boolean>
   ) {}
+
+  private enqueue<T>(op: () => Promise<T>): Promise<T> {
+    const result = this.tail.then(op, op);
+    this.tail = result.then(
+      () => {},
+      () => {}
+    );
+    return result;
+  }
 
   private root(): string | null {
     const r = this.getRootPath();
@@ -143,6 +162,12 @@ export class QuarantineManager {
    * omite; una copia suelta (reintento) se re-verifica y registra.
    */
   async quarantine(candidate: OrphanCandidate): Promise<QuarantineResult> {
+    return this.enqueue(() => this.quarantineUnsafe(candidate));
+  }
+
+  private async quarantineUnsafe(
+    candidate: OrphanCandidate
+  ): Promise<QuarantineResult> {
     const root = this.root();
     if (root === null) {
       return { status: 'failed', error: 'sin Master configurado' };
@@ -157,6 +182,29 @@ export class QuarantineManager {
     const origin = candidate.path;
     if (!(await adapter.exists(origin))) {
       return { status: 'skipped', reason: 'el original ya no existe' };
+    }
+
+    // M1: revalidación en vivo ANTES de copiar (la clasificación
+    // histórica de E4a no basta: el estado pudo cambiar).
+    if (this.stillOrphan) {
+      let orphan: boolean;
+      try {
+        orphan = await this.stillOrphan(candidate.noteId);
+      } catch (error) {
+        return {
+          status: 'failed',
+          error: `revalidación: ${
+            error instanceof Error ? error.message : String(error)
+          } (original conservado)`
+        };
+      }
+      if (!orphan) {
+        return {
+          status: 'skipped',
+          reason:
+            'la identidad ya no es huérfana (revalidación en vivo)'
+        };
+      }
     }
 
     let manifest: QuarantineManifest;
@@ -219,11 +267,21 @@ export class QuarantineManager {
       }
       JSON.parse(check);
     } catch (error) {
+      // M2: retirar la copia parcial; si la limpieza falla, se
+      // informa del archivo residual (recuperable manualmente).
+      let residual: string | null = null;
+      try {
+        if (await adapter.exists(quarantineRel)) {
+          await adapter.remove(quarantineRel);
+        }
+      } catch {
+        residual = quarantineRel;
+      }
       return {
         status: 'failed',
         error: `copia/verificación: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }${residual ? ` (copia parcial residual: ${residual})` : ''}`
       };
     }
 
@@ -254,6 +312,39 @@ export class QuarantineManager {
       };
     }
 
+    // M1: revalidación INMEDIATAMENTE antes de retirar el original
+    // (la identidad pudo reaparecer mientras se copiaba).
+    if (this.stillOrphan) {
+      let orphan: boolean;
+      try {
+        orphan = await this.stillOrphan(candidate.noteId);
+      } catch (error) {
+        return {
+          status: 'failed',
+          error: `revalidación final: ${
+            error instanceof Error ? error.message : String(error)
+          } (original y copia conservados; entrada en el manifiesto)`
+        };
+      }
+      if (!orphan) {
+        // Retirar la entrada recién creada y la copia; original intacto.
+        manifest.entries = manifest.entries.filter(
+          (e) => e.entryId !== entry.entryId
+        );
+        try {
+          await this.writeManifest(manifest);
+          await adapter.remove(quarantineRel);
+        } catch {
+          /* la copia queda como evidencia; el original no se toca */
+        }
+        return {
+          status: 'skipped',
+          reason:
+            'la identidad ya no es huérfana (revalidación final)'
+        };
+      }
+    }
+
     // Solo con manifiesto escrito se retira el original.
     try {
       await adapter.remove(origin);
@@ -276,6 +367,10 @@ export class QuarantineManager {
   async restore(
     entryId: string
   ): Promise<RestoreResult> {
+    return this.enqueue(() => this.restoreUnsafe(entryId));
+  }
+
+  private async restoreUnsafe(entryId: string): Promise<RestoreResult> {
     const adapter = this.app.vault.adapter;
     let manifest: QuarantineManifest;
     try {
