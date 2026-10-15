@@ -47,7 +47,7 @@ export function shouldIgnoreFile(file: TFile, folderName: string, internalFolder
 /**
  * Obtiene el frontmatter de un archivo como objeto
  */
-export async function getFrontmatter(app: App, file: TFile): Promise<Record<string, any>> {
+export async function getFrontmatter(app: App, file: TFile): Promise<Record<string, unknown>> {
   try {
     const content = await app.vault.read(file);
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
@@ -56,7 +56,7 @@ export async function getFrontmatter(app: App, file: TFile): Promise<Record<stri
     
     const frontmatter = fmMatch[1];
     const lines = frontmatter.split('\n');
-    const result: Record<string, any> = {};
+    const result: Record<string, unknown> = {};
     
     for (const line of lines) {
       const trimmed = line.trim();

@@ -18,7 +18,7 @@ export class FocusPane {
   private position: FocusPanePosition;
   private registry: FocusWidgetRegistry;
   private context: FocusContext;
-  private app: any;
+  private app: App;
   private onWidgetSelectCallback?: (instanceId: string) => void;
 
   private widgetManager: WidgetManager;

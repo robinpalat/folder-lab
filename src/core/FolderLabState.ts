@@ -23,7 +23,7 @@ export class FolderLabState {
   // NOTAS
   // ============================================================
   public currentNoteType: string = "general";
-  public filesList: any[] = [];
+  public filesList: unknown[] = [];
   public currentNoteName: string = "";
 
   // ============================================================
