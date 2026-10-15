@@ -42,6 +42,11 @@ import { normalizeRootPath } from './utils/rootPath';
 import { runStartupMaintenance } from './storage/startupMaintenance';
 import { registerLifecycleListeners } from './storage/vaultLifecycleListeners';
 import { ClaimDataModal } from './modals/ClaimDataModal';
+import { QuarantineCandidateModal, notifyQuarantineResult } from './modals/QuarantineCandidateModal';
+import {
+  prepareQuarantineCommand,
+  quarantineCandidate
+} from './storage/quarantineCommand';
 declare const require: (modulePath: string) => unknown;
 const definitions = require('./focus/widget-definitions.json')
 import { WidgetController } from './focus/controllers/WidgetController';
@@ -372,6 +377,67 @@ export default class FolderLabPlugin extends Plugin {
               '[FolderLab] Error listando datos pendientes:',
               error
             );
+          });
+      }
+    });
+
+    // ============================================================
+    // COMANDO MANUAL DE CUARENTENA (E4b) — nunca en el arranque
+    // ============================================================
+    this.addCommand({
+      id: 'quarantine-orphan-data',
+      name: 'Cuarentenar datos huérfanos…',
+      callback: () => {
+        const registry = this.noteIdentityRegistry;
+        const rootPathFn = () => normalizeRootPath(this.settings.bookRootPath);
+        if (!registry) {
+          new Notice('Folder Lab: identidad no inicializada.');
+          return;
+        }
+        void prepareQuarantineCommand({
+          app: this.app,
+          registry,
+          getRootPath: rootPathFn,
+          getExistingPaths: () =>
+            this.app.vault.getMarkdownFiles().map((f) => f.path)
+        })
+          .then((outcome) => {
+            switch (outcome.status) {
+              case 'no-master':
+                new Notice('Folder Lab: Master no configurado.');
+                break;
+              case 'no-candidates':
+                new Notice('Folder Lab: no hay datos huérfanos elegibles.');
+                break;
+              case 'error':
+                new Notice(`Folder Lab: auditoría fallida (${outcome.error}).`);
+                break;
+              case 'needs-confirmation': {
+                // Confirmación explícita UNA A UNA antes de mover.
+                new QuarantineCandidateModal(
+                  this.app,
+                  outcome.candidates,
+                  async (candidate) => {
+                    const result = await quarantineCandidate(
+                      {
+                        app: this.app,
+                        registry,
+                        getRootPath: rootPathFn,
+                        getExistingPaths: () =>
+                          this.app.vault.getMarkdownFiles().map((f) => f.path)
+                      },
+                      candidate
+                    );
+                    notifyQuarantineResult(result, candidate);
+                  }
+                ).open();
+                break;
+              }
+            }
+          })
+          .catch((error) => {
+            console.error('[FolderLab] Comando de cuarentena fallido:', error);
+            new Notice('Folder Lab: error al preparar la cuarentena.');
           });
       }
     });
