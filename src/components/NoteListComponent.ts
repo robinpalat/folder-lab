@@ -549,11 +549,13 @@ onStatusChange: (file: TFile, status: string) => {
 
     if (!dataStr) return;
 
-    const data =
-      JSON.parse(dataStr);
+    const data: unknown = JSON.parse(dataStr);
 
     const fromIndex =
-      data.index;
+      typeof data === 'object' && data !== null &&
+      typeof (data as { index?: unknown }).index === 'number'
+        ? (data as { index: number }).index
+        : -1;
 
     if (
       fromIndex === -1 ||

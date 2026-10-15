@@ -625,9 +625,10 @@ const item: WidgetRecord = {
                 this.getInstanceId()
             );
 
+        const rawItems: unknown = data?.items;
         this.items =
-            Array.isArray(data.items)
-                ? data.items
+            Array.isArray(rawItems)
+                ? (rawItems as Record<string, any>[])
                 : [];
 
         this.renderItems();
@@ -673,6 +674,12 @@ const item: WidgetRecord = {
     // ITEM
     // ============================================================
 
+    /** Id del ítem validado (frontera de datos de widget). */
+    private itemIdOf(itemData: Record<string, unknown>): string {
+        const id = this.itemIdOf(itemData);
+        return typeof id === 'string' ? id : '';
+    }
+
     private renderItem(
         itemData: Record<string, any>
     ): void {
@@ -684,7 +691,7 @@ const item: WidgetRecord = {
         const stateField =
             this.definition.state?.field;
 
-        const stateValue =
+        const stateValue: unknown =
             stateField
                 ? itemData[stateField]
                 : true;
@@ -766,7 +773,7 @@ const item: WidgetRecord = {
                                         this.getStorageKey(),
                                         this.context!.activeFile!.path,
                                         this.getInstanceId(),
-                                        itemData.id,
+                                        this.itemIdOf(itemData),
                                         selection.field
                                     );
 
@@ -776,7 +783,7 @@ const item: WidgetRecord = {
                                         this.getStorageKey(),
                                         this.context!.activeFile!.path,
                                         this.getInstanceId(),
-                                        itemData.id,
+                                        this.itemIdOf(itemData),
                                         stateField
                                     );
                                 }
@@ -806,7 +813,7 @@ const item: WidgetRecord = {
                                     this.getStorageKey(),
                                     this.context!.activeFile!.path,
                                     this.getInstanceId(),
-                                    itemData.id
+                                    this.itemIdOf(itemData)
                                 );
 
                                 await this.reload();
@@ -910,7 +917,7 @@ const item: WidgetRecord = {
                     this.getStorageKey(),
                     this.context.activeFile.path,
                     this.getInstanceId(),
-                    itemData.id,
+                    this.itemIdOf(itemData),
                     { [textField]: newText }
                 );
             };
@@ -957,7 +964,7 @@ const item: WidgetRecord = {
                             instanceId:
                                 this.getInstanceId(),
                             itemId:
-                                itemData.id
+                                this.itemIdOf(itemData)
                         }
                     };
 

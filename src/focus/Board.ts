@@ -616,8 +616,9 @@ export class Board
         instance.instanceId
       );
 
-      if (Array.isArray(data?.items)) {
-        items.push(...data.items);
+      const rawItems: unknown = data?.items;
+      if (Array.isArray(rawItems)) {
+        items.push(...(rawItems as Array<Record<string, any>>));
       }
     }
 

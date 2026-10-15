@@ -58,7 +58,9 @@ import {
 import { QuarantineManager } from './storage/quarantine';
 import { createStillOrphanPredicate } from './storage/stillOrphan';
 declare const require: (modulePath: string) => unknown;
-const definitions = require('./focus/widget-definitions.json')
+const definitions = require('./focus/widget-definitions.json') as {
+  default?: unknown;
+};
 import { WidgetController } from './focus/controllers/WidgetController';
 
 import {
@@ -225,7 +227,7 @@ export default class FolderLabPlugin extends Plugin {
       );
 
     const declarativeData =
-      (definitions as any).default ?? definitions;
+      definitions.default ?? definitions;
 
     const declarativeRuntime =
       DeclarativeRuntime.fromData(
@@ -832,7 +834,7 @@ export default class FolderLabPlugin extends Plugin {
   // ============================================================
 
   async loadSettings() {
-    const loadedData = await this.loadData();
+    const loadedData: unknown = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, loadedData);
 
     /*
@@ -841,13 +843,17 @@ export default class FolderLabPlugin extends Plugin {
      * para no mutar el DEFAULT compartido.
      */
     const currentMapping = this.settings.navigationPropertyMapping;
+    // Defensa ante data.json heredado con forma inesperada.
+    const legacyIgnored: unknown = (
+      currentMapping as { ignoredFolders?: unknown } | null | undefined
+    )?.ignoredFolders;
 
     this.settings.navigationPropertyMapping = {
       ...((currentMapping && typeof currentMapping === 'object')
         ? currentMapping
         : DEFAULT_JEKYLL_MAPPING),
-      ignoredFolders: Array.isArray((currentMapping as any)?.ignoredFolders)
-        ? (currentMapping as any).ignoredFolders
+      ignoredFolders: Array.isArray(legacyIgnored)
+        ? legacyIgnored
         : []
     };
 
@@ -857,11 +863,16 @@ export default class FolderLabPlugin extends Plugin {
      * libro es la de la carpeta master; si existía, se conserva.
      */
     if (!(this.settings.bookWordGoal > 0)) {
-      const legacyGoals = loadedData?.folderWordGoals;
+      const legacyGoals: unknown =
+        typeof loadedData === 'object' && loadedData !== null
+          ? (loadedData as { folderWordGoals?: unknown }).folderWordGoals
+          : undefined;
       const masterPath = this.settings.bookRootPath;
       const legacyMasterGoal =
-        masterPath && legacyGoals
-          ? legacyGoals[masterPath]
+        masterPath &&
+        typeof legacyGoals === 'object' &&
+        legacyGoals !== null
+          ? (legacyGoals as Record<string, unknown>)[masterPath]
           : undefined;
 
       if (typeof legacyMasterGoal === 'number' && legacyMasterGoal > 0) {

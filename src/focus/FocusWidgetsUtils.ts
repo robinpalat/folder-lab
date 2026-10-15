@@ -894,7 +894,7 @@ if (identity.color) {
 
 
 export function applyMenuItemIdentity(
-  item: any,
+  item: { dom?: HTMLElement } | null | undefined,
   identity: WidgetIdentityVisual
 ): void {
 

@@ -1,4 +1,15 @@
-import { Component, MarkdownRenderer, Notice, TFile } from 'obsidian';
+import { App, Component, MarkdownRenderer, Notice, TFile } from 'obsidian';
+
+/**
+ * App + registro de plugins de escritorio (no incluido en el tipo
+ * oficial App; usado por el widget para acceder a su propia
+ * instancia).
+ */
+export type AppWithPluginRegistry = App & {
+  plugins?: {
+    plugins?: Record<string, FolderLabPlugin | undefined>;
+  };
+};
 import { i18n } from '../../i18n/I18nService';
 /* 3E-1 (W3): el plugin se obtiene de app.plugins.plugins['folder-lab']
  * (origen any); el campo se tipa con el tipo real del proyecto
@@ -48,7 +59,12 @@ export class MemoryWidget implements FocusWidget {
    * escritorio) que no está declarado en el tipo `App` de
    * obsidian; tiparlo obligaría a aserciones forzadas.
    */
-  private app: any;
+  /*
+   * Extensión documentada de App: el registro de plugins de
+   * escritorio (app.plugins) no está en el tipo App oficial; se
+   * declara aquí como intersección, sin `any`.
+   */
+  private app: AppWithPluginRegistry;
   private plugin: FolderLabPlugin;
   private position: 'top' | 'bottom' = 'top';
   private sessionView: 'capture' | 'today' = 'capture';
@@ -94,14 +110,15 @@ export class MemoryWidget implements FocusWidget {
     new Map<string, HTMLElement>();
 
 constructor(
-  app: any,
+  app: AppWithPluginRegistry,
   aiService: AIService,
   registry: CapabilityRegistry,
   widgetController: WidgetController,
   widgetManager: WidgetManager
 ) {
     this.app = app;
-    this.plugin = app.plugins.plugins['folder-lab'];
+    // El widget solo se instancia desde el propio plugin cargado.
+    this.plugin = app.plugins?.plugins?.['folder-lab'] as FolderLabPlugin;
     this.aiService = aiService;
     this.registry = registry;
     this.executor = new CapabilityExecutor(registry);
@@ -1048,14 +1065,14 @@ this.contextResolver = new ContextResolver(
 export class MemoryWidgetFactory implements FocusWidgetFactory {
   readonly widgetId = 'memory';
 
-  private app: any;
+  private app: AppWithPluginRegistry;
   private aiService: AIService;
   private registry: CapabilityRegistry;
   private widgetController: WidgetController;
 private widgetManager: WidgetManager;
 
 constructor(
-  app: any,
+  app: AppWithPluginRegistry,
   aiService: AIService,
   registry: CapabilityRegistry,
   widgetController: WidgetController,
