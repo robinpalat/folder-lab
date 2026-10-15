@@ -422,10 +422,13 @@ export class ContextResolver {
           instance.instanceId
         );
 
-      const items =
-        Array.isArray(data.items)
-          ? data.items
-          : [];
+      // Resultado de almacenamiento externo: validar la forma antes
+      // de tiparlo (solo se requiere que items sea un array; el
+      // contenido por ítem se filtra aguas abajo en PromptBuilder).
+      const rawItems: unknown = data?.items;
+      const items: WidgetRecord[] = Array.isArray(rawItems)
+        ? (rawItems as WidgetRecord[])
+        : [];
 
       resolved.push({
         instanceId: instance.instanceId,
