@@ -4,6 +4,7 @@ import { FocusContext } from './FocusContext';
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
 import { WidgetManager } from './WidgetManager';
 import { LibraryBrowser } from './LibraryBrowser';
+import { NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS } from './WidgetDefinition';
 import type { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
 import {
   applyWidgetIdentity
@@ -327,21 +328,16 @@ export class FocusPane {
     });
 
     // ─────────────────────────────────────────────
-    // 2. Instancias agrupadas: Contexto / Tarjetas
+    // 2. Bloque fijo SIN encabezado: Apuntes,
+    //    Asistente, Nota activa (en ese orden)
     // ─────────────────────────────────────────────
 
     const available =
       this.widgetManager.getInstances();
 
-    const contextInstances = available.filter(
-      instance =>
-        this.getWidgetCategory(instance.typeId) === 'context'
-    );
-
-    const cardInstances = available.filter(
-      instance =>
-        this.getWidgetCategory(instance.typeId) === 'card'
-    );
+    const isFixedType = (typeId: string): boolean =>
+      (NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS as readonly string[])
+        .includes(typeId);
 
     const addInstanceItem = (
       instance: (typeof available)[number]
@@ -384,11 +380,48 @@ export class FocusPane {
       });
     };
 
+    const fixedInstances = NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS
+      .flatMap(
+        typeId =>
+          available.filter(
+            instance => instance.typeId === typeId
+          )
+      );
+
+    if (fixedInstances.length > 0) {
+
+      menu.addSeparator();
+
+      for (const instance of fixedInstances) {
+        addInstanceItem(instance);
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // 3. Grupo Contexto (encabezado sin icono)
+    // ─────────────────────────────────────────────
+
+    const contextInstances = available.filter(
+      instance =>
+        !isFixedType(instance.typeId) &&
+        this.getWidgetCategory(instance.typeId) === 'context'
+    );
+
+    // ─────────────────────────────────────────────
+    // 4. Grupo Tarjetas (encabezado sin icono)
+    // ─────────────────────────────────────────────
+
+    const cardInstances = available.filter(
+      instance =>
+        !isFixedType(instance.typeId) &&
+        this.getWidgetCategory(instance.typeId) === 'card'
+    );
+
     if (contextInstances.length > 0) {
 
       menu.addSeparator();
 
-      // Encabezado deshabilitado: no seleccionable.
+      // Encabezado deshabilitado: no seleccionable, sin icono.
       menu.addItem((item) => {
         item
           .setTitle(i18n.t('focus.widgetMenu.groupContext'))

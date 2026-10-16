@@ -1,12 +1,16 @@
 // ============================================================
-// PRUEBAS: Selector de widgets — Añadir / Contexto / Tarjetas
+// PRUEBAS: Selector de widgets — Agregar / Bloque fijo /
+//           Contexto / Tarjetas
 // ============================================================
 // Ejecutar con: npm test
 //
 // Contrato verificado:
-// - «Añadir widget…» es el PRIMER elemento del menú y abre la
-//   biblioteca existente en su pestaña widgets (sin crear la
-//   instancia en el propio menú).
+// - «Agregar widget…» es el PRIMER elemento del menú (icono
+//   plus) y abre la biblioteca existente en su pestaña widgets
+//   (sin crear la instancia en el propio menú).
+// - Bloque fijo SIN encabezado, en orden: Apuntes, Asistente,
+//   Nota activa. Nota activa no aparece en la biblioteca ni en
+//   Contexto/Tarjetas.
 // - Las instancias se agrupan en Contexto / Tarjetas mediante el
 //   metadato estable `category` de la DEFINICIÓN (nunca por
 //   nombre visible ni nombre personalizado de la instancia).
@@ -14,8 +18,10 @@
 //   explícita). Múltiples instancias de una misma definición
 //   comparten categoría.
 // - Validación de category en DeclarativeRuntime.
-// - Registros imperativos (notes/memory/resources/active-note)
-//   declaran category 'context'.
+// - Solo Resources declara category 'context' entre los
+//   imperativos (notes/memory/active-note son bloque fijo).
+// - Iconos correctos por definición; encabezados sin icono;
+//   agregar con plus.
 // - Traducciones es/en del menú.
 // ============================================================
 
@@ -61,17 +67,20 @@ test('category: valores siempre ∈ {context, card}', () => {
 // 2. REGISTROS IMPERATIVOS
 // ------------------------------------------------------------
 
-test('main.ts: registros imperativos declaran category context', () => {
+test('main.ts: solo Resources declara category context entre los imperativos', () => {
   const source = read('src/main.ts');
   const matches = source.match(/category: 'context'/g) || [];
-  assert.equal(matches.length, 4, 'notes, memory, resources, active-note');
+  // notes, memory y active-note son bloque fijo: SIN category
+  // (no se agrupan en Contexto/Tarjetas). Resources es de
+  // naturaleza contextual y sí la declara.
+  assert.equal(matches.length, 1, 'solo resources');
 });
 
 // ------------------------------------------------------------
 // 3. SELECTOR (FocusPane)
 // ------------------------------------------------------------
 
-test('FocusPane: «Añadir widget…» es el primer elemento y abre la biblioteca', () => {
+test('FocusPane: «Agregar widget…» es el primer elemento y abre la biblioteca', () => {
   const source = read('src/focus/FocusPane.ts');
 
   const addIndex = source.indexOf("focus.widgetMenu.addWidget");
@@ -173,11 +182,133 @@ test('clasificación: regla category ?? context sobre definiciones reales', () =
 });
 
 // ------------------------------------------------------------
-// 7. I18N
+// 5. BLOQUE FIJO Y ORDEN EXACTO DEL MENÚ
+// ------------------------------------------------------------
+
+test('bloque fijo: NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS en orden Apuntes/Asistente/Nota activa', () => {
+  const source = read('src/focus/WidgetDefinition.ts');
+  const block = source.slice(
+    source.indexOf('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS'),
+    source.indexOf(']', source.indexOf('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS'))
+  );
+  const ids = [...block.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ['notes', 'memory', 'active-note']);
+});
+
+test('FocusPane: orden exacto Agregar → bloque fijo → Contexto → Tarjetas', () => {
+  const source = read('src/focus/FocusPane.ts');
+
+  const addIndex = source.indexOf('focus.widgetMenu.addWidget');
+  const fixedIndex = source.indexOf(
+    'const fixedInstances = NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS'
+  );
+  const contextHeaderIndex = source.indexOf('focus.widgetMenu.groupContext');
+  const cardsHeaderIndex = source.indexOf('focus.widgetMenu.groupCards');
+
+  assert.ok(addIndex > -1, 'Agregar widget presente');
+  assert.ok(fixedIndex > -1, 'bloque fijo presente');
+  assert.ok(contextHeaderIndex > -1, 'Contexto presente');
+  assert.ok(cardsHeaderIndex > -1, 'Tarjetas presente');
+
+  assert.ok(addIndex < fixedIndex, 'Agregar va antes del bloque fijo');
+  assert.ok(fixedIndex < contextHeaderIndex, 'Bloque fijo va antes de Contexto');
+  assert.ok(contextHeaderIndex < cardsHeaderIndex, 'Contexto va antes de Tarjetas');
+});
+
+test('FocusPane: el bloque fijo no tiene encabezado de texto', () => {
+  const source = read('src/focus/FocusPane.ts');
+  const fixedStart = source.indexOf('const fixedInstances');
+  const fixedEnd = source.indexOf('if (contextInstances.length > 0)');
+  const fixedBlock = source.slice(fixedStart, fixedEnd);
+
+  // El bloque fijo no debe contener addItem con setDisabled
+  // (encabezado) ni ningún setTitle de agrupación.
+  assert.ok(!fixedBlock.includes('setDisabled'), 'sin encabezado deshabilitado');
+  assert.ok(!fixedBlock.includes('groupContext'), 'sin texto Contexto');
+  assert.ok(!fixedBlock.includes('groupCards'), 'sin texto Tarjetas');
+});
+
+// ------------------------------------------------------------
+// 6. EXCLUSIONES: NOTA ACTIVA EN BIBLIOTECA Y GRUPOS
+// ------------------------------------------------------------
+
+test('LibraryBrowser: excluye los widgets del bloque fijo', () => {
+  const source = read('src/focus/LibraryBrowser.ts');
+  assert.ok(
+    source.includes('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS'),
+    'la biblioteca filtra el bloque fijo'
+  );
+  // El filtro se aplica antes de crear la tarjeta.
+  const filterIndex = source.indexOf('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS');
+  const cardIndex = source.indexOf("cls: 'fl-widget-manager-card'");
+  assert.ok(filterIndex < cardIndex, 'el filtro precede a la tarjeta');
+});
+
+test('FocusPane: Nota activa no aparece en Contexto ni en Tarjetas', () => {
+  const source = read('src/focus/FocusPane.ts');
+
+  // Los grupos excluyen explícitamente los typeIds fijos.
+  const contextFilter = source.slice(
+    source.indexOf('const contextInstances'),
+    source.indexOf('const cardInstances')
+  );
+  assert.ok(contextFilter.includes('!isFixedType'), 'Contexto excluye fijos');
+
+  const cardFilter = source.slice(
+    source.indexOf('const cardInstances'),
+    source.indexOf('if (contextInstances.length > 0)')
+  );
+  assert.ok(cardFilter.includes('!isFixedType'), 'Tarjetas excluye fijos');
+});
+
+// ------------------------------------------------------------
+// 7. ICONOS
+// ------------------------------------------------------------
+
+test('iconos: cada widget declarativo tiene icono asignado', () => {
+  const expected = {
+    snips: 'scissors',
+    collections: 'library',
+    restrictions: 'shield-alert',
+    candidates: 'list-checks',
+    tasks: 'check-square',
+    issues: 'alert-triangle',
+    objectives: 'target'
+  };
+
+  for (const [id, icon] of Object.entries(expected)) {
+    assert.equal(definitions.widgets[id].identity.icon, icon, id);
+  }
+});
+
+test('iconos: los registros imperativos del bloque fijo y Resources conservan su icono', () => {
+  const source = read('src/main.ts');
+
+  // Nota activa: file-text; Apuntes: pencil; Asistente: cpu; Resources: folder.
+  const blocks = [
+    { id: 'active-note', icon: 'file-text' },
+    { id: 'notes', icon: 'pencil' },
+    { id: 'memory', icon: 'cpu' },
+    { id: 'resources', icon: 'folder' }
+  ];
+
+  for (const { id, icon } of blocks) {
+    const idx = source.indexOf(`id: '${id}'`);
+    assert.ok(idx > -1, `${id} registrado`);
+    const slice = source.slice(idx, idx + 400);
+    assert.ok(
+      slice.includes(`'${icon}'`),
+      `${id} conserva icono ${icon}`
+    );
+  }
+});
+
+// ------------------------------------------------------------
+// 8. I18N
 // ------------------------------------------------------------
 
 test('i18n: etiquetas del menú en español e inglés', () => {
-  assert.equal(es.focus.widgetMenu.addWidget, 'Añadir widget…');
+  assert.equal(es.focus.widgetMenu.addWidget, 'Agregar widget…');
   assert.equal(es.focus.widgetMenu.groupContext, 'Contexto');
   assert.equal(es.focus.widgetMenu.groupCards, 'Tarjetas');
 

@@ -255,8 +255,6 @@ export default class FolderLabPlugin extends Plugin {
             i18n.t('widgets.registered.activeNote.description')
         },
 
-        category: 'context',
-
         cardinality: 'singleton'
       }
     );
@@ -273,8 +271,6 @@ export default class FolderLabPlugin extends Plugin {
           description:
             i18n.t('widgets.registered.notes.description')
         },
-
-        category: 'context',
 
         cardinality: 'singleton'
       }
@@ -574,8 +570,6 @@ export default class FolderLabPlugin extends Plugin {
           description:
             i18n.t('widgets.registered.memory.description')
         },
-
-        category: 'context',
 
         cardinality: 'singleton'
       }

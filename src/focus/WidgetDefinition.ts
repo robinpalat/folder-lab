@@ -48,6 +48,18 @@ export interface WidgetSemanticDefinition {
   properties?: string[];
 }
 
+/**
+ * TypeIds del bloque FIJO del selector de widgets (Contexto de
+ * nota): Apuntes, Asistente y Nota activa. No se agrupan en
+ * Contexto/Tarjetas, no se agregan desde la biblioteca y
+ * conservan su mecanismo actual de disponibilidad.
+ */
+export const NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS = [
+  'notes',
+  'memory',
+  'active-note'
+] as const;
+
 export interface WidgetDefinition {
 
   id: string;
