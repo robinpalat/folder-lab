@@ -61,6 +61,17 @@ export interface WidgetPickerControl {
   id: string;
   label: string;
 
+  /**
+   * Separación opcional etiqueta/valor para la jerarquía visual:
+   * `prefix` se renderiza como `fl-control-label` (color secundario)
+   * y `value` como `fl-control-value` (color contrastado). Sin esta
+   * propiedad se usa `label` como texto único (compatibilidad).
+   */
+  labelParts?: {
+    prefix: string;
+    value: string;
+  };
+
   icon?: string;
 
   disabled?: boolean;

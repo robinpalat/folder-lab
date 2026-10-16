@@ -525,10 +525,23 @@ private static renderSourceSelector(
 		  setIcon(iconSpan, control.icon);
 		}
 
-	  btn.createSpan({
-		cls: 'fl-control-label',
-		text: control.label
-	  });
+	  if (control.labelParts) {
+	    // Jerarquía visual: etiqueta (secundaria) + valor (contrastado).
+	    btn.createSpan({
+	      cls: 'fl-control-label fl-control-prefix',
+	      text: control.labelParts.prefix
+	    });
+
+	    btn.createSpan({
+	      cls: 'fl-control-value fl-control-session-value',
+	      text: control.labelParts.value
+	    });
+	  } else {
+	    btn.createSpan({
+	      cls: 'fl-control-label',
+	      text: control.label
+	    });
+	  }
 
 	  const arrow = btn.createSpan({
 		cls: 'fl-control-arrow'

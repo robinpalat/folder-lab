@@ -308,7 +308,8 @@ export class NotesWidget implements FocusWidget {
 
     controls.picker({
       id: "session",
-      label: this.getSessionControlLabel()
+      label: this.getSessionControlLabel(),
+      labelParts: this.getSessionControlLabelParts()
     });
 
 
@@ -401,13 +402,32 @@ export class NotesWidget implements FocusWidget {
 
   /** Etiqueta del control: modo de captura activo explícito. */
   private getSessionControlLabel(): string {
+    const parts = this.getSessionControlLabelParts();
+    return `${parts.prefix} ${parts.value}`;
+  }
+
+  /**
+   * Jerarquía visual del control: «Sesión:» como etiqueta
+   * secundaria y el valor dinámico con color contrastado
+   * (clases fl-control-label / fl-control-value del renderer).
+   */
+  private getSessionControlLabelParts(): {
+    prefix: string;
+    value: string;
+  } {
     const prefix = `${i18n.t('widgets.common.session')}:`;
 
     if (this.captureTargetInstanceId) {
-      return `${prefix} ${i18n.t('widgets.notesWidget.session.sendTo')} ${this.resolveCaptureTargetName()}`;
+      return {
+        prefix,
+        value: `${i18n.t('widgets.notesWidget.session.sendTo')} ${this.resolveCaptureTargetName()}`
+      };
     }
 
-    return `${prefix} ${i18n.t('widgets.common.sessionToday')}`;
+    return {
+      prefix,
+      value: i18n.t('widgets.common.sessionToday')
+    };
   }
 
   private resolveCaptureTargetName(): string {

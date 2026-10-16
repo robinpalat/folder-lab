@@ -1273,8 +1273,20 @@
   min-width: 0;
 }
 
-.fl-widget-control-item[data-control-id="session"] .fl-control-label {
+/* Jerarquía visual: «Sesión:» (secundaria, no se comprime) y
+   valor dinámico (contrastado, se trunca con puntos suspensivos).
+   Colores vía las clases genéricas del renderer:
+   fl-control-label → var(--text-muted);
+   fl-control-value → var(--text-normal). */
+.fl-widget-control-item[data-control-id="session"] .fl-control-prefix {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.fl-widget-control-item[data-control-id="session"]
+.fl-control-session-value {
   display: inline-block;
+  min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
