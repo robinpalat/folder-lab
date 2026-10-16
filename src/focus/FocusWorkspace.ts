@@ -157,6 +157,7 @@ export class FocusWorkspace {
       this.widgetManager,
       this.context,
       this.app,
+      this.capabilityRegistry,
       (instanceId) => {
         void this.onWidgetChange('top', instanceId).catch((error) => {
           console.error(
@@ -176,6 +177,7 @@ export class FocusWorkspace {
       this.widgetManager,
       this.context,
       this.app,
+      this.capabilityRegistry,
       (instanceId) => {
         void this.onWidgetChange('bottom', instanceId).catch((error) => {
           console.error(

@@ -58,13 +58,15 @@ export class LibraryBrowser extends Modal {
     app: App,
     widgetRegistry: FocusWidgetRegistry,
     capabilityRegistry: CapabilityRegistry,
-    widgetManager: WidgetManager
+    widgetManager: WidgetManager,
+    initialTab: BrowserTab = 'assistant'
   ) {
     super(app);
 
     this.widgetRegistry = widgetRegistry;
     this.capabilityRegistry = capabilityRegistry;
     this.widgetManager = widgetManager;
+    this.selectedTab = initialTab;
 
     this.selectedGroupId =
       this.capabilityRegistry.getDefaultGroup();
@@ -101,8 +103,6 @@ export class LibraryBrowser extends Modal {
       cls: 'fl-capability-browser-tab',
       text: i18n.t('library.tab.recipes')
     });
-
-    assistantTab.addClass('is-selected');
 
 
     // ========================================================
@@ -172,6 +172,18 @@ export class LibraryBrowser extends Modal {
         recipesTab
       );
     };
+
+    /*
+     * Sincroniza la pestaña inicial (constructor: initialTab) con
+     * las clases y la visibilidad de los paneles. Con el default
+     * 'assistant' el comportamiento es idéntico al anterior.
+     */
+    this.selectTab(
+      this.selectedTab,
+      widgetsTab,
+      assistantTab,
+      recipesTab
+    );
   }
 
   // ========================================================

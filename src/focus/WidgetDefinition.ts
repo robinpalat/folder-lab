@@ -63,6 +63,18 @@ export interface WidgetDefinition {
 
   cardinality: WidgetCardinality;
 
+  /**
+   * Categoría estable del widget para la agrupación del selector
+   * («Contexto» / «Tarjetas»). Metadato de la DEFINICIÓN: nunca
+   * se deduce del nombre visible de la instancia.
+   *
+   * - 'context' → widgets de contexto de la nota (default si la
+   *              propiedad ausente en definiciones heredadas).
+   * - 'card'    → widgets cuyos elementos se materializan como
+   *              tarjetas del Board mediante composición.
+   */
+  category?: 'context' | 'card';
+
   storage?: {
     scope: WidgetStorageScope;
   };

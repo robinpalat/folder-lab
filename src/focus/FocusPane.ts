@@ -3,6 +3,8 @@ import { FocusWidget } from './FocusWidget';
 import { FocusContext } from './FocusContext';
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
 import { WidgetManager } from './WidgetManager';
+import { LibraryBrowser } from './LibraryBrowser';
+import type { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
 import {
   applyWidgetIdentity
 } from './FocusWidgetsUtils';
@@ -22,6 +24,7 @@ export class FocusPane {
   private onWidgetSelectCallback?: (instanceId: string) => void;
 
   private widgetManager: WidgetManager;
+  private capabilityRegistry: CapabilityRegistry;
   private widgetInstanceId: string;
   private widget: FocusWidget | null = null;
   private widgetContainer: HTMLElement | null = null;
@@ -39,6 +42,7 @@ export class FocusPane {
     widgetManager: WidgetManager,
     context: FocusContext,
     app: App,
+    capabilityRegistry: CapabilityRegistry,
     onWidgetSelect?: (instanceId: string) => void
   ) {
     this.container = container;
@@ -47,6 +51,7 @@ export class FocusPane {
     this.widgetManager = widgetManager;
     this.context = context;
     this.app = app;
+    this.capabilityRegistry = capabilityRegistry;
     this.widgetInstanceId = widgetInstanceId;
     this.onWidgetSelectCallback = onWidgetSelect;
   }
@@ -277,50 +282,138 @@ export class FocusPane {
     this.scrollFadeCleanups = [];
   }
 
+  /**
+   * Categoría estable de una instancia: se resuelve SIEMPRE a
+   * partir de la definición asociada (category: 'context' |
+   * 'card'; ausente en definiciones heredadas → 'context').
+   * Nunca depende del nombre visible de la instancia.
+   */
+  private getWidgetCategory(
+    typeId: string
+  ): 'context' | 'card' {
+    return (
+      this.widgetManager.getDefinition(typeId)?.category ??
+      'context'
+    );
+  }
+
   private showWidgetMenu(): void {
-  const menu = new Menu();
+    const menu = new Menu();
 
-  const available =
-    this.widgetManager.getInstances();
-
-  for (const instance of available) {
-
-    const definition =
-      this.widgetManager.getDefinition(
-        instance.typeId
-      );
-
-    if (!definition) {
-      continue;
-    }
-
-    const isActive =
-      instance.instanceId ===
-      this.widgetInstanceId;
+    // ─────────────────────────────────────────────
+    // 1. Añadir widget… (biblioteca, pestaña widgets)
+    // ─────────────────────────────────────────────
 
     menu.addItem((item) => {
-
       item
-        .setTitle(instance.name)
-        .setIcon(
-          definition.identity.icon || 'blank'
-        )
-        .setChecked(isActive);
+        .setTitle(i18n.t('focus.widgetMenu.addWidget'))
+        .setIcon('plus')
+        .onClick(() => {
+          /*
+           * La biblioteca es el ÚNICO punto de entrada para
+           * agregar instancias: aquí solo se abre; el alta
+           * ocurre al aplicar en la biblioteca (applyInstances).
+           */
+          const browser = new LibraryBrowser(
+            this.app,
+            this.registry,
+            this.capabilityRegistry,
+            this.widgetManager,
+            'widgets'
+          );
 
-      item.onClick(() => {
+          browser.open();
+        });
+    });
 
-        this.createAndRenderWidget(
-          instance.instanceId
+    // ─────────────────────────────────────────────
+    // 2. Instancias agrupadas: Contexto / Tarjetas
+    // ─────────────────────────────────────────────
+
+    const available =
+      this.widgetManager.getInstances();
+
+    const contextInstances = available.filter(
+      instance =>
+        this.getWidgetCategory(instance.typeId) === 'context'
+    );
+
+    const cardInstances = available.filter(
+      instance =>
+        this.getWidgetCategory(instance.typeId) === 'card'
+    );
+
+    const addInstanceItem = (
+      instance: (typeof available)[number]
+    ): void => {
+
+      const definition =
+        this.widgetManager.getDefinition(
+          instance.typeId
         );
 
-        if (this.onWidgetSelectCallback) {
-          this.onWidgetSelectCallback(
+      if (!definition) {
+        return;
+      }
+
+      const isActive =
+        instance.instanceId ===
+        this.widgetInstanceId;
+
+      menu.addItem((item) => {
+
+        item
+          .setTitle(instance.name)
+          .setIcon(
+            definition.identity.icon || 'blank'
+          )
+          .setChecked(isActive);
+
+        item.onClick(() => {
+
+          this.createAndRenderWidget(
             instance.instanceId
           );
-        }
+
+          if (this.onWidgetSelectCallback) {
+            this.onWidgetSelectCallback(
+              instance.instanceId
+            );
+          }
+        });
       });
-    });
-  }
+    };
+
+    if (contextInstances.length > 0) {
+
+      menu.addSeparator();
+
+      // Encabezado deshabilitado: no seleccionable.
+      menu.addItem((item) => {
+        item
+          .setTitle(i18n.t('focus.widgetMenu.groupContext'))
+          .setDisabled(true);
+      });
+
+      for (const instance of contextInstances) {
+        addInstanceItem(instance);
+      }
+    }
+
+    if (cardInstances.length > 0) {
+
+      menu.addSeparator();
+
+      menu.addItem((item) => {
+        item
+          .setTitle(i18n.t('focus.widgetMenu.groupCards'))
+          .setDisabled(true);
+      });
+
+      for (const instance of cardInstances) {
+        addInstanceItem(instance);
+      }
+    }
 
   const selectorBtn =
     this.element?.querySelector(

@@ -385,6 +385,11 @@
       "noActiveNote": "No active note"
     },
     "closeAria": "Close Focus mode",
+    "widgetMenu": {
+      "addWidget": "Add widget…",
+      "groupContext": "Context",
+      "groupCards": "Cards"
+    },
     "workspace": {
       "board": "Board",
       "close": "Close",

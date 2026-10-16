@@ -692,6 +692,22 @@ export class DeclarativeRuntime {
 
 
     // --------------------------------------------------
+    // category (agrupación del selector de widgets)
+    // --------------------------------------------------
+
+    if (
+      definition.category !== undefined &&
+      definition.category !== 'context' &&
+      definition.category !== 'card'
+      ) {
+
+        errors.push(
+          `[${widgetId}] category inválido: ${String(definition.category)}`
+        );
+      }
+
+
+    // --------------------------------------------------
     // metrics
     // --------------------------------------------------
 

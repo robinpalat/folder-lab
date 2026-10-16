@@ -13,6 +13,7 @@
         "role": "source-material"
       },
       "cardinality": "multiple",
+      "category": "card",
       "storage": {
         "scope": "note-instance"
       },
@@ -94,6 +95,7 @@
         "role": "reference-material"
       },
       "cardinality": "multiple",
+      "category": "card",
       "storage": {
         "scope": "note-instance"
       },
@@ -180,6 +182,7 @@
         "role": "constraint"
       },
       "cardinality": "multiple",
+      "category": "context",
       "storage": {
         "scope": "note-instance"
       },
@@ -271,6 +274,7 @@
         "role": "selection-option"
       },
       "cardinality": "multiple",
+      "category": "context",
       "storage": {
         "scope": "note-instance"
       },
@@ -357,6 +361,7 @@
         "role": "actionable"
       },
       "cardinality": "multiple",
+      "category": "context",
       "storage": {
         "scope": "note-instance"
       },
@@ -453,6 +458,7 @@
         "role": "tracking"
       },
       "cardinality": "multiple",
+      "category": "context",
       "storage": {
         "scope": "note-instance"
       },
@@ -536,6 +542,7 @@
         "role": "tracking"
       },
       "cardinality": "multiple",
+      "category": "context",
       "storage": {
         "scope": "note-instance"
       },
