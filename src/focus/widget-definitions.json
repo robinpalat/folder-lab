@@ -86,7 +86,7 @@
       "id": "collections",
       "identity": {
         "label": "Colecciones",
-        "icon": "library",
+        "icon": "layers",
         "color": "#5B7FA3",
         "description": "Colección de fragmentos de texto"
       },
@@ -173,7 +173,7 @@
       "id": "restrictions",
       "identity": {
         "label": "Restricciones",
-        "icon": "shield-alert",
+        "icon": "shield",
         "color": "#A64B4B",
         "description": "Colección de restricciones"
       },
@@ -265,7 +265,7 @@
       "id": "candidates",
       "identity": {
         "label": "Candidatos",
-        "icon": "list-checks",
+        "icon": "user-check",
         "color": "#6B8E5A",
         "description": "Candidatos seleccionables"
       },
@@ -352,7 +352,7 @@
       "id": "tasks",
       "identity": {
         "label": "Tareas",
-        "icon": "check-square",
+        "icon": "list-checks",
         "color": "#7A6A9A",
         "description": "Lista de tareas"
       },

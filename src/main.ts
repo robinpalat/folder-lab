@@ -566,7 +566,7 @@ export default class FolderLabPlugin extends Plugin {
 
         identity: {
           label: i18n.t('widgets.registered.memory.label'),
-          icon: 'cpu',
+          icon: 'bot',
           description:
             i18n.t('widgets.registered.memory.description')
         },

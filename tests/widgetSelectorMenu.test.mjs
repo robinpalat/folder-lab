@@ -265,15 +265,16 @@ test('FocusPane: Nota activa no aparece en Contexto ni en Tarjetas', () => {
 // 7. ICONOS
 // ------------------------------------------------------------
 
-test('iconos: cada widget declarativo tiene icono asignado', () => {
+test('iconos: cada widget declarativo tiene la asignación semántica prevista', () => {
+  // Fuente de verdad: identity.icon de cada definición (lucide).
   const expected = {
-    snips: 'scissors',
-    collections: 'library',
-    restrictions: 'shield-alert',
-    candidates: 'list-checks',
-    tasks: 'check-square',
-    issues: 'alert-triangle',
-    objectives: 'target'
+    snips: 'scissors',         // tijeras
+    collections: 'layers',     // capas / conjunto de tarjetas
+    restrictions: 'shield',    // escudo / protección
+    candidates: 'user-check',  // selección de candidato
+    tasks: 'list-checks',      // lista con casillas
+    issues: 'alert-triangle',  // alerta / problema
+    objectives: 'target'       // diana / meta
   };
 
   for (const [id, icon] of Object.entries(expected)) {
@@ -281,14 +282,15 @@ test('iconos: cada widget declarativo tiene icono asignado', () => {
   }
 });
 
-test('iconos: los registros imperativos del bloque fijo y Resources conservan su icono', () => {
+test('iconos: los registros imperativos conservan su asignación semántica', () => {
   const source = read('src/main.ts');
 
-  // Nota activa: file-text; Apuntes: pencil; Asistente: cpu; Resources: folder.
+  // Nota activa: file-text (documento); Apuntes: pencil (lápiz);
+  // Asistente: bot (robot); Resources: folder (carpeta).
   const blocks = [
     { id: 'active-note', icon: 'file-text' },
     { id: 'notes', icon: 'pencil' },
-    { id: 'memory', icon: 'cpu' },
+    { id: 'memory', icon: 'bot' },
     { id: 'resources', icon: 'folder' }
   ];
 
