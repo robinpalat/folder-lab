@@ -582,6 +582,16 @@
         "description": "Lista de tareas",
         "placeholder": "Nueva tarea...",
         "emptyState": "Crea una tarea o arrastra aquí un texto"
+      },
+      "issues": {
+        "label": "Incidencias",
+        "description": "Problemas o incidencias del contexto de la nota",
+        "emptyState": "Arrastra aquí una incidencia"
+      },
+      "objectives": {
+        "label": "Objetivos",
+        "description": "Objetivos del contexto de la nota",
+        "emptyState": "Arrastra aquí un objetivo"
       }
     },
     "registered": {

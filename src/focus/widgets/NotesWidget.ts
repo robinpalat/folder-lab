@@ -423,14 +423,18 @@ export class NotesWidget implements FocusWidget {
   }
 
   /**
-   * Contrato de recepción de bloques de texto:
-   * instancias de widgets declarativos cuya DEFINICIÓN declara
-   * entradas de texto (transfer.inputs incluye 'text') y
-   * entidad de contenido con lista de bloques.
-   *
-   * No se usa el nombre visible como identificador: el destino
-   * se identifica por el id estable de la instancia.
+   * Contrato de recepción desde Apuntes: propiedad EXPLÍCITA de
+   * la definición (`transfer.fromNotes === true`), independiente
+   * de `inputs` (drag-and-drop entre widgets). La ausencia de la
+   * propiedad (definiciones antiguas) no es elegible: el envío
+   * es opt-in.
    */
+  private isNoteCaptureTarget(
+    definition: WidgetDefinition | undefined
+  ): definition is WidgetDefinition {
+    return definition?.transfer?.fromNotes === true;
+  }
+
   private getReceivableTargets(): Array<{
     instance: WidgetInstance;
     definition: WidgetDefinition;
@@ -449,10 +453,7 @@ export class NotesWidget implements FocusWidget {
 
       if (!definition) continue;
 
-      if (
-        definition.transfer?.inputs?.includes("text") &&
-        definition.entity?.content
-      ) {
+      if (this.isNoteCaptureTarget(definition)) {
         targets.push({ instance, definition });
       }
     }
@@ -695,11 +696,12 @@ export class NotesWidget implements FocusWidget {
       ? manager.getDefinition(instance.typeId)
       : undefined;
 
-    if (
-      !instance ||
-      !definition?.transfer?.inputs?.includes("text") ||
-      !definition.entity?.content
-    ) {
+    /*
+     * El envío exige el contrato explícito transfer.fromNotes:
+     * un widget no elegible NO puede recibir por esta vía, aunque
+     * su id llegue a llamarse directamente.
+     */
+    if (!instance || !this.isNoteCaptureTarget(definition)) {
       throw new Error(
         `[NotesWidget] Instancia destino no válida: ${instanceId}`
       );

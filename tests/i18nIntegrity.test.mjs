@@ -71,9 +71,12 @@ test('comandos e IA: ids y valores de proveedor intactos', () => {
 
 test('widget-definitions: ids y estructura intactos', () => {
   const data = JSON.parse(read('src/focus/widget-definitions.json'));
+  // Los ids originales se conservan en orden; issues/objectives se
+  // añadieron como widgets de contexto nuevos.
   assert.deepEqual(
     Object.keys(data.widgets),
-    ['snips', 'collections', 'restrictions', 'candidates', 'tasks']
+    ['snips', 'collections', 'restrictions', 'candidates', 'tasks',
+      'issues', 'objectives']
   );
 });
 

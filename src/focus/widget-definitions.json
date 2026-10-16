@@ -69,7 +69,8 @@
         ],
         "outputs": [
           "text"
-        ]
+        ],
+        "fromNotes": false
       },
       "metrics": {
         "total": {
@@ -154,7 +155,8 @@
         ],
         "outputs": [
           "text"
-        ]
+        ],
+        "fromNotes": true
       },
       "metrics": {
         "total": {
@@ -239,7 +241,8 @@
         ],
         "board": {
           "participation": "context"
-        }
+        },
+        "fromNotes": true
       },
       "metrics": {
         "total": {
@@ -329,7 +332,8 @@
         ],
         "board": {
           "participation": "context"
-        }
+        },
+        "fromNotes": true
       },
       "metrics": {
         "total": {
@@ -414,7 +418,8 @@
         ],
         "board": {
           "participation": "context"
-        }
+        },
+        "fromNotes": true
       },
       "metrics": {
         "total": {
@@ -433,6 +438,172 @@
       },
       "emptyState": {
         "message": "Crea una tarea o arrastra aquí un texto"
+      }
+    },
+    "issues": {
+      "id": "issues",
+      "identity": {
+        "label": "Incidencias",
+        "icon": "alert-triangle",
+        "color": "#C46A5B",
+        "description": "Problemas o incidencias del contexto de la nota"
+      },
+      "semantic": {
+        "contentType": "issue",
+        "role": "tracking"
+      },
+      "cardinality": "multiple",
+      "storage": {
+        "scope": "note-instance"
+      },
+      "entity": {
+        "collection": "items",
+        "content": {
+          "fields": [
+            "text"
+          ],
+          "renderer": "expandable-text",
+          "editable": true,
+          "expandable": true,
+          "previewLines": 3
+        }
+      },
+      "state": {
+        "field": "active",
+        "initial": true,
+        "toggleable": true
+      },
+      "ordering": {
+        "primary": {
+          "field": "createdAt",
+          "direction": "descending"
+        },
+        "priority": {
+          "field": "active",
+          "value": true
+        }
+      },
+      "controls": [
+        {
+          "type": "widget-selector"
+        },
+        {
+          "type": "icon-action",
+          "id": "new",
+          "icon": "plus"
+        },
+        {
+          "type": "status",
+          "id": "counter",
+          "metric": "total"
+        }
+      ],
+      "itemActions": [
+        {
+          "id": "toggle",
+          "type": "toggle-state"
+        },
+        {
+          "id": "delete",
+          "type": "delete"
+        }
+      ],
+      "transfer": {
+        "inputs": [
+          "text"
+        ],
+        "fromNotes": true
+      },
+      "metrics": {
+        "total": {
+          "type": "count"
+        }
+      },
+      "emptyState": {
+        "message": "Arrastra aquí una incidencia"
+      }
+    },
+    "objectives": {
+      "id": "objectives",
+      "identity": {
+        "label": "Objetivos",
+        "icon": "target",
+        "color": "#6BA36B",
+        "description": "Objetivos del contexto de la nota"
+      },
+      "semantic": {
+        "contentType": "objective",
+        "role": "tracking"
+      },
+      "cardinality": "multiple",
+      "storage": {
+        "scope": "note-instance"
+      },
+      "entity": {
+        "collection": "items",
+        "content": {
+          "fields": [
+            "text"
+          ],
+          "renderer": "expandable-text",
+          "editable": true,
+          "expandable": true,
+          "previewLines": 3
+        }
+      },
+      "state": {
+        "field": "active",
+        "initial": true,
+        "toggleable": true
+      },
+      "ordering": {
+        "primary": {
+          "field": "createdAt",
+          "direction": "descending"
+        },
+        "priority": {
+          "field": "active",
+          "value": true
+        }
+      },
+      "controls": [
+        {
+          "type": "widget-selector"
+        },
+        {
+          "type": "icon-action",
+          "id": "new",
+          "icon": "plus"
+        },
+        {
+          "type": "status",
+          "id": "counter",
+          "metric": "total"
+        }
+      ],
+      "itemActions": [
+        {
+          "id": "toggle",
+          "type": "toggle-state"
+        },
+        {
+          "id": "delete",
+          "type": "delete"
+        }
+      ],
+      "transfer": {
+        "inputs": [
+          "text"
+        ],
+        "fromNotes": true
+      },
+      "metrics": {
+        "total": {
+          "type": "count"
+        }
+      },
+      "emptyState": {
+        "message": "Arrastra aquí un objetivo"
       }
     }
   }

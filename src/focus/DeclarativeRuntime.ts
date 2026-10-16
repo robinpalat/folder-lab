@@ -658,6 +658,36 @@ export class DeclarativeRuntime {
           );
         }
       }
+
+
+      /*
+       * Contrato de recepción desde Apuntes: opt-in explícito.
+       * - `fromNotes` debe ser boolean si está presente.
+       * - `fromNotes: true` exige entity.content: el widget debe
+       *   poder mostrar el texto que reciba.
+       */
+      const fromNotes =
+        definition.transfer.fromNotes;
+
+      if (
+        fromNotes !== undefined &&
+        typeof fromNotes !== 'boolean'
+        ) {
+
+          errors.push(
+            `[${widgetId}] transfer.fromNotes inválido: ${String(fromNotes)}`
+          );
+        }
+
+      if (fromNotes === true) {
+
+        if (!definition.entity?.content) {
+
+          errors.push(
+            `[${widgetId}] transfer.fromNotes=true requiere entity.content`
+          );
+        }
+      }
     }
 
 

@@ -313,9 +313,13 @@ test('widget-definitions.json: identidad y textos heredados intactos', () => {
   );
 
   // Estructura real: { widgets: { <id>: definición } } — ids como
-  // claves, sin cambios.
+  // claves, sin cambios. Los ids originales se conservan en orden;
+  // issues/objectives se añadieron como widgets de contexto nuevos.
   const ids = Object.keys(data.widgets);
-  assert.deepEqual(ids, ['snips', 'collections', 'restrictions', 'candidates', 'tasks']);
+  assert.deepEqual(ids, [
+    'snips', 'collections', 'restrictions', 'candidates', 'tasks',
+    'issues', 'objectives'
+  ]);
 
   const tasks = data.widgets.tasks;
   assert.equal(tasks.id, 'tasks');

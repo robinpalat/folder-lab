@@ -582,6 +582,16 @@
         "description": "Task list",
         "placeholder": "New task...",
         "emptyState": "Create a task or drag text here"
+      },
+      "issues": {
+        "label": "Issues",
+        "description": "Issues in the note context",
+        "emptyState": "Drag an issue here"
+      },
+      "objectives": {
+        "label": "Objectives",
+        "description": "Objectives for the note context",
+        "emptyState": "Drag an objective here"
       }
     },
     "registered": {

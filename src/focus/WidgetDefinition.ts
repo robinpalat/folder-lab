@@ -126,6 +126,22 @@ export interface WidgetDefinition {
     outputs?: string[];
 
     /**
+     * Admite recibir bloques de texto enviados desde Apuntes
+     * (Sesión → Enviar a → Instancias).
+     *
+     * Contrato EXPLÍCITO e independiente de `inputs` (que gobierna
+     * las transferencias entre widgets por drag-and-drop):
+     * - `true`  → el widget es elegible como destino de Apuntes y
+     *             debe declarar `entity.content` para mostrar el
+     *             texto recibido (validado en DeclarativeRuntime).
+     * - ausente o `false` → NO admite envío directo desde Apuntes.
+     *
+     * La ausencia en definiciones antiguas es deliberada: el
+     * envío es opt-in explícito.
+     */
+    fromNotes?: boolean;
+
+    /**
      * Participación declarada en el Board.
      *
      * Ausente → 'composition' (comportamiento histórico: los
