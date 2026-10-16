@@ -149,6 +149,52 @@ test('DeclarativeRuntime: valida category (context|card)', () => {
 // 6. LÓGICA DE CLASIFICACIÓN (simulación del contrato)
 // ------------------------------------------------------------
 
+test('tipo vs instancia: los labels localizadas NUNCA son identificadores de tipo', () => {
+  // Ningún identity.label del JSON coincide con un id de tipo:
+  // «Restricciones», «Citas del libro», «Hechos», «Hipótesis»…
+  // son etiquetas o nombres de instancia, no tipos.
+  for (const [id, def] of Object.entries(definitions.widgets)) {
+    assert.notEqual(def.identity.label, id, id);
+    assert.ok(!Object.keys(definitions.widgets).includes(def.identity.label));
+  }
+});
+
+test('tipo vs instancia: instancias renombradas conservan categoría e icono del TIPO', () => {
+  // Nombres personalizados arbitrarios (como en el vault real):
+  // no crean tipos ni cambian la asignación del tipo base.
+  const instances = [
+    { typeId: 'snips', name: 'Citas del libro' },
+    { typeId: 'snips', name: 'Leyes y normativa' },      // snips renombrado
+    { typeId: 'restrictions', name: 'Hechos' },          // restrictions renombrado
+    { typeId: 'candidates', name: 'Hipótesis' },         // candidates renombrado
+    { typeId: 'objectives', name: 'Mejorar perfil parental' } // objectives renombrado
+  ];
+
+  const byType = {
+    snips: { category: 'card', icon: 'scissors' },
+    restrictions: { category: 'context', icon: 'shield' },
+    candidates: { category: 'context', icon: 'user-check' },
+    objectives: { category: 'context', icon: 'target' }
+  };
+
+  for (const instance of instances) {
+    const def = definitions.widgets[instance.typeId];
+    const expected = byType[instance.typeId];
+
+    // La clasificación y el icono salen de la DEFINICIÓN, jamás
+    // del nombre visible de la instancia.
+    assert.equal(def?.category, expected.category, instance.name);
+    assert.equal(def?.identity.icon, expected.icon, instance.name);
+  }
+
+  // Dos instancias del mismo tipo con nombres distintos: mismo
+  // icono y misma categoría (el nombre no crea tipo nuevo).
+  const a = definitions.widgets.snips;
+  const b = definitions.widgets.snips;
+  assert.equal(a.identity.icon, b.identity.icon);
+  assert.equal(a.category, b.category);
+});
+
 test('clasificación: regla category ?? context sobre definiciones reales', () => {
   const categoryOf = (def) => def?.category ?? 'context';
 
