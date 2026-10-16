@@ -274,8 +274,10 @@ export class DeclarativeWidget
                     id: control.id,
                     icon: control.icon ?? 'circle',
                     tooltip:
-                        control.label ??
-                        control.id
+                        control.id === 'new'
+                            ? i18n.t('widgets.common.newBlock')
+                            : (control.label ??
+                                control.id)
                 });
             }
         }
@@ -323,6 +325,15 @@ export class DeclarativeWidget
             return;
         }
 
+        // ------------------------------------------------------
+        // NUEVO BLOQUE — reutiliza la vista de edición ampliada
+        // ------------------------------------------------------
+
+        if (action.id === 'new') {
+            this.createProvisionalBlock();
+            return;
+        }
+
         if (action.id === 'clear') {
 
             await this.controller.storage.clear(
@@ -367,6 +378,136 @@ export class DeclarativeWidget
             return;
         }
 
+    }
+
+
+    // ============================================================
+    // BLOQUE NUEVO (vista de edición ampliada reutilizada)
+    // ============================================================
+
+    /**
+     * Crea un bloque provisional en memoria y abre directamente
+     * la vista de edición ampliada existente.
+     *
+     * El bloque NO se persiste hasta cerrar (×):
+     * - con texto válido → storage.add (mecanismo existente) y
+     *   el reload por onChange refresca lista y contador.
+     * - vacío → se descarta sin escribir nada.
+     * - fallo de guardado → la vista permanece abierta (el
+     *   cierre reintenta sin perder el contenido).
+     */
+    private createProvisionalBlock(): void {
+
+        if (!this.context?.activeFile || !this.listElement) {
+            return;
+        }
+
+        if (!this.definition.entity?.content?.editable) {
+            return;
+        }
+
+        // La lista provisional sustituye al estado vacío.
+        this.listElement.removeClass('is-hidden');
+        this.emptyElement?.addClass('is-hidden');
+
+        const stateField =
+            this.definition.state?.field;
+
+        const textField =
+            this.definition.entity?.content?.fields?.[0] ??
+            'text';
+
+        const provisionalItem: WidgetRecord = {
+            [textField]: '',
+
+            ...(stateField
+                ? {
+                    [stateField]:
+                        this.definition.state?.initial ??
+                        false
+                }
+                : {})
+        };
+
+        const listItem =
+            new FocusListItem(
+                this.listElement,
+                {}
+            );
+
+        const content =
+            listItem.getContentElement();
+
+        content.addClass(
+            'fl-list-item-content'
+        );
+
+        const expandable =
+            createExpandableText(
+                content,
+                '',
+
+                {
+                    initiallyExpanded: false,
+
+                    previewLines: 3,
+
+                    editable: true,
+                    expandedEditing: true,
+
+                    saveExpandedEdit: async (newText) => {
+
+                        // Vacío → descartar sin persistir.
+                        if (!newText.trim()) {
+                            return;
+                        }
+
+                        if (!this.context?.activeFile) {
+                            throw new Error(
+                                'Sin nota activa: no se puede guardar el bloque nuevo'
+                            );
+                        }
+
+                        await this.controller.storage.add(
+                            this.getStorageKey(),
+                            this.context.activeFile.path,
+                            this.getInstanceId(),
+                            {
+                                ...provisionalItem,
+                                [textField]: newText
+                            }
+                        );
+                    },
+
+                    onExpandedEditingClose: () => {
+
+                        /*
+                         * Retira el elemento provisional. Si se
+                         * guardó, el reload por onChange ya
+                         * reconstruye la lista y el contador.
+                         */
+                        listItem.destroy();
+
+                        // Lista vacía de nuevo → estado vacío.
+                        if (this.items.length === 0) {
+                            this.listElement?.addClass('is-hidden');
+                            this.emptyElement?.removeClass('is-hidden');
+                        }
+                    },
+
+                    rootClass:
+                        `fl-${this.id}-expandable`,
+
+                    contentClass:
+                        `fl-${this.id}-expandable-content`,
+
+                    actionClass:
+                        `fl-${this.id}-expandable-action`,
+                }
+            );
+
+        // Abre directamente el editor ampliado reutilizado.
+        expandable.openEditor();
     }
 
 
@@ -676,7 +817,7 @@ const item: WidgetRecord = {
 
     /** Id del ítem validado (frontera de datos de widget). */
     private itemIdOf(itemData: Record<string, unknown>): string {
-        const id = this.itemIdOf(itemData);
+        const id = itemData.id;
         return typeof id === 'string' ? id : '';
     }
 
@@ -856,6 +997,42 @@ const item: WidgetRecord = {
                 itemData[textField] ?? ''
             );
 
+        /*
+         * Persistencia de ediciones reutilizada por el guardado en
+         * vivo (input/blur) y por el guardado al cerrar la vista
+         * ampliada (botón ×).
+         *
+         * `lastSavedText` evita escrituras duplicadas entre ambos
+         * caminos.
+         */
+        let lastSavedText = text;
+
+        const persistEdit = async (
+            overrideText?: string
+        ): Promise<void> => {
+
+            const newText =
+                overrideText ??
+                expandable.content.innerText;
+
+            if (
+                newText === lastSavedText ||
+                !this.context?.activeFile
+            ) {
+                return;
+            }
+
+            await this.controller.storage.update(
+                this.getStorageKey(),
+                this.context.activeFile.path,
+                this.getInstanceId(),
+                this.itemIdOf(itemData),
+                { [textField]: newText }
+            );
+
+            lastSavedText = newText;
+        };
+
         const expandable =
             createExpandableText(
                 content,
@@ -874,6 +1051,25 @@ const item: WidgetRecord = {
                     editable:
                         entityContent?.editable ??
                         false,
+
+                    /*
+                     * Todos los bloques abren una vista ampliada que
+                     * ocupa todo el widget con botón × de cierre.
+                     * Los editables (p. ej. Tareas) guardan al
+                     * cerrar; los de solo lectura (Snips) muestran
+                     * el texto completo sin editar.
+                     */
+                    expandedEditing: true,
+
+                    saveExpandedEdit:
+                        entityContent?.editable
+                            ? async (newText) => {
+                                // Los errores se propagan: la vista
+                                // permanece abierta y el cierre puede
+                                // reintentarse sin perder cambios.
+                                await persistEdit(newText);
+                            }
+                            : undefined,
 
                     rootClass:
                         `fl-${this.id}-expandable`,
@@ -901,35 +1097,28 @@ const item: WidgetRecord = {
 
         if (entityContent?.editable) {
 
-            const persistEdit = async (): Promise<void> => {
-
-                const newText =
-                    expandable.content.innerText;
-
-                if (
-                    newText === text ||
-                    !this.context?.activeFile
-                ) {
-                    return;
-                }
-
-                await this.controller.storage.update(
-                    this.getStorageKey(),
-                    this.context.activeFile.path,
-                    this.getInstanceId(),
-                    this.itemIdOf(itemData),
-                    { [textField]: newText }
-                );
-            };
-
             expandable.content.addEventListener(
                 'input',
-                () => { void persistEdit(); }
+                () => {
+                    void persistEdit().catch((error) => {
+                        console.error(
+                            '[FolderLab] Error guardando edición:',
+                            error
+                        );
+                    });
+                }
             );
 
             expandable.content.addEventListener(
                 'blur',
-                () => { void persistEdit(); }
+                () => {
+                    void persistEdit().catch((error) => {
+                        console.error(
+                            '[FolderLab] Error guardando edición:',
+                            error
+                        );
+                    });
+                }
             );
         }
 

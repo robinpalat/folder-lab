@@ -3,6 +3,8 @@
 import { TFile, App } from "obsidian";
 import { FolderLabController } from "../core/FolderLabController";
 import { FolderLabState } from "../core/FolderLabState";
+import type { WidgetManager } from "./WidgetManager";
+import type { WidgetController } from "./controllers/WidgetController";
 
 /**
  * Contexto único del modo Focus.
@@ -23,6 +25,20 @@ export interface FocusContext {
   
   /** ID único de la sesión Focus */
   sessionId: string;
+
+  /**
+   * Gestor de instancias del modo Contexto (por nota).
+   * Permite a los widgets enumerar instancias reales, p. ej.
+   * como destinos de captura de Apuntes.
+   */
+  widgetManager?: WidgetManager;
+
+  /**
+   * Controlador de persistencia de widgets (data.json).
+   * Permite a los widgets enviar bloques a otras instancias
+   * usando el mecanismo existente de cada widget destino.
+   */
+  widgetController?: WidgetController;
 }
 
 /**
@@ -33,14 +49,18 @@ export function createFocusContext(
   app: App,
   activeFile: TFile | null,
   controller: FolderLabController,
-  state: FolderLabState
+  state: FolderLabState,
+  widgetManager?: WidgetManager,
+  widgetController?: WidgetController
 ): FocusContext {
   return {
     app,
     activeFile,
     controller,
     state,
-    sessionId: `focus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    sessionId: `focus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    widgetManager,
+    widgetController
   };
 }
 

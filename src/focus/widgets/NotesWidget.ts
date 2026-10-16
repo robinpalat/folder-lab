@@ -6,7 +6,7 @@ import {
 import { i18n } from '../../i18n/I18nService';
 
 import { FocusContext } from "../FocusContext";
-import { App, Notice, TFile } from "obsidian";
+import { App, Menu, Notice, TFile } from "obsidian";
 import { resolveVaultStorageId, vaultStorageKey } from "../../utils/vault-storage";
 import type FolderLabPlugin from "../../main";
 import type { LocalMirror } from "../../storage/localMirror";
@@ -18,6 +18,11 @@ import {
   sortPriorityFirst
 } from "../FocusWidgetsUtils";
 
+import type {
+  WidgetDefinition,
+  WidgetInstance
+} from "../WidgetDefinition";
+
 import { WidgetControls } from "./tools/WidgetControls";
 import { WidgetControlsRenderer } from "./tools/WidgetControlsRenderer";
 
@@ -25,6 +30,8 @@ interface NoteBlock {
   text: string;
   active: boolean;
 }
+
+type SessionQuery = "week" | "month" | "all";
 
 export class NotesWidget implements FocusWidget {
   readonly id = "notes";
@@ -47,11 +54,32 @@ export class NotesWidget implements FocusWidget {
   private dragCleanups: Array<() => void> = [];
   private draftText: string = "";
 
+  /** Guarda contra pulsaciones repetidas de «Guardar». */
+  private isSavingDraft: boolean = false;
+
   private storageKey: string = "";
   private draftStorageKey: string = "";
 
   private position: "top" | "bottom" = "top";
   private sessionView: "capture" | "today" = "capture";
+
+  // ------------------------------------------------------------
+  // SESIÓN — CAPTURA / CONSULTA / DESTINO
+  //
+  // Estados separados:
+  // - modo de captura: Apuntes (null) o destino de instancia
+  // - destino de escritura: captureTargetInstanceId (id estable)
+  // - filtro de consulta: sessionQuery (independiente)
+  // ------------------------------------------------------------
+
+  /** Destino activo de captura; null = guardado en Apuntes. */
+  private captureTargetInstanceId: string | null = null;
+
+  /** Intervalo de consulta del listado (no afecta a la captura). */
+  private sessionQuery: SessionQuery = "all";
+
+  /** Transición entre menús (Sesión ↔ Instancias), sin submenús. */
+  private pendingMenuTransition: "instances" | "session" | null = null;
 
   private callbacks: WidgetCallbacks = {};
 
@@ -191,6 +219,11 @@ export class NotesWidget implements FocusWidget {
     void this.save();
     this.sessionView = "capture";
 
+    /*
+     * Las instancias de widgets son POR NOTA: el destino de
+     * captura de la nota anterior no es válido en la nueva.
+     */
+    this.captureTargetInstanceId = null;
 
     this.currentFile = newFile;
 
@@ -255,23 +288,13 @@ export class NotesWidget implements FocusWidget {
     });
 
     // ----------------------------------------------------------
-    // SESIÓN
-    // ----------------------------------------------------------
-
-    controls.select({
-      id: "session",
-      label: i18n.t('widgets.common.session'),
-      value: "today",
-      options: [
-        {
-          id: "today",
-          label: i18n.t('widgets.common.sessionToday')
-        }
-      ]
-    });
-
-    // ----------------------------------------------------------
-    // COPIAR APUNTES
+    // EJECUCIÓN — derecha del toolbar
+    //
+    // Orden: [Guardar] [Sesión]
+    // El selector de sesiones queda en el extremo derecho.
+    //
+    // Es un «picker» (no un select): el widget dueño abre su
+    // propio menú con secciones y transición a instancias.
     // ----------------------------------------------------------
 
     controls.action({
@@ -279,10 +302,13 @@ export class NotesWidget implements FocusWidget {
       label: i18n.t('widgets.notesWidget.action.save')
     });
 
-    controls.iconAction({
-      id: "copy",
-      icon: "copy",
-      tooltip: i18n.t('widgets.notesWidget.action.copy')
+    // ----------------------------------------------------------
+    // SESIÓN
+    // ----------------------------------------------------------
+
+    controls.picker({
+      id: "session",
+      label: this.getSessionControlLabel()
     });
 
 
@@ -316,15 +342,11 @@ export class NotesWidget implements FocusWidget {
           this.callbacks.onSourceSelect?.();
         },
 
-        onControlSelect: (controlId, option) => {
-          if (controlId !== "session") return;
+        onControlSelect: () => {},
 
-          if (option.id === "today") {
-            void this.save();
-            this.sessionView = "today";
-          }
-          if (this.container && this.lastContext) {
-            this.render(this.container, this.lastContext);
+        onPickerOpen: (controlId) => {
+          if (controlId === "session") {
+            this.showSessionMenu();
           }
         },
 
@@ -333,19 +355,14 @@ export class NotesWidget implements FocusWidget {
             void this.saveDraftFromToolbar();
             return;
           }
-
-          if (controlId === "copy") {
-            void this.copyNotes();
-            return;
-          }
         }
       }
     );
 
-    // Usar setTimeout o requestAnimationFrame para asegurar que el DOM se ha renderizado
-    window.setTimeout(() => {
-      this.updateSaveActionVisibility();
-    }, 0);
+    // El DOM de los controles se crea de forma síncrona:
+    // la visibilidad de Guardar se aplica sin esperar un frame
+    // (evita el destello del botón con el área vacía).
+    this.updateSaveActionVisibility();
   }
 
   private updateSaveActionVisibility(): void {
@@ -365,6 +382,350 @@ export class NotesWidget implements FocusWidget {
         button.toggleClass("is-hidden", !hasText);
       }
     });
+  }
+
+  // ============================================================
+  // SESIÓN — MENÚ CON TRANSICIÓN A INSTANCIAS
+  //
+  // Obsidian no se asume con submenús nativos: «Enviar a»
+  // cierra el menú de sesión (hide + onHide) y abre
+  // inmediatamente el menú de instancias en la misma posición.
+  // «Volver» regresa al menú de sesión por el mismo mecanismo.
+  // ============================================================
+
+  private rerender(): void {
+    if (this.container && this.lastContext) {
+      this.render(this.container, this.lastContext);
+    }
+  }
+
+  /** Etiqueta del control: modo de captura activo explícito. */
+  private getSessionControlLabel(): string {
+    const prefix = `${i18n.t('widgets.common.session')}:`;
+
+    if (this.captureTargetInstanceId) {
+      return `${prefix} ${i18n.t('widgets.notesWidget.session.sendTo')} ${this.resolveCaptureTargetName()}`;
+    }
+
+    return `${prefix} ${i18n.t('widgets.common.sessionToday')}`;
+  }
+
+  private resolveCaptureTargetName(): string {
+    const targetId = this.captureTargetInstanceId;
+
+    if (!targetId) return "";
+
+    const instance =
+      this.lastContext?.widgetManager?.getInstance(targetId);
+
+    // Fallback al id estable si la instancia desapareció.
+    return instance?.name ?? targetId;
+  }
+
+  /**
+   * Contrato de recepción de bloques de texto:
+   * instancias de widgets declarativos cuya DEFINICIÓN declara
+   * entradas de texto (transfer.inputs incluye 'text') y
+   * entidad de contenido con lista de bloques.
+   *
+   * No se usa el nombre visible como identificador: el destino
+   * se identifica por el id estable de la instancia.
+   */
+  private getReceivableTargets(): Array<{
+    instance: WidgetInstance;
+    definition: WidgetDefinition;
+  }> {
+    const manager = this.lastContext?.widgetManager;
+
+    if (!manager) return [];
+
+    const targets: Array<{
+      instance: WidgetInstance;
+      definition: WidgetDefinition;
+    }> = [];
+
+    for (const instance of manager.getInstances()) {
+      const definition = manager.getDefinition(instance.typeId);
+
+      if (!definition) continue;
+
+      if (
+        definition.transfer?.inputs?.includes("text") &&
+        definition.entity?.content
+      ) {
+        targets.push({ instance, definition });
+      }
+    }
+
+    return targets;
+  }
+
+  private getSessionMenuAnchor():
+    | { anchor: HTMLElement; rect: DOMRect }
+    | null {
+    if (!this.container) return null;
+
+    const anchorCandidate = this.container.querySelector(
+      '.fl-widget-control-item[data-control-id="session"]'
+    );
+
+    // closest/querySelector devuelven Element; el ancla del menú
+    // es siempre el botón (HTMLElement).
+    if (!anchorCandidate?.instanceOf(HTMLElement)) return null;
+
+    return {
+      anchor: anchorCandidate,
+      rect: anchorCandidate.getBoundingClientRect()
+    };
+  }
+
+  private showSessionMenu(): void {
+    /*
+     * Limpieza defensiva: un valor residual de la transición
+     * (p. ej. si el menú se ocultó antes de invocar el ítem)
+     * no debe disparar una transición espuria en este menú.
+     */
+    this.pendingMenuTransition = null;
+
+    const target = this.getSessionMenuAnchor();
+
+    if (!target) return;
+
+    const { anchor, rect } = target;
+    const menu = new Menu();
+
+    // ----------------------------------------------------------
+    // SECCIÓN: SESIÓN (modo de captura)
+    // ----------------------------------------------------------
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t("widgets.common.session"))
+        .setDisabled(true);
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t("widgets.common.sessionToday"))
+        .onClick(() => {
+          /*
+           * Acción, no opción marcable: vuelve al modo normal
+           * de captura y muestra los bloques de la sesión de
+           * Apuntes del día actual.
+           */
+          this.captureTargetInstanceId = null;
+          this.sessionView = "today";
+          this.rerender();
+        });
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t("widgets.notesWidget.session.sendTo"))
+        .setIcon("send")
+        .onClick(() => {
+          // Simulación de submenú: cerrar este menú y abrir
+          // el de instancias en la misma posición.
+          this.pendingMenuTransition = "instances";
+          menu.hide();
+        });
+    });
+
+    // ----------------------------------------------------------
+    // SECCIÓN: BROWSER (acciones de consulta del historial)
+    //
+    // Los ítems son ACCIONES de navegación, no opciones con
+    // selección persistente: no llevan palomita. El modo de
+    // captura activo se comunica solo en el toolbar.
+    // ----------------------------------------------------------
+
+    menu.addSeparator();
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t("widgets.notesWidget.session.queryHeader"))
+        .setDisabled(true);
+    });
+
+    const queries: Array<{ id: SessionQuery; label: string }> = [
+      { id: "week", label: i18n.t("widgets.notesWidget.session.queryWeek") },
+      { id: "month", label: i18n.t("widgets.notesWidget.session.queryMonth") },
+      { id: "all", label: i18n.t("widgets.notesWidget.session.queryAll") }
+    ];
+
+    for (const query of queries) {
+      menu.addItem((item) => {
+        item
+          .setTitle(query.label)
+          .onClick(() => {
+            // Navegar por el historial NO altera el modo de
+            // captura ni el destino de escritura.
+            this.sessionQuery = query.id;
+            this.sessionView = "today";
+            this.rerender();
+          });
+      });
+    }
+
+    menu.onHide(() => {
+      if (this.pendingMenuTransition === "instances") {
+        this.pendingMenuTransition = null;
+
+        window.setTimeout(() => {
+          this.showInstancesMenu(anchor, rect);
+        }, 0);
+      }
+    });
+
+    menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+  }
+
+  private showInstancesMenu(anchor: HTMLElement, rect: DOMRect): void {
+    /*
+     * Limpieza defensiva: el valor residual, si lo hubiera, no
+     * debe sobrevivir dentro del menú de instancias. La
+     * transición legítima ya consumió el estado en el onHide
+     * del menú de sesión antes de llegar aquí.
+     */
+    this.pendingMenuTransition = null;
+
+    const menu = new Menu();
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t("widgets.notesWidget.session.instancesHeader"))
+        .setDisabled(true);
+    });
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t("widgets.notesWidget.session.back"))
+        .setIcon("arrow-left")
+        .onClick(() => {
+          this.pendingMenuTransition = "session";
+          menu.hide();
+        });
+    });
+
+    menu.addSeparator();
+
+    const targets = this.getReceivableTargets();
+
+    if (targets.length === 0) {
+      menu.addItem((item) => {
+        item
+          .setTitle(i18n.t("widgets.notesWidget.session.noInstances"))
+          .setDisabled(true);
+      });
+    }
+
+    /*
+     * Nombres repetidos entre instancias distintas →
+     * desambiguador con el sufijo único del id estable.
+     */
+    const nameCounts = new Map<string, number>();
+
+    for (const { instance } of targets) {
+      nameCounts.set(
+        instance.name,
+        (nameCounts.get(instance.name) ?? 0) + 1
+      );
+    }
+
+    for (const { instance, definition } of targets) {
+      menu.addItem((item) => {
+        let title = instance.name;
+
+        if ((nameCounts.get(instance.name) ?? 0) > 1) {
+          const suffix =
+            instance.instanceId.split("-").pop() ?? "";
+          title = `${instance.name} · ${suffix}`;
+        }
+
+        item
+          .setTitle(title)
+          .setIcon(definition.identity?.icon ?? "square")
+          .setChecked(
+            this.captureTargetInstanceId === instance.instanceId
+          )
+          .onClick(() => {
+            // Destino activo: se mantiene hasta cambiarlo o
+            // volver a «Sesión → Hoy».
+            this.captureTargetInstanceId = instance.instanceId;
+            this.rerender();
+          });
+      });
+    }
+
+    menu.onHide(() => {
+      if (this.pendingMenuTransition === "session") {
+        this.pendingMenuTransition = null;
+
+        window.setTimeout(() => {
+          this.showSessionMenu();
+        }, 0);
+      }
+    });
+
+    menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+  }
+
+  /**
+   * Envía un bloque a la instancia destino usando SU mecanismo
+   * de persistencia existente (WidgetController.storage.add,
+   * transacción serializada — el mismo camino que el drop
+   * entre widgets). No introduce almacenamiento paralelo ni
+   * copia el bloque en Apuntes.
+   */
+  private async sendBlockToInstance(
+    instanceId: string,
+    text: string
+  ): Promise<void> {
+    const manager = this.lastContext?.widgetManager;
+    const widgetController = this.lastContext?.widgetController;
+
+    if (!manager || !widgetController) {
+      throw new Error(
+        "[NotesWidget] Contexto sin gestor de widgets: no se puede enviar el bloque"
+      );
+    }
+
+    const instance = manager.getInstance(instanceId);
+    const definition = instance
+      ? manager.getDefinition(instance.typeId)
+      : undefined;
+
+    if (
+      !instance ||
+      !definition?.transfer?.inputs?.includes("text") ||
+      !definition.entity?.content
+    ) {
+      throw new Error(
+        `[NotesWidget] Instancia destino no válida: ${instanceId}`
+      );
+    }
+
+    if (!this.currentFile) {
+      throw new Error(
+        "[NotesWidget] Sin nota activa: no se puede enviar el bloque"
+      );
+    }
+
+    const stateField = definition.state?.field;
+
+    await widgetController.storage.add(
+      definition.id,
+      this.currentFile.path,
+      instance.instanceId,
+      {
+        text,
+        ...(stateField
+          ? {
+              [stateField]: definition.state?.initial ?? false
+            }
+          : {})
+      }
+    );
   }
 
 
@@ -405,7 +766,7 @@ export class NotesWidget implements FocusWidget {
   private renderContent(): void {
     if (!this.container) return;
 
-    const contentWrapper = this.container.createEl("div", {
+    const contentWrapper = this.container.createEl('div', {
       cls: "fl-widget-content-expanded fl-notes-scroll-surface"
     });
 
@@ -415,7 +776,7 @@ export class NotesWidget implements FocusWidget {
     // (Presentación en CSS: regla .fl-notes-scroll-surface.)
 
     if (!this.currentFile) {
-      contentWrapper.createEl("div", {
+      contentWrapper.createEl('div', {
         cls: "fl-widget-content-empty",
         text: i18n.t('widgets.notesWidget.empty.noteRequired')
       });
@@ -432,7 +793,7 @@ export class NotesWidget implements FocusWidget {
     // La lógica de contenido se migrará en las etapas siguientes.
     // ============================================================
 
-    const capturePanel = contentWrapper.createEl("div", {
+    const capturePanel = contentWrapper.createEl('div', {
       cls: "fl-notes-capture-panel"
     });
     capturePanel.toggleClass(
@@ -440,7 +801,7 @@ export class NotesWidget implements FocusWidget {
       this.sessionView !== "capture"
     );
 
-    const todayPanel = contentWrapper.createEl("div", {
+    const todayPanel = contentWrapper.createEl('div', {
       cls: "fl-notes-today-panel"
     });
     todayPanel.toggleClass(
@@ -450,11 +811,11 @@ export class NotesWidget implements FocusWidget {
 
 
 
-    const draftProxy = todayPanel.createEl("div", {
+    const draftProxy = todayPanel.createEl('div', {
       cls: "fl-notes-draft-proxy"
     });
 
-    const draftProxyText = draftProxy.createEl("div", {
+    const draftProxyText = draftProxy.createEl('div', {
       cls: "fl-notes-draft-proxy-text"
     });
 
@@ -476,7 +837,7 @@ export class NotesWidget implements FocusWidget {
 
 
 
-    const todayList = todayPanel.createEl("div", {
+    const todayList = todayPanel.createEl('div', {
       cls: "fl-notes-today-list"
     });
 
@@ -625,37 +986,96 @@ export class NotesWidget implements FocusWidget {
   }
 
   private async saveDraftFromToolbar(): Promise<void> {
-    if (!this.currentFile) return;
+    if (!this.currentFile || this.isSavingDraft) return;
 
     const text = this.draftText;
 
+    // Nunca guardar entradas vacías.
     if (!text.trim()) return;
 
-    await this.appendBlock(text);
+    /*
+     * Pulsaciones repetidas: mientras la persistencia está en
+     * vuelo no se crea un segundo bloque con el mismo texto.
+     */
+    this.isSavingDraft = true;
 
-    // El texto ya pasó a formar parte de los fragmentos.
-    this.draftText = "";
-    if (this.draftStorageKey) {
-      void this.mirrorWrite("focus-notes-draft", null);
+    /*
+     * Modo de captura activo:
+     * - sin destino → guardado normal en Apuntes.
+     * - con destino → envío a la instancia seleccionada; el
+     *   bloque NO se copia en Apuntes.
+     */
+    const sending = this.captureTargetInstanceId !== null;
+
+    try {
+      if (this.captureTargetInstanceId) {
+        await this.sendBlockToInstance(
+          this.captureTargetInstanceId,
+          text
+        );
+      } else {
+        /*
+         * Guardado estricto (espejo + bóveda): si falla, el
+         * texto permanece en el área de escritura y se comunica
+         * el error. No se limpia el campo hasta confirmar la
+         * persistencia.
+         */
+        await this.appendBlock(text);
+      }
+    } catch (error) {
+      console.error(
+        "[NotesWidget] Error guardando apunte:",
+        error
+      );
+
+      new Notice(
+        i18n.t('widgets.notesWidget.notice.saveFailed')
+      );
+
+      return;
+    } finally {
+      this.isSavingDraft = false;
     }
-    this.persistDraftPatch({ draft: "" });
 
-    // Limpiar el editor real.
-    const editor = this.container?.querySelector(
-      ".fl-notes-capture-editor"
-    ) as HTMLTextAreaElement | null;
+    /*
+     * El texto ya pasó a formar parte de los fragmentos.
+     * Solo se limpia —en memoria y en el draft persistido
+     * (espejo + bóveda)— si el usuario no siguió escribiendo
+     * mientras se confirmaba el guardado o el envío.
+     */
+    if (this.draftText === text) {
+      this.draftText = "";
 
-    if (editor) {
-      editor.value = "";
+      const editor = this.container?.querySelector(
+        ".fl-notes-capture-editor"
+      ) as HTMLTextAreaElement | null;
+
+      if (editor) {
+        editor.value = "";
+      }
+
+      if (this.draftStorageKey) {
+        void this.mirrorWrite("focus-notes-draft", null);
+      }
+      this.persistDraftPatch({ draft: "" });
     }
 
     // Actualizar inmediatamente la visibilidad de Guardar.
     this.updateSaveActionVisibility();
 
-    new Notice(i18n.t('widgets.notesWidget.notice.saved'));
+    new Notice(
+      sending
+        ? i18n.t('widgets.notesWidget.notice.sent')
+        : i18n.t('widgets.notesWidget.notice.saved')
+    );
 
-    // Refrescar solamente la vista de Hoy si estamos allí.
-    if (this.sessionView === "today") {
+    /*
+     * El destino NO vuelve a Hoy automáticamente: el modo de
+     * captura se mantiene hasta que el usuario lo cambie.
+     * La lista solo se refresca si el bloque se guardó en
+     * Apuntes.
+     */
+    if (!sending && this.sessionView === "today") {
       await this.refreshBlocks();
     }
   }
@@ -838,6 +1258,28 @@ export class NotesWidget implements FocusWidget {
       const content = item.getContentElement();
       content.addClass("fl-notes-item-content");
 
+      /*
+       * Último texto confirmado en persistencia. Se usa para
+       * evitar escrituras duplicadas entre el guardado en vivo
+       * (input/blur) y el guardado al cerrar la vista ampliada.
+       */
+      let lastSavedText = block.text;
+
+      const persistLiveEdit = (textToSave: string): void => {
+        if (textToSave === lastSavedText) return;
+
+        void this.updateSavedBlock(index, textToSave)
+          .then(() => {
+            lastSavedText = textToSave;
+          })
+          .catch((error) => {
+            console.error(
+              "[FolderLab] Error guardando bloque:",
+              error
+            );
+          });
+      };
+
       const expandable = createExpandableText(
         content,
         block.text,
@@ -847,6 +1289,22 @@ export class NotesWidget implements FocusWidget {
           collapsedLabel: i18n.t('widgets.common.expand'),
           expandedLabel: i18n.t('widgets.common.collapse'),
           editable: true,
+          expandedEditing: true,
+          saveExpandedEdit: async (textToSave) => {
+            if (textToSave === lastSavedText) return;
+
+            /*
+             * Guardado estricto del cierre: si falla, la vista
+             * ampliada permanece abierta y el error se propaga
+             * para que no se pierdan cambios en silencio.
+             */
+            await this.persistExpandedBlockEdit(
+              index,
+              textToSave
+            );
+
+            lastSavedText = textToSave;
+          },
           rootClass: "fl-notes-expandable",
           contentClass: "fl-notes-expandable-content",
           actionClass: "fl-notes-expandable-action",
@@ -905,18 +1363,12 @@ export class NotesWidget implements FocusWidget {
       });
 
       expandable.content.addEventListener("input", () => {
-        void this.updateSavedBlock(
-          index,
-          expandable.content.innerText
-        );
+        persistLiveEdit(expandable.content.innerText);
       });
       
 
       expandable.content.addEventListener("blur", () => {
-        void this.updateSavedBlock(
-          index,
-          expandable.content.innerText
-        );
+        persistLiveEdit(expandable.content.innerText);
       });
     }
   }
@@ -981,7 +1433,9 @@ export class NotesWidget implements FocusWidget {
       active: true
     });
 
-    await this.saveBlocks(blocks);
+    // Guardado estricto: los errores se propagan al llamador
+    // (toolbar y drop) para no comunicar un éxito falso.
+    await this.saveBlocksStrict(blocks);
   }
 
   private async updateSavedBlock(
@@ -994,6 +1448,31 @@ export class NotesWidget implements FocusWidget {
 
     blocks[index].text = text;
     await this.saveBlocks(blocks);
+  }
+
+  /**
+   * Guardado del texto de un bloque para la vista de edición
+   * ampliada. A diferencia de `updateSavedBlock`, propaga los
+   * errores para que el cierre no descarte cambios en silencio.
+   *
+   * Reutiliza el mismo mecanismo de persistencia de los bloques
+   * (espejo local + DraftStore en bóveda); no introduce ningún
+   * almacenamiento paralelo.
+   */
+  private async persistExpandedBlockEdit(
+    index: number,
+    text: string
+  ): Promise<void> {
+    const blocks = await this.loadBlocks();
+
+    if (index < 0 || index >= blocks.length) {
+      throw new Error(
+        `[NotesWidget] Índice de bloque fuera de rango: ${index}`
+      );
+    }
+
+    blocks[index].text = text;
+    await this.saveBlocksStrict(blocks);
   }
 
   private async toggleBlockActive(index: number): Promise<void> {
@@ -1029,28 +1508,46 @@ export class NotesWidget implements FocusWidget {
   private async saveBlocks(
     blocks: NoteBlock[]
   ): Promise<void> {
-    if (!this.currentFile) return;
-
     try {
-      await this.mirrorWrite(
-        "focus-notes-blocks",
-        JSON.stringify(blocks)
-      );
-
-      // La representación textual sigue siendo fiel al contenido.
-      // El estado active se conserva en blocksStorageKey.
-      await this.mirrorWrite(
-        "focus-notes",
-        blocks.map(block => block.text).join("\n\n")
-      );
-
-      // Etapa 2: además del espejo local, persistir en bóveda.
-      this.persistDraftPatch({ blocks });
+      await this.saveBlocksStrict(blocks);
     } catch (error) {
       console.warn(
         "[NotesWidget] Error guardando bloques:",
         error
       );
+    }
+  }
+
+  /**
+   * Núcleo de persistencia de bloques con errores propagados.
+   *
+   * La representación textual sigue siendo fiel al contenido.
+   * El estado active se conserva en blocksStorageKey.
+   * Etapa 2: además del espejo local, persistir en bóveda.
+   */
+  private async saveBlocksStrict(
+    blocks: NoteBlock[]
+  ): Promise<void> {
+    if (!this.currentFile) return;
+
+    await this.mirrorWrite(
+      "focus-notes-blocks",
+      JSON.stringify(blocks)
+    );
+
+    await this.mirrorWrite(
+      "focus-notes",
+      blocks.map(block => block.text).join("\n\n")
+    );
+
+    const plugin = (this.app as unknown as {
+      plugins?: { plugins?: Record<string, FolderLabPlugin | undefined> };
+    }).plugins?.plugins?.["folder-lab"];
+
+    if (plugin?.draftStore) {
+      await plugin.draftStore.write(this.currentFile.path, {
+        blocks
+      });
     }
   }
 
@@ -1110,22 +1607,6 @@ export class NotesWidget implements FocusWidget {
 
     this.dragCleanups = [];
 
-  }
-
-  private async copyNotes(): Promise<void> {
-    const text = await this.readNotesSource();
-
-    if (!text.trim()) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-
-    } catch (error) {
-      console.warn(
-        "[NotesWidget] Error copiando apuntes:",
-        error
-      );
-    }
   }
 
   // ============================================================

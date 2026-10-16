@@ -1264,6 +1264,23 @@
   opacity: 0.3;
 }
 
+/* Selector de sesión de Apuntes: el valor (modos largos como
+   «Sesión: Enviar a …») se trunca con puntos suspensivos sin
+   desplazar el resto del toolbar. El nombre completo permanece
+   disponible en el menú de instancias. */
+.fl-widget-control-item[data-control-id="session"] {
+  max-width: 230px;
+  min-width: 0;
+}
+
+.fl-widget-control-item[data-control-id="session"] .fl-control-label {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .fl-widget-control-item.is-primary {
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
@@ -1437,8 +1454,11 @@ body.focus-splitter-dragging {
 }
 
 .fl-context-close-btn {
-  width: 100%;
-  padding: 6px 0;
+  /* Ocupa todo el ancho libre de la barra; el botón Board
+     conserva sus 90px fijos al extremo derecho. */
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 14px;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
@@ -1448,6 +1468,9 @@ body.focus-splitter-dragging {
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .fl-context-close-btn:hover {
@@ -4826,6 +4849,125 @@ body.focus-splitter-dragging {
 
   cursor: pointer;
   user-select: none;
+}
+
+/* ================================================================
+   VISTA DE EDICIÓN AMPLIADA DE BLOQUES DE TEXTO
+   El clic sobre un bloque abre una vista que ocupa el área de
+   contenido del widget. El toolbar permanece visible: sus
+   controles de la derecha se ocultan y en su lugar aparece el
+   botón × de cierre, al extremo derecho del toolbar.
+   ================================================================ */
+
+.fl-expandable-editor-anchor {
+  position: relative;
+}
+
+/* Toolbar en modo edición: controles de la derecha ocultos. */
+.fl-widget-frame.fl-expandable-editor-active
+.fl-widget-toolbar-execution {
+  display: none !important;
+}
+
+/* × de cierre dentro del toolbar, al extremo derecho. */
+.fl-expandable-editor-toolbar-close {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-right: 4px;
+}
+
+.fl-expandable-editor-toolbar-close .fl-expandable-editor-close {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+.fl-expandable-editor-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+
+  display: flex;
+  flex-direction: column;
+
+  box-sizing: border-box;
+  padding: 12px 14px;
+
+  background: var(--background-primary);
+}
+
+.fl-expandable-editor-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 1;
+
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  min-height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  margin: 0;
+
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  box-shadow: none;
+
+  color: var(--text-muted);
+  font-size: 18px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.fl-expandable-editor-close:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.fl-expandable-editor-overlay .fl-fragment-text-content {
+  flex: 1 1 auto;
+  min-height: 0;
+
+  box-sizing: border-box;
+  padding: 2px 4px 12px 2px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  font-size: var(--font-ui-large);
+  line-height: 1.6;
+
+  outline: none;
+}
+
+/* Solo en edición de texto plano: se preservan los saltos de
+   línea escritos por el usuario. En modo lectura (markdown del
+   Asistente, Snips) white-space normal evita líneas fantasma
+   entre bloques renderizados. */
+.fl-expandable-editor-overlay:not(.fl-expandable-editor-readonly)
+.fl-fragment-text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  cursor: text;
+}
+
+.fl-expandable-editor-overlay.fl-expandable-editor-readonly
+.fl-fragment-text-content {
+  cursor: default;
+}
+
+.fl-expandable-editor-overlay .fl-fragment-text-content:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .fl-widget-identity-colored {

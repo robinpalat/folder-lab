@@ -551,6 +551,9 @@
       "sessionToday": "Hoy",
       "expand": "Expandir",
       "collapse": "Contraer",
+      "closeExpandedEdit": "Cerrar edición del bloque",
+      "expandedEditSaveFailed": "No se pudo guardar el bloque. Los cambios siguen en la vista de edición: vuelve a pulsar × para reintentar.",
+      "newBlock": "Nuevo bloque",
       "errorWithMessage": "Error: {message}"
     },
     "defs": {
@@ -678,7 +681,19 @@
       },
       "notice": {
         "created": "Apunte creado",
-        "saved": "Apunte guardado"
+        "saved": "Apunte guardado",
+        "saveFailed": "No se pudo guardar el apunte. El texto se conserva: vuelve a pulsar Guardar para reintentar.",
+        "sent": "Apunte enviado"
+      },
+      "session": {
+        "sendTo": "Enviar a",
+        "back": "Volver",
+        "instancesHeader": "Instancias",
+        "noInstances": "Sin instancias compatibles",
+        "queryHeader": "Browser",
+        "queryWeek": "Esta semana",
+        "queryMonth": "Este mes",
+        "queryAll": "Todo"
       }
     },
     "resourcesWidget": {

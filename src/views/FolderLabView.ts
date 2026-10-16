@@ -790,6 +790,7 @@ export class FolderLabView extends ItemView {
           this.widgetRegistry,
           this.widgetManager,
           this.plugin.capabilityRegistry!,
+          this.plugin.widgetController,
 
           // Cerrar Contexto
           () => {

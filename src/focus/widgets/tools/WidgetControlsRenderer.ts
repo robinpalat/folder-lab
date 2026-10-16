@@ -510,7 +510,10 @@ private static renderSourceSelector(
 		cls: 'fl-widget-control-item',
 		attr: {
 		  type: 'button',
-		  'aria-expanded': 'false'
+		  'aria-expanded': 'false',
+		  // Identificador estable para que el widget dueño
+		  // pueda localizar el control (p. ej. anclar su menú).
+		  'data-control-id': control.id
 		}
 	  });
 	  
@@ -566,7 +569,11 @@ private static renderSourceSelector(
     const btn = container.createEl('button', {
       cls: 'fl-widget-control-item',
       attr: {
-        type: 'button'
+        type: 'button',
+        // Identificador estable: permite que el widget dueño
+        // localice el botón (p. ej. ocultar «Guardar» sin
+        // comparar el texto visible, que cambia con i18n).
+        'data-control-id': control.id
       }
     });
 

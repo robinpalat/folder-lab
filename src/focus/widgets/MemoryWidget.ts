@@ -593,6 +593,9 @@ this.contextResolver = new ContextResolver(
         collapsedLabel: i18n.t('widgets.common.expand'),
         expandedLabel: i18n.t('widgets.common.collapse'),
         editable: false,
+        // Vista ampliada a pantalla completa del widget en modo
+        // lectura: el resultado IA no es editable; el × cierra.
+        expandedEditing: true,
         rootClass: 'fl-memory-expandable',
         contentClass: 'fl-memory-expandable-content',
         actionClass: 'fl-memory-expandable-action',

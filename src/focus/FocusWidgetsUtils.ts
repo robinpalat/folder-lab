@@ -80,6 +80,38 @@ export interface FolderLabExpandableTextOptions {
   actionClass?: string;
   editable?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
+
+  /**
+   * Vista de edición ampliada: el clic sobre el bloque abre una
+   * vista que ocupa el área de contenido del widget (el toolbar
+   * permanece visible, con un botón × de cierre al extremo
+   * derecho) en lugar de expandir el bloque dentro de la lista.
+   *
+   * - Con `editable: true` la vista es editable y requiere
+   *   `saveExpandedEdit` para persistir al cerrar.
+   * - Con `editable: false` la vista se abre igual pero en
+   *   modo lectura (el × solo cierra; no hay guardado).
+   *
+   * Sin la opción, se conserva la expansión normal en línea.
+   */
+  expandedEditing?: boolean;
+
+  /**
+   * Persistencia del texto al cerrar la vista ampliada (botón ×).
+   *
+   * Debe rechazar si el guardado falla: en ese caso la vista
+   * permanece abierta, se avisa al usuario y el cierre puede
+   * reintentarse. No se usa un botón «Guardar»: el cierre es la
+   * acción habitual que finaliza la edición.
+   */
+  saveExpandedEdit?: (text: string) => Promise<void>;
+
+  /**
+   * Se invoca tras cerrar correctamente la vista ampliada
+   * (guardado confirmado o descarte). Permite al widget limpiar
+   * elementos provisionales, actualizar contadores, etc.
+   */
+  onExpandedEditingClose?: () => void;
 }
 
 
@@ -109,6 +141,29 @@ export function getFragmentTextSize(
 }
 
 /**
+ * Sitúa el cursor (caret) al final del contenido de un elemento,
+ * listo para seguir escribiendo.
+ *
+ * Se usa al abrir la vista de edición ampliada: sin esto, el
+ * navegador deja el caret al principio del texto.
+ */
+function placeCaretAtEnd(element: HTMLElement): void {
+  const doc = element.ownerDocument;
+  const selection = doc.defaultView?.getSelection();
+
+  if (!selection) return;
+
+  const range = doc.createRange();
+  range.selectNodeContents(element);
+
+  // false = colapsa el rango al FINAL del contenido seleccionado.
+  range.collapse(false);
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+/**
  * Contenido expandible común a los widgets.
  *
  * Reglas:
@@ -119,6 +174,11 @@ export function getFragmentTextSize(
  *
  * `editable` distingue entre contenido documental editable y Snips,
  * que son siempre de solo lectura.
+ *
+ * Con `expandedEditing`, el clic sobre un bloque abre una vista
+ * ampliada que ocupa el área de contenido del widget (el toolbar
+ * permanece visible con el × de cierre). La lista conserva
+ * los bloques limitados a `previewLines` líneas.
  */
 export function createExpandableText(
   container: HTMLElement,
@@ -132,12 +192,33 @@ export function createExpandableText(
   manuallyExpanded: () => boolean;
   editing: () => boolean;
   setExpanded: (expanded: boolean, manual?: boolean) => void;
+
+  /**
+   * Abre directamente la vista de edición ampliada (si está
+   * activa para este bloque). Permite que el widget abra el
+   * editor sobre un bloque nuevo sin reimplementar la edición.
+   */
+  openEditor: () => void;
 } {
   const originalText = String(text ?? '');
 
   const editable = options.editable ?? false;
   const textSize =
     getFragmentTextSize(originalText);
+
+  /*
+   * La vista ampliada sustituye a la expansión en línea cuando
+   * el widget la solicita:
+   * - contenido editable: requiere persistencia para el cierre
+   *   (`saveExpandedEdit`).
+   * - contenido de solo lectura (Snips, Asistente…): la vista se
+   *   abre igual y el × solo cierra.
+   */
+  const expandedEditing =
+    (options.expandedEditing ?? false) &&
+    (editable
+      ? typeof options.saveExpandedEdit === 'function'
+      : true);
 
   const root = container.createEl('div', {
     cls: options.rootClass || 'fl-expandable-text'
@@ -168,18 +249,33 @@ export function createExpandableText(
 
   const collapseLabel = options.expandedLabel ?? i18n.t('widgets.common.collapse');
 
-  const collapseAction = root.createEl('div', {
-    cls: `${options.actionClass || 'fl-expandable-text-action'} fl-expandable-text-collapse-action`,
-    text: collapseLabel
-  });
+  let collapseAction: HTMLElement | null = null;
 
-  collapseAction.setAttr('role', 'button');
-  collapseAction.setAttr('tabindex', '0');
-  collapseAction.setAttr('aria-label', collapseLabel);
+  if (!expandedEditing) {
+    collapseAction = root.createEl('div', {
+      cls: `${options.actionClass || 'fl-expandable-text-action'} fl-expandable-text-collapse-action`,
+      text: collapseLabel
+    });
+
+    collapseAction.setAttr('role', 'button');
+    collapseAction.setAttr('tabindex', '0');
+    collapseAction.setAttr('aria-label', collapseLabel);
+  }
 
   let isExpanded = options.initiallyExpanded ?? false;
   let manuallyExpandedState = false;
   let isEditing = false;
+
+  // ----------------------------------------------------------
+  // VISTA DE EDICIÓN AMPLIADA (ocupa el área de contenido del
+  // widget; el toolbar permanece visible)
+  // ----------------------------------------------------------
+
+  let editorOverlay: HTMLElement | null = null;
+  let editorAnchor: HTMLElement | null = null;
+  let editorFrame: HTMLElement | null = null;
+  let editorToolbarClose: HTMLElement | null = null;
+  let textAtOverlayOpen = '';
 
   const enterEditMode = (event?: MouseEvent): void => {
     if (!editable || isEditing) return;
@@ -192,6 +288,189 @@ export function createExpandableText(
     content.addClass('is-editing');
     content.removeClass('fl-expandable-text-editable-ready');
     content.focus();
+  };
+
+  const closeExpandedEditor = async (): Promise<void> => {
+    const overlay = editorOverlay;
+    const anchor = editorAnchor;
+
+    if (!overlay || !anchor) return;
+
+    /*
+     * El cierre es la acción de guardado (solo contenido
+     * editable). Si la persistencia falla, la vista permanece
+     * abierta: no se descartan cambios ni se cierra en
+     * silencio; el usuario puede reintentar.
+     */
+    if (editable) {
+      const newText = content.innerText;
+
+      if (newText !== textAtOverlayOpen) {
+        try {
+          await options.saveExpandedEdit?.(newText);
+        } catch (error) {
+          console.error(
+            '[FolderLab] Error guardando la edición ampliada:',
+            error
+          );
+
+          new Notice(
+            i18n.t('widgets.common.expandedEditSaveFailed')
+          );
+
+          return;
+        }
+      }
+    }
+
+    isEditing = false;
+
+    content.setAttr('contenteditable', 'false');
+    content.removeClass('is-editing');
+
+    if (editable) {
+      content.addClass('fl-expandable-text-editable-ready');
+    }
+
+    // Devuelve el contenido a su posición original en la raíz.
+    root.insertBefore(content, root.firstChild);
+
+    overlay.remove();
+    editorOverlay = null;
+
+    anchor.removeClass('fl-expandable-editor-anchor');
+    editorAnchor = null;
+
+    // Restaura el toolbar: × retirado y controles de la derecha
+    // visibles de nuevo.
+    editorToolbarClose?.remove();
+    editorToolbarClose = null;
+
+    editorFrame?.removeClass('fl-expandable-editor-active');
+    editorFrame = null;
+
+    // Reaplica el límite de previewLines líneas de la lista.
+    setExpanded(false, false);
+
+    // Avisa al widget: guardado confirmado o descarte de vacío.
+    options.onExpandedEditingClose?.();
+
+    content.focus({ preventScroll: true });
+  };
+
+  const openExpandedEditor = (): void => {
+    if (editorOverlay) return;
+
+    /*
+     * Ancla: el área de contenido del widget. El overlay NO
+     * cubre el toolbar: permanece visible durante la edición.
+     * Fallback: el frame del widget y, en último caso, el
+     * contenedor recibido.
+     */
+    /*
+     * Estrechamiento con instanceOf(HTMLElement) (patrón del
+     * propio repo y de obsidianmd/prefer-instanceof): closest()
+     * devuelve Element y el ancla debe ser HTMLElement para
+     * usar los helpers createDiv/addClass de Obsidian.
+     */
+    const frameCandidate =
+      container.closest('.fl-widget-frame');
+
+    const frame = frameCandidate?.instanceOf(HTMLElement)
+      ? frameCandidate
+      : null;
+
+    const anchorCandidate =
+      container.closest('.fl-widget-content-expanded');
+
+    const anchor = anchorCandidate?.instanceOf(HTMLElement)
+      ? anchorCandidate
+      : (frame ?? container);
+
+    textAtOverlayOpen = content.innerText;
+
+    const overlay = anchor.createEl('div', {
+      cls: editable
+        ? 'fl-expandable-editor-overlay'
+        : 'fl-expandable-editor-overlay fl-expandable-editor-readonly'
+    });
+
+    /*
+     * Mueve el MISMO elemento de contenido al overlay: se
+     * conservan la identidad del texto, su contenido renderizado
+     * (p. ej. markdown del Asistente), sus listeners de
+     * persistencia en vivo y cualquier marca DOM aplicada.
+     */
+    overlay.appendChild(content);
+
+    content.style.removeProperty('max-height');
+    content.style.removeProperty('overflow');
+    content.removeClass('fl-expandable-text-preview');
+
+    if (editable) {
+      content.setAttr('contenteditable', 'true');
+      content.addClass('is-editing');
+      content.removeClass('fl-expandable-text-editable-ready');
+      isEditing = true;
+    }
+
+    anchor.addClass('fl-expandable-editor-anchor');
+    anchor.appendChild(overlay);
+
+    editorOverlay = overlay;
+    editorAnchor = anchor;
+    editorFrame = frame;
+
+    /*
+     * Toolbar en modo edición: los controles de la derecha se
+     * ocultan (CSS vía fl-expandable-editor-active) y en su
+     * lugar aparece el botón × de cierre, al extremo derecho
+     * del toolbar. Fallback: × dentro del overlay si el
+     * toolbar no existiera.
+     */
+    const toolbar = frame
+      ?.querySelector('.fl-widget-controls') as HTMLElement | null;
+
+    let closeButton: HTMLElement;
+
+    if (toolbar) {
+      const closeWrap = toolbar.createEl('div', {
+        cls: 'fl-expandable-editor-toolbar-close'
+      });
+
+      closeButton = closeWrap.createEl('button', {
+        cls: 'fl-expandable-editor-close',
+        text: '×',
+        attr: {
+          type: 'button',
+          'aria-label': i18n.t('widgets.common.closeExpandedEdit')
+        }
+      });
+
+      editorToolbarClose = closeWrap;
+    } else {
+      closeButton = overlay.createEl('button', {
+        cls: 'fl-expandable-editor-close',
+        text: '×',
+        attr: {
+          type: 'button',
+          'aria-label': i18n.t('widgets.common.closeExpandedEdit')
+        }
+      });
+    }
+
+    frame?.addClass('fl-expandable-editor-active');
+
+    closeButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      void closeExpandedEditor();
+    });
+
+    window.requestAnimationFrame(() => {
+      content.focus({ preventScroll: true });
+      placeCaretAtEnd(content);
+    });
   };
 
   const setExpanded = (
@@ -224,7 +503,7 @@ export function createExpandableText(
       content.style.removeProperty('max-height');
       content.style.removeProperty('overflow');
 
-      collapseAction.setCssProps({ display: 'block' });
+      collapseAction?.setCssProps({ display: 'block' });
 
       content.removeClass(
         'fl-expandable-text-preview'
@@ -244,12 +523,21 @@ export function createExpandableText(
       content.setCssProps({ overflow: 'hidden' });
 
       content.addClass('fl-expandable-text-preview');
-      collapseAction.setCssProps({ display: 'none' });
+      collapseAction?.setCssProps({ display: 'none' });
     }
   };
 
   const handleContentClick = (event: MouseEvent): void => {
     if (isEditing) return;
+
+    if (expandedEditing) {
+      // Bloque editable con vista ampliada: un clic abre el
+      // editor a pantalla completa del widget.
+      event.preventDefault();
+      event.stopPropagation();
+      openExpandedEditor();
+      return;
+    }
 
     if (!isExpanded) {
       // Long collapsed content:
@@ -272,30 +560,32 @@ export function createExpandableText(
 
   content.addEventListener('click', handleContentClick);
 
-  const collapseFromAction = (event: MouseEvent): void => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    // Do not leave the content editable while collapsed.
-    if (editable && isEditing) {
-      isEditing = false;
-      content.setAttr('contenteditable', 'false');
-      content.removeClass('is-editing');
-      content.addClass('fl-expandable-text-editable-ready');
-    }
-
-    setExpanded(false, false);
-  };
-
-  collapseAction.addEventListener('click', collapseFromAction);
-
-  collapseAction.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
+  if (collapseAction) {
+    const collapseFromAction = (event: MouseEvent): void => {
       event.preventDefault();
       event.stopPropagation();
-      collapseFromAction(event as unknown as MouseEvent);
-    }
-  });
+
+      // Do not leave the content editable while collapsed.
+      if (editable && isEditing) {
+        isEditing = false;
+        content.setAttr('contenteditable', 'false');
+        content.removeClass('is-editing');
+        content.addClass('fl-expandable-text-editable-ready');
+      }
+
+      setExpanded(false, false);
+    };
+
+    collapseAction.addEventListener('click', collapseFromAction);
+
+    collapseAction.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        event.stopPropagation();
+        collapseFromAction(event as unknown as MouseEvent);
+      }
+    });
+  }
 
   // Automatic expansion does not count as manual expansion.
   setExpanded(isExpanded, false);
@@ -307,7 +597,12 @@ export function createExpandableText(
     expanded: () => isExpanded,
     manuallyExpanded: () => manuallyExpandedState,
     editing: () => isEditing,
-    setExpanded
+    setExpanded,
+    openEditor: () => {
+      if (expandedEditing) {
+        openExpandedEditor();
+      }
+    }
   };
 }
 

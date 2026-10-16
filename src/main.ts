@@ -137,7 +137,7 @@ export default class FolderLabPlugin extends Plugin {
   private viewInstance: FolderLabView | null = null;
   private widgetRegistry: FocusWidgetRegistry | null = null;
   private widgetManager: WidgetManager | null = null;
-  private widgetController: WidgetController;
+  widgetController: WidgetController;
   private boardRepository: BoardRepository | null = null;
   private noteRepository: NoteRepository | null = null;
   private dataStore: PluginDataStore | null = null;

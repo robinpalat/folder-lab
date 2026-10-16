@@ -551,6 +551,9 @@
       "sessionToday": "Today",
       "expand": "Expand",
       "collapse": "Collapse",
+      "closeExpandedEdit": "Close block editing",
+      "expandedEditSaveFailed": "Could not save the block. Your changes remain in the editing view: press × again to retry.",
+      "newBlock": "New block",
       "errorWithMessage": "Error: {message}"
     },
     "defs": {
@@ -678,7 +681,19 @@
       },
       "notice": {
         "created": "Note created",
-        "saved": "Note saved"
+        "saved": "Note saved",
+        "saveFailed": "Could not save the note. The text is kept: press Save again to retry.",
+        "sent": "Note sent"
+      },
+      "session": {
+        "sendTo": "Send to",
+        "back": "Back",
+        "instancesHeader": "Instances",
+        "noInstances": "No compatible instances",
+        "queryHeader": "Browser",
+        "queryWeek": "This week",
+        "queryMonth": "This month",
+        "queryAll": "All"
       }
     },
     "resourcesWidget": {

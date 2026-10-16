@@ -6,7 +6,7 @@ import { FocusWidgetRegistry } from "./FocusWidgetRegistry";
 import { FolderLabController } from "../core/FolderLabController";
 import { FolderLabState } from "../core/FolderLabState";
 import { WidgetManager } from './WidgetManager';
-import { LibraryBrowser } from './LibraryBrowser';
+import type { WidgetController } from './controllers/WidgetController';
 import { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
 import { i18n } from '../i18n/I18nService';
 export class FocusWorkspace {
@@ -37,6 +37,7 @@ export class FocusWorkspace {
   private splitterContainer: HTMLElement | null = null;
   private mainArea: HTMLElement | null = null;
   private widgetManager: WidgetManager;
+  private widgetController: WidgetController | null = null;
   private closeContainer: HTMLElement | null = null;
   private layoutObserver: ResizeObserver | null = null;
   private onBoard: (() => void) | null = null;
@@ -50,6 +51,7 @@ export class FocusWorkspace {
     registry: FocusWidgetRegistry,
     widgetManager: WidgetManager,
     capabilityRegistry: CapabilityRegistry,
+    widgetController: WidgetController,
     onClose: () => void,
     onWidgetActivity?: (
       position: 'top' | 'bottom',
@@ -64,6 +66,7 @@ export class FocusWorkspace {
     this.registry = registry;
     this.widgetManager = widgetManager;
     this.capabilityRegistry = capabilityRegistry;
+    this.widgetController = widgetController;
     this.onClose = onClose;
     this.onWidgetActivity = onWidgetActivity;
     this.onBoard = onBoard ?? null;
@@ -122,7 +125,9 @@ export class FocusWorkspace {
       this.app,
       activeFile,
       this.controller,
-      this.state
+      this.state,
+      this.widgetManager,
+      this.widgetController ?? undefined
     );
 
     const layout = this.widgetManager.getLayout();
@@ -182,10 +187,21 @@ export class FocusWorkspace {
     );
     this.bottomPane.render();
 
-    // 5. Botón Cerrar
+    // 5. Controles inferiores: [Cerrar] [Board]
     this.closeContainer = this.mainArea.createEl('div', {
       cls: 'fl-context-close'
     });
+
+    const closeBtn = this.closeContainer.createEl('button', {
+      cls: 'fl-context-close-btn',
+      text: i18n.t('focus.workspace.close')
+    });
+
+    closeBtn.onclick = () => {
+      if (this.onClose) {
+        this.onClose();
+      }
+    };
 
     const boardBtn = this.closeContainer.createEl('button', {
       cls: 'fl-context-board-btn'
@@ -204,32 +220,6 @@ export class FocusWorkspace {
       }
     };
 
-    const closeBtn = this.closeContainer.createEl('button', {
-      cls: 'fl-context-close-btn',
-      text: i18n.t('focus.workspace.close')
-    });
-
-    closeBtn.onclick = () => {
-      if (this.onClose) {
-        this.onClose();
-      }
-    };
-
-
-    const libraryBtn = this.closeContainer.createEl('button', {
-      cls: 'fl-context-library-btn'
-    });
-
-    setIcon(libraryBtn, 'library');
-
-    libraryBtn.createSpan({
-      cls: 'fl-context-library-label',
-      text: i18n.t('focus.workspace.library')
-    });
-
-    libraryBtn.onclick = () => {
-      this.openLibrary();
-    };
     this.updatePaneHeights(initialRatio);
 
     // Si cambia el tamaño del panel de Obsidian, recalcular la geometría.
@@ -241,17 +231,6 @@ export class FocusWorkspace {
     this.layoutObserver.observe(this.mainArea);
   }
 
-
-  private openLibrary(): void {
-    const browser = new LibraryBrowser(
-      this.app,
-      this.registry,
-      this.capabilityRegistry,
-      this.widgetManager
-    );
-
-    browser.open();
-  }
 
   // ============================================================
   // MANEJADOR DE CAMBIO DE WIDGET

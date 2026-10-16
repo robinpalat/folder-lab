@@ -51,11 +51,6 @@
           "type": "status",
           "id": "counter",
           "metric": "total"
-        },
-        {
-          "type": "icon-action",
-          "id": "clear",
-          "icon": "trash-2"
         }
       ],
       "itemActions": [
@@ -108,7 +103,7 @@
             "text"
           ],
           "renderer": "expandable-text",
-          "editable": false,
+          "editable": true,
           "expandable": true,
           "previewLines": 3
         }
@@ -133,14 +128,14 @@
           "type": "widget-selector"
         },
         {
+          "type": "icon-action",
+          "id": "new",
+          "icon": "plus"
+        },
+        {
           "type": "status",
           "id": "counter",
           "metric": "total"
-        },
-        {
-          "type": "icon-action",
-          "id": "clear",
-          "icon": "trash-2"
         }
       ],
       "itemActions": [
@@ -193,7 +188,7 @@
             "text"
           ],
           "renderer": "expandable-text",
-          "editable": false,
+          "editable": true,
           "expandable": true,
           "previewLines": 3
         }
@@ -218,14 +213,14 @@
           "type": "widget-selector"
         },
         {
+          "type": "icon-action",
+          "id": "new",
+          "icon": "plus"
+        },
+        {
           "type": "status",
           "id": "counter",
           "metric": "active"
-        },
-        {
-          "type": "icon-action",
-          "id": "clear",
-          "icon": "trash-2"
         }
       ],
       "itemActions": [
@@ -283,7 +278,7 @@
             "text"
           ],
           "renderer": "expandable-text",
-          "editable": false,
+          "editable": true,
           "expandable": true,
           "previewLines": 3
         }
@@ -308,14 +303,14 @@
           "type": "widget-selector"
         },
         {
+          "type": "icon-action",
+          "id": "new",
+          "icon": "plus"
+        },
+        {
           "type": "status",
           "id": "counter",
           "metric": "total"
-        },
-        {
-          "type": "icon-action",
-          "id": "clear",
-          "icon": "trash-2"
         }
       ],
       "itemActions": [
@@ -393,14 +388,14 @@
           "type": "widget-selector"
         },
         {
+          "type": "icon-action",
+          "id": "new",
+          "icon": "plus"
+        },
+        {
           "type": "status",
           "id": "counter",
           "metric": "pending"
-        },
-        {
-          "type": "icon-action",
-          "id": "clear-completed",
-          "icon": "trash-2"
         }
       ],
       "itemActions": [
@@ -413,12 +408,6 @@
           "type": "delete"
         }
       ],
-      "input": {
-        "text": {
-          "enabled": true,
-          "placeholder": "Nueva tarea..."
-        }
-      },
       "transfer": {
         "inputs": [
           "text"
