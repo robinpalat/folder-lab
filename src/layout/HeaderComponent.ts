@@ -66,31 +66,31 @@ export class HeaderComponent {
       this.element.remove();
     }
 
-    this.element = this.container.createEl('div', { cls: 'folder-lab-header' });
+    this.element = this.container.createDiv({ cls: 'folder-lab-header' });
 
     // ============================================================
     // BLOQUE 1: TOP SECTION
     // ============================================================
-    this.topSection = this.element.createEl('div', { cls: 'folder-lab-top-section' });
+    this.topSection = this.element.createDiv({ cls: 'folder-lab-top-section' });
 
-    this.titleBlock = this.topSection.createEl('div', {
+    this.titleBlock = this.topSection.createDiv({
       cls: 'folder-lab-title-block'
     });
 
-    this.folderTitle = this.titleBlock.createEl('div', {
+    this.folderTitle = this.titleBlock.createDiv({
       cls: 'folder-lab-folder-title'
     });
 
-    this.statistics = this.titleBlock.createEl('div', {
+    this.statistics = this.titleBlock.createDiv({
       cls: 'folder-lab-statistics'
     });
     this.statistics.textContent = i18n.t('stats.headerPlaceholder');
 
-    this.rightControl = this.topSection.createEl('div', {
+    this.rightControl = this.topSection.createDiv({
       cls: 'folder-lab-right-control'
     });
 
-    this.iconWrapper = this.rightControl.createEl('span', {
+    this.iconWrapper = this.rightControl.createSpan({
       cls: 'folder-lab-title-icon is-hidden'
     });
     setIcon(this.iconWrapper, 'book-open');
@@ -111,9 +111,9 @@ export class HeaderComponent {
     // ============================================================
     // BLOQUE 2: TOOLBAR
     // ============================================================
-    this.toolbar = this.element.createEl('div', { cls: 'folder-lab-toolbar' });
+    this.toolbar = this.element.createDiv({ cls: 'folder-lab-toolbar' });
 
-    this.leftGroup = this.toolbar.createEl('div', {
+    this.leftGroup = this.toolbar.createDiv({
       cls: 'folder-lab-toolbar-group-left'
     });
 
@@ -147,7 +147,7 @@ wordBtn.onclick = () => this.controller.countWords();
 
 this.wordCountBtn = wordBtn;
 
-    this.rightGroup = this.toolbar.createEl('div', {
+    this.rightGroup = this.toolbar.createDiv({
       cls: 'folder-lab-toolbar-group-right'
     });
 

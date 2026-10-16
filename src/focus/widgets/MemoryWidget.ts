@@ -424,7 +424,7 @@ this.contextResolver = new ContextResolver(
   private renderContent(): void {
     if (!this.container) return;
 
-    const contentWrapper = this.container.createEl('div', {
+    const contentWrapper = this.container.createDiv({
       cls: 'fl-widget-content fl-widget-content-expanded fl-memory-content-wrapper'
     });
 
@@ -432,7 +432,7 @@ this.contextResolver = new ContextResolver(
     // PANEL CAPTURE
     // ============================================================
 
-    const capturePanel = contentWrapper.createEl('div', {
+    const capturePanel = contentWrapper.createDiv({
       cls: 'fl-memory-capture-panel'
     });
     capturePanel.toggleClass(
@@ -444,7 +444,7 @@ this.contextResolver = new ContextResolver(
     // RESPUESTA ACTUAL
     // ------------------------------------------------------------
 
-    this.responseArea = capturePanel.createEl('div', {
+    this.responseArea = capturePanel.createDiv({
       cls: 'fl-memory-response-area'
     });
 
@@ -456,7 +456,7 @@ this.contextResolver = new ContextResolver(
         this.responseArea
       );
     } else {
-      this.responseArea.createEl('div', {
+      this.responseArea.createDiv({
         cls: 'fl-widget-result-placeholder',
         text: i18n.t('widgets.memory.placeholder.result')
       });
@@ -480,7 +480,7 @@ this.contextResolver = new ContextResolver(
     // PANEL TODAY
     // ============================================================
 
-    const todayPanel = contentWrapper.createEl('div', {
+    const todayPanel = contentWrapper.createDiv({
       cls: 'fl-memory-today-panel'
     });
     todayPanel.toggleClass(
@@ -488,7 +488,7 @@ this.contextResolver = new ContextResolver(
       this.sessionView !== 'today'
     );
 
-    this.resultContainer = todayPanel.createEl('div', {
+    this.resultContainer = todayPanel.createDiv({
       cls: 'fl-memory-results'
     });
 
@@ -511,7 +511,7 @@ this.contextResolver = new ContextResolver(
     this.resultContainer.empty();
 
     if (this.results.length === 0) {
-      this.resultContainer.createEl('div', {
+      this.resultContainer.createDiv({
         cls: 'fl-widget-empty-text',
         text: i18n.t('widgets.memory.empty.noSavedResponses')
       });
@@ -704,11 +704,11 @@ this.contextResolver = new ContextResolver(
   }
 
   private renderMessage(text: string): void {
-    const empty = this.container!.createEl('div', {
+    const empty = this.container!.createDiv({
       cls: 'fl-widget-empty'
     });
 
-    empty.createEl('div', {
+    empty.createDiv({
       cls: 'fl-widget-empty-text',
       text
     });
@@ -749,7 +749,7 @@ this.contextResolver = new ContextResolver(
       // Limpiar el contenido anterior del área de respuesta.
       this.responseArea.empty();
 
-      loadingEl = this.responseArea.createEl('div', {
+      loadingEl = this.responseArea.createDiv({
         cls: 'fl-widget-result-placeholder fl-widget-loading-dots',
         text: i18n.t('widgets.memory.status.processing')
       });
@@ -892,7 +892,7 @@ this.contextResolver = new ContextResolver(
   private showResultMessage(message: string): void {
     if (!this.resultContainer) return;
 
-    this.resultContainer.createEl('div', {
+    this.resultContainer.createDiv({
       cls: 'fl-memory-result-error',
       text: message
     });

@@ -648,11 +648,11 @@ export class FolderLabView extends ItemView {
     container.empty();
     container.addClass('folder-lab-view');
 
-    this.explorerContainer = container.createEl('div', {
+    this.explorerContainer = container.createDiv({
       cls: 'folder-lab-explorer-mode'
     });
 
-    this.focusContainer = container.createEl('div', {
+    this.focusContainer = container.createDiv({
       cls: 'folder-lab-focus-mode is-hidden'
     });
 
@@ -855,7 +855,7 @@ export class FolderLabView extends ItemView {
       return;
     }
 
-    this.headerContainer = container.createEl('div', {
+    this.headerContainer = container.createDiv({
       cls: 'folder-lab-header-wrapper'
     });
 
@@ -867,11 +867,11 @@ export class FolderLabView extends ItemView {
     this.headerComponent.render();
     this.headerComponent.setFilterMenu(this.filterMenu);
 
-    this.listContainer = container.createEl('div', {
+    this.listContainer = container.createDiv({
       cls: 'folder-lab-list-wrapper'
     });
 
-    this.noteAreaContainer = container.createEl('div', {
+    this.noteAreaContainer = container.createDiv({
       cls: 'folder-lab-notearea-wrapper'
     });
 

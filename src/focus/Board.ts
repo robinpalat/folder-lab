@@ -176,7 +176,7 @@ export class Board
      */
     this.renderModeBar();
 
-    this.contentHost = this.container.createEl('div', {
+    this.contentHost = this.container.createDiv({
       cls: 'fl-board-mode-content'
     });
 
@@ -231,7 +231,7 @@ export class Board
   private renderModeBar(): void {
     if (!this.container) return;
 
-    const bar = this.container.createEl('div', {
+    const bar = this.container.createDiv({
       cls: 'fl-board-mode-bar'
     });
 
@@ -439,11 +439,11 @@ export class Board
      * persistidas de las tarjetas no cambian: siguen siendo
      * relativas al blockLayer dentro del surface.
      */
-    const explore = this.contentHost.createEl('div', {
+    const explore = this.contentHost.createDiv({
       cls: 'fl-board-explore'
     });
 
-    this.surface = explore.createEl('div', {
+    this.surface = explore.createDiv({
       cls: 'fl-board-surface'
     });
 
@@ -452,11 +452,11 @@ export class Board
       attr: { 'aria-hidden': 'true' }
     });
 
-    this.blockLayer = this.surface.createEl('div', {
+    this.blockLayer = this.surface.createDiv({
       cls: 'fl-board-card-grid'
     });
 
-    this.emptyState = this.surface.createEl('div', {
+    this.emptyState = this.surface.createDiv({
       cls: 'fl-board-empty-state',
       text: i18n.t('board.explore.emptyHint')
     });
@@ -690,7 +690,7 @@ export class Board
   private renderContextHeader(): void {
     if (!this.container) return;
 
-    this.contextHeader = this.container.createEl('div', {
+    this.contextHeader = this.container.createDiv({
       cls: 'fl-board-context-header'
     });
 
@@ -755,7 +755,7 @@ export class Board
     header.empty();
 
     // ---- Franja 1: Contexto | nota activa ----
-    const titleRow = header.createEl('div', {
+    const titleRow = header.createDiv({
       cls: 'fl-board-context-title-row'
     });
 
@@ -777,12 +777,12 @@ export class Board
     });
 
     // ---- Franja 2: indicadores ----
-    const groups = header.createEl('div', {
+    const groups = header.createDiv({
       cls: 'fl-board-context-groups'
     });
 
     const addSeparator = (): void => {
-      groups.createEl('span', {
+      groups.createSpan({
         cls: 'fl-ctx-separator',
         attr: { 'aria-hidden': 'true' }
       });
@@ -793,11 +793,11 @@ export class Board
       typeId: string,
       countsLine: string
     ): void => {
-      const group = groups.createEl('div', {
+      const group = groups.createDiv({
         cls: 'fl-board-context-group'
       });
 
-      const labelRow = group.createEl('div', {
+      const labelRow = group.createDiv({
         cls: 'fl-ctx-group-label'
       });
 
@@ -806,7 +806,7 @@ export class Board
        * color semántico — mismo mecanismo que las tarjetas
        * (applyWidgetIdentity).
        */
-      const iconSpan = labelRow.createEl('span', {
+      const iconSpan = labelRow.createSpan({
         cls: 'fl-ctx-icon'
       });
 
@@ -816,12 +816,12 @@ export class Board
 
       const names = instanceNames[typeId as keyof typeof instanceNames];
 
-      group.createEl('div', {
+      group.createDiv({
         cls: 'fl-ctx-instances',
         text: names.length > 0 ? names.join(' · ') : i18n.t('board.context.noLists')
       });
 
-      group.createEl('div', {
+      group.createDiv({
         cls: 'fl-ctx-counts',
         text: countsLine
       });
@@ -897,9 +897,9 @@ export class Board
     }
 
     for (const block of this.blocks) {
-      const card = this.blockLayer.querySelector(
+      const card: HTMLElement | null = this.blockLayer.querySelector(
         `[data-board-block-id="${block.id}"]`
-      ) as HTMLElement | null;
+      );
 
       const label = card?.querySelector(
         '.fl-board-block-badge-label'
@@ -942,7 +942,7 @@ export class Board
 
     let moved = false;
 
-    const marquee = layer.createEl('div', {
+    const marquee = layer.createDiv({
       cls: 'fl-board-marquee'
     });
 
@@ -1149,7 +1149,7 @@ export class Board
       return;
     }
 
-    const box = layer.createEl('div', {
+    const box = layer.createDiv({
       cls: 'fl-board-group-box'
     });
 
@@ -1160,7 +1160,7 @@ export class Board
     box.style.width = `${group.w ?? 0}px`;
     box.style.height = `${group.h ?? 0}px`;
 
-    const header = box.createEl('div', {
+    const header = box.createDiv({
       cls: 'fl-board-group-header'
     });
 
@@ -1575,11 +1575,11 @@ export class Board
       card.addClass('is-block-inactive');
     }
 
-    const header = card.createEl('div', {
+    const header = card.createDiv({
       cls: 'fl-board-block-header'
     });
 
-    const badge = header.createEl('div', {
+    const badge = header.createDiv({
       cls: 'fl-board-block-badge'
     });
 
@@ -1611,7 +1611,7 @@ export class Board
      * activo/inactivo (mismo patrón que los bloques de widgets).
      * El cierre (×) se traslada al pie de la tarjeta.
      */
-    const controls = header.createEl('div', {
+    const controls = header.createDiv({
       cls: 'fl-board-block-controls'
     });
 
@@ -1626,7 +1626,7 @@ export class Board
       }
     });
 
-    const indicator = indicatorButton.createEl('span', {
+    const indicator = indicatorButton.createSpan({
       cls: 'fl-board-block-indicator'
     });
 
@@ -1644,7 +1644,7 @@ export class Board
       (event) => this.startBlockMove(event, block, card)
     );
 
-    const content = card.createEl('div', {
+    const content = card.createDiv({
       cls: 'fl-board-text-card-content is-compact',
       text: block.text
     });
@@ -1654,7 +1654,7 @@ export class Board
      * cambios de longitud/expansión):
      *   [Ver más/Ver menos] [Punto conector centrado] [Cerrar ×]
      */
-    const actions = card.createEl('div', {
+    const actions = card.createDiv({
       cls: 'fl-board-text-card-actions'
     });
 
@@ -2456,9 +2456,9 @@ export class Board
     let maxBottom = surface.clientHeight;
 
     for (const block of this.blocks) {
-      const element = blockLayer.querySelector(
+      const element: HTMLElement | null = blockLayer.querySelector(
         `[data-board-block-id="${block.id}"]`
-      ) as HTMLElement | null;
+      );
 
       const width = element?.offsetWidth ?? 240;
       const height = element?.offsetHeight ?? 120;

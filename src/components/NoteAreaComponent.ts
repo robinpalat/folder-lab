@@ -33,7 +33,7 @@ export class NoteAreaComponent {
     // ÁREA DE APUNTES
     // ============================================================
 
-    this.element = this.container.createEl('div', {
+    this.element = this.container.createDiv({
       cls: 'folder-order-note-wrapper'
     });
 

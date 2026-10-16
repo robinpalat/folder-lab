@@ -71,7 +71,7 @@ export class WordCountModal extends Modal {
     }
 
     // Estadísticas principales
-    const stats = contentEl.createEl('div', { cls: 'word-count-stats' });
+    const stats = contentEl.createDiv({ cls: 'word-count-stats' });
 
     this.createStatItem(stats, this.result.totalWords.toLocaleString(), i18n.t('modal.wordCount.stat.totalWords'));
     this.createStatItem(stats, this.result.totalNotes.toLocaleString(), i18n.t('modal.wordCount.stat.notes'));
@@ -79,7 +79,7 @@ export class WordCountModal extends Modal {
 
     // Meta de escritura del libro
     if (this.options) {
-      this.goalSection = contentEl.createEl('div', {
+      this.goalSection = contentEl.createDiv({
         cls: 'word-count-goal'
       });
       this.renderGoalSection();
@@ -89,13 +89,13 @@ export class WordCountModal extends Modal {
     if (this.result.details.length > 0) {
       contentEl.createEl('h4', { text: i18n.t('modal.wordCount.detailsHeading') });
 
-      const detailList = contentEl.createEl('div', { cls: 'word-count-details' });
+      const detailList = contentEl.createDiv({ cls: 'word-count-details' });
 
       for (const item of this.result.details) {
-        const row = detailList.createEl('div', { cls: 'word-count-row' });
+        const row = detailList.createDiv({ cls: 'word-count-row' });
 
-        row.createEl('span', { text: item.name });
-        row.createEl('span', {
+        row.createSpan({ text: item.name });
+        row.createSpan({
           text: item.words.toLocaleString(),
           cls: 'word-count-count'
         });
@@ -109,7 +109,7 @@ export class WordCountModal extends Modal {
    * y se muestra el error junto al botón.
    */
   private renderRefreshRow(parent: HTMLElement): void {
-    const row = parent.createEl('div', {
+    const row = parent.createDiv({
       cls: 'word-count-refresh'
     });
 
@@ -118,7 +118,7 @@ export class WordCountModal extends Modal {
       attr: { 'aria-label': i18n.t('modal.wordCount.refreshButtonAria') }
     });
 
-    const errorSpan = row.createEl('span', {
+    const errorSpan = row.createSpan({
       cls: 'word-count-refresh-error'
     });
 
@@ -168,15 +168,15 @@ export class WordCountModal extends Modal {
       return;
     }
 
-    const goalBox = section.createEl('div', {
+    const goalBox = section.createDiv({
       cls: 'word-count-goal-box'
     });
 
-    const headerRow = goalBox.createEl('div', {
+    const headerRow = goalBox.createDiv({
       cls: 'word-count-goal-header'
     });
 
-    headerRow.createEl('span', {
+    headerRow.createSpan({
       text: i18n.t('modal.wordCount.goalTitle'),
       cls: 'word-count-goal-title'
     });
@@ -191,7 +191,7 @@ export class WordCountModal extends Modal {
     setIcon(gear, 'settings');
     gear.onclick = () => this.renderGoalEditor(goal);
 
-    const rows = goalBox.createEl('div');
+    const rows = goalBox.createDiv();
     this.createStatRow(rows, i18n.t('modal.wordCount.goalWords'), goal.toLocaleString());
     this.createStatRow(rows, i18n.t('modal.wordCount.currentWords'), this.result.totalWords.toLocaleString());
 
@@ -211,7 +211,7 @@ export class WordCountModal extends Modal {
 
     section.empty();
 
-    const editor = section.createEl('div', {
+    const editor = section.createDiv({
       cls: 'word-count-goal-editor'
     });
 
@@ -232,7 +232,7 @@ export class WordCountModal extends Modal {
       input.value = String(currentGoal);
     }
 
-    const actions = editor.createEl('div', {
+    const actions = editor.createDiv({
       cls: 'fl-modal-actions word-count-goal-editor-actions'
     });
 
@@ -276,17 +276,17 @@ export class WordCountModal extends Modal {
   // ============================================================
 
   private createStatItem(parent: HTMLElement, number: string, label: string): void {
-    const div = parent.createEl('div', { cls: 'word-count-stat-item' });
+    const div = parent.createDiv({ cls: 'word-count-stat-item' });
 
-    div.createEl('div', { text: number, cls: 'word-count-number' });
-    div.createEl('div', { text: label, cls: 'word-count-label' });
+    div.createDiv({ text: number, cls: 'word-count-number' });
+    div.createDiv({ text: label, cls: 'word-count-label' });
   }
 
   private createStatRow(parent: HTMLElement, label: string, value: string): void {
-    const row = parent.createEl('div', { cls: 'word-count-row' });
+    const row = parent.createDiv({ cls: 'word-count-row' });
 
-    row.createEl('span', { text: label });
-    row.createEl('span', { text: value, cls: 'word-count-goal-value' });
+    row.createSpan({ text: label });
+    row.createSpan({ text: value, cls: 'word-count-goal-value' });
   }
 
   onClose() {

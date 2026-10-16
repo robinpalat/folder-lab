@@ -102,15 +102,15 @@ class FolderSelectModal extends Modal {
       return;
     }
 
-    const list = contentEl.createEl('div', { cls: 'folder-select-list' });
+    const list = contentEl.createDiv({ cls: 'folder-select-list' });
 
     for (const folder of this.folders) {
-      const item = list.createEl('div', { cls: 'folder-select-item' });
+      const item = list.createDiv({ cls: 'folder-select-item' });
 
-      const icon = item.createEl('span');
+      const icon = item.createSpan();
       setIcon(icon, 'folder');
 
-      item.createEl('span', { text: folder });
+      item.createSpan({ text: folder });
 
       item.onclick = () => {
         this.close();
@@ -385,7 +385,7 @@ export default class FolderLabPlugin extends Plugin {
           .listAllPending()
           .then((candidates) => {
             if (candidates.length === 0) {
-              new Notice('Folder Lab: no hay datos pendientes.');
+              new Notice('No hay datos pendientes.');
               return;
             }
             if (candidates.length === 1) {
@@ -399,7 +399,7 @@ export default class FolderLabPlugin extends Plugin {
                     );
                   } else {
                     new Notice(
-                      'Folder Lab: el reclamo directo no se pudo completar.'
+                      'El reclamo directo no se pudo completar.'
                     );
                   }
                 });
@@ -428,7 +428,7 @@ export default class FolderLabPlugin extends Plugin {
         const rootPathFn = () => normalizeRootPath(this.settings.bookRootPath);
         const manager = this.getQuarantineManager();
         if (!registry || !manager) {
-          new Notice('Folder Lab: identidad no inicializada.');
+          new Notice('Identidad no inicializada.');
           return;
         }
         const deps = {
@@ -443,10 +443,10 @@ export default class FolderLabPlugin extends Plugin {
           .then((outcome) => {
             switch (outcome.status) {
               case 'no-master':
-                new Notice('Folder Lab: Master no configurado.');
+                new Notice('Master no configurado.');
                 break;
               case 'no-candidates':
-                new Notice('Folder Lab: no hay datos huérfanos elegibles.');
+                new Notice('No hay datos huérfanos elegibles.');
                 break;
               case 'error':
                 new Notice(`Folder Lab: auditoría fallida (${outcome.error}).`);
@@ -471,7 +471,7 @@ export default class FolderLabPlugin extends Plugin {
           })
           .catch((error) => {
             console.error('[FolderLab] Comando de cuarentena fallido:', error);
-            new Notice('Folder Lab: error al preparar la cuarentena.');
+            new Notice('Error al preparar la cuarentena.');
           });
       }
     });
@@ -486,7 +486,7 @@ export default class FolderLabPlugin extends Plugin {
         const rootPathFn = () => normalizeRootPath(this.settings.bookRootPath);
         const manager = this.getQuarantineManager();
         if (!manager) {
-          new Notice('Folder Lab: identidad no inicializada.');
+          new Notice('Identidad no inicializada.');
           return;
         }
         const deps = {
@@ -498,11 +498,11 @@ export default class FolderLabPlugin extends Plugin {
           .then((outcome) => {
             switch (outcome.status) {
               case 'no-master':
-                new Notice('Folder Lab: Master no configurado.');
+                new Notice('Master no configurado.');
                 break;
               case 'no-entries':
                 new Notice(
-                  'Folder Lab: no hay datos en cuarentena pendientes de restaurar.'
+                  'No hay datos en cuarentena pendientes de restaurar.'
                 );
                 break;
               case 'error':
@@ -527,7 +527,7 @@ export default class FolderLabPlugin extends Plugin {
           })
           .catch((error) => {
             console.error('[FolderLab] Comando de restauración fallido:', error);
-            new Notice('Folder Lab: error al preparar la restauración.');
+            new Notice('Error al preparar la restauración.');
           });
       }
     });
@@ -1116,7 +1116,7 @@ class FolderLabSettingTab extends PluginSettingTab {
     // ============================================================
     // CONFIGURACIÓN DE PROPIEDADES
     // ============================================================
-    propertySettingsContainer = containerEl.createEl('div', {
+    propertySettingsContainer = containerEl.createDiv({
       cls: 'folder-lab-property-settings'
     });
     propertySettingsContainer.toggleClass(
@@ -1150,7 +1150,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.properties.title.name'))
       .setDesc(i18n.t('settings.properties.title.desc'))
       .addText(text => text
-        .setPlaceholder('title')
+        .setPlaceholder('Title')
         .setValue(mapping.title || 'title')
         .onChange(async (value) => {
           this.plugin.settings.navigationPropertyMapping.title = value || 'title';
@@ -1162,7 +1162,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.properties.parent.name'))
       .setDesc(i18n.t('settings.properties.parent.desc'))
       .addText(text => text
-        .setPlaceholder('parent')
+        .setPlaceholder('Parent')
         .setValue(mapping.parent || 'parent')
         .onChange(async (value) => {
           this.plugin.settings.navigationPropertyMapping.parent = value || 'parent';
@@ -1174,7 +1174,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.properties.order.name'))
       .setDesc(i18n.t('settings.properties.order.desc'))
       .addText(text => text
-        .setPlaceholder('nav_order')
+        .setPlaceholder('Nav_order')
         .setValue(mapping.order || 'nav_order')
         .onChange(async (value) => {
           this.plugin.settings.navigationPropertyMapping.order = value || 'nav_order';
@@ -1186,7 +1186,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.properties.hasChildren.name'))
       .setDesc(i18n.t('settings.properties.hasChildren.desc'))
       .addText(text => text
-        .setPlaceholder('has_children')
+        .setPlaceholder('Has_children')
         .setValue(mapping.hasChildren || 'has_children')
         .onChange(async (value) => {
           this.plugin.settings.navigationPropertyMapping.hasChildren = value || 'has_children';
@@ -1198,7 +1198,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.properties.permalink.name'))
       .setDesc(i18n.t('settings.properties.permalink.desc'))
       .addText(text => text
-        .setPlaceholder('permalink')
+        .setPlaceholder('Permalink')
         .setValue(mapping.permalink || 'permalink')
         .onChange(async (value) => {
           this.plugin.settings.navigationPropertyMapping.permalink = value || 'permalink';
@@ -1210,7 +1210,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.ignoredFolders.name'))
       .setDesc(i18n.t('settings.ignoredFolders.desc'))
       .addTextArea(text => text
-        .setPlaceholder('assets')
+        .setPlaceholder('Assets')
         .setValue((mapping.ignoredFolders ?? []).join(', '))
         .onChange(async (value) => {
           const previous =
@@ -1407,11 +1407,15 @@ class FolderLabSettingTab extends PluginSettingTab {
             if (result.success) {
               new Notice(`✅ ${result.message}`);
               button.setButtonText(i18n.t('settings.ai.testConnection.connected'));
-              window.setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
+              window.setTimeout(() => {
+                button.setButtonText(i18n.t('settings.ai.testConnection.button'));
+              }, 3000);
             } else {
               new Notice(`❌ ${result.message}`);
               button.setButtonText(i18n.t('settings.ai.testConnection.error'));
-              window.setTimeout(() => button.setButtonText(i18n.t('settings.ai.testConnection.button')), 3000);
+              window.setTimeout(() => {
+                button.setButtonText(i18n.t('settings.ai.testConnection.button'));
+              }, 3000);
             }
           });
       });
@@ -1422,7 +1426,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.ai.help.heading'))
       .setHeading();
 
-    const helpDiv = containerEl.createEl('div', { cls: 'fl-settings-help' });
+    const helpDiv = containerEl.createDiv({ cls: 'fl-settings-help' });
 
     const provider = this.plugin.settings.aiProvider || 'openai';
     const helpLinks: Record<string, string> = {

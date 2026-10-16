@@ -72,7 +72,7 @@ export class NoteItemRenderer {
     const hasStatus = !isEmpty && item.status && item.status !== '';
     const currentPath = this.controller.getCurrentPath() || '';
 
-    const el = container.createEl('div', {
+    const el = container.createDiv({
       cls: 'folder-lab-item',
       attr: {
         'data-index': index.toString(),
@@ -131,7 +131,7 @@ export class NoteItemRenderer {
     // ============================================================
 
     if (isSpecial) {
-      const refreshBtn = el.createEl('span', {
+      const refreshBtn = el.createSpan({
         cls: 'folder-lab-special-refresh'
       });
       setIcon(refreshBtn, 'refresh-cw');
@@ -145,7 +145,7 @@ export class NoteItemRenderer {
         document.dispatchEvent(event);
       };
     } else if (showNumber) {
-      const numSpan = el.createEl('span', { cls: 'fo-number' });
+      const numSpan = el.createSpan({ cls: 'fo-number' });
       let num = '';
       if (numberingStyle === 'roman') {
         num = toRoman(index + 1) + '.';
@@ -159,7 +159,7 @@ export class NoteItemRenderer {
     // NOMBRE
     // ============================================================
 
-    const nameSpan = el.createEl('span', {
+    const nameSpan = el.createSpan({
       cls: 'folder-lab-name'
     });
 
@@ -170,8 +170,8 @@ export class NoteItemRenderer {
     // ============================================================
 
     if (!isSpecial) {
-      const statusContainer = el.createEl('span', { cls: 'folder-lab-status' });
-      const icon = statusContainer.createEl('span', { cls: 'icon' });
+      const statusContainer = el.createSpan({ cls: 'folder-lab-status' });
+      const icon = statusContainer.createSpan({ cls: 'icon' });
 
       if (isEmpty) {
         setIcon(icon, 'alert-circle');

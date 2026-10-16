@@ -78,7 +78,7 @@ constructor(
     const menu = new Menu();
     
     menu.addItem((item) => {
-      item.setTitle('Copiar indice (TXT)')
+      item.setTitle('Copiar índice (txt)')
         .setIcon('copy')
         .onClick(() => this.exportOrderList(folderPath, 'txt', true));
     });
@@ -220,7 +220,7 @@ constructor(
    */
   async exportAllSubfolderNotes(_folderPath: string): Promise<void> {
     // TODO: Implementar exportación recursiva de todas las subcarpetas
-    new Notice('Exportando todas las subcarpetas... (próximamente)');
+    new Notice('Exportando todas las subcarpetas... (Próximamente)');
   }
 
   // ============================================================

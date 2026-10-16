@@ -52,11 +52,11 @@ export class FocusSplitter {
     // FocusWorkspace. Todo el aspecto visual lo controla el CSS.
     this.container.classList.add('focus-splitter-container');
 
-    this.element = this.container.createEl('div', {
+    this.element = this.container.createDiv({
       cls: 'focus-splitter'
     });
 
-    this.handle = this.element.createEl('div', {
+    this.handle = this.element.createDiv({
       cls: 'focus-splitter-handle'
     });
 

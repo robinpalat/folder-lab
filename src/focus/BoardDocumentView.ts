@@ -56,16 +56,16 @@ export class BoardDocumentView {
     );
 
     if (nodes.length === 0 || !hasAnyActiveAssignment) {
-      const empty = container.createEl('div', {
+      const empty = container.createDiv({
         cls: 'fl-doc-empty'
       });
 
-      empty.createEl('div', {
+      empty.createDiv({
         cls: 'fl-doc-empty-title',
         text: i18n.t('board.document.empty.title')
       });
 
-      empty.createEl('div', {
+      empty.createDiv({
         cls: 'fl-doc-empty-hint',
         text: i18n.t('board.document.empty.hint')
       });
@@ -123,7 +123,7 @@ export class BoardDocumentView {
     host: BoardDocumentHost,
     block: BoardBlock
   ): void {
-    const paragraph = container.createEl('div', {
+    const paragraph = container.createDiv({
       cls: 'fl-doc-paragraph'
     });
 
@@ -138,7 +138,7 @@ export class BoardDocumentView {
       paragraph.addClass('has-override');
     }
 
-    const text = paragraph.createEl('div', {
+    const text = paragraph.createDiv({
       cls: 'fl-doc-paragraph-text',
       text: host.getDisplayedText(block)
     });
@@ -173,7 +173,7 @@ export class BoardDocumentView {
       this.refreshParagraphControls(paragraph, host, block);
     });
 
-    const controls = paragraph.createEl('div', {
+    const controls = paragraph.createDiv({
       cls: 'fl-doc-paragraph-controls'
     });
 
@@ -200,7 +200,7 @@ export class BoardDocumentView {
     });
 
     if (!override) {
-      controls.createEl('span', {
+      controls.createSpan({
         cls: 'fl-doc-version-badge is-original',
         text: i18n.t('board.document.badge.original')
       });
@@ -243,9 +243,9 @@ export class BoardDocumentView {
     host: BoardDocumentHost,
     block: BoardBlock
   ): void {
-    const controls = paragraph.querySelector(
+    const controls: HTMLElement | null = paragraph.querySelector(
       '.fl-doc-paragraph-controls'
-    ) as HTMLElement | null;
+    );
 
     if (!controls) {
       return;

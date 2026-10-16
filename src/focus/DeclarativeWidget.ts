@@ -525,7 +525,7 @@ export class DeclarativeWidget
         this.dropCleanup = null;
 
         const wrapper =
-            this.container.createEl('div', {
+            this.container.createDiv({
                 cls: 'fl-widget-content-expanded'
             });
 
@@ -534,17 +534,17 @@ export class DeclarativeWidget
         }
 
         const listWrapper =
-            wrapper.createEl('div', {
+            wrapper.createDiv({
                 cls: 'fl-focus-list-wrapper'
             });
 
         this.listElement =
-            listWrapper.createEl('div', {
+            listWrapper.createDiv({
                 cls: 'fl-focus-list'
             });
 
         this.emptyElement =
-            listWrapper.createEl('div', {
+            listWrapper.createDiv({
                 cls:
                     'fl-widget-result-placeholder',
 
@@ -676,7 +676,7 @@ const item = {
     ): void {
 
         const inputArea =
-            container.createEl('div', {
+            container.createDiv({
                 cls: 'fl-tasks-input-area'
             });
 
@@ -1291,9 +1291,9 @@ const item: WidgetRecord = {
             return;
         }
 
-        this.container.createEl('div', {
+        this.container.createDiv({
             cls: 'fl-widget-empty'
-        }).createEl('div', {
+        }).createDiv({
             cls: 'fl-widget-empty-text',
             text
         });

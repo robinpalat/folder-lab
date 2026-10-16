@@ -748,9 +748,8 @@ export class NotesWidget implements FocusWidget {
     todayPanel.addClass("is-hidden");
     capturePanel.removeClass("is-hidden");
 
-    const editor = capturePanel.querySelector(
-      ".fl-notes-capture-editor"
-    ) as HTMLTextAreaElement | null;
+    const editor: HTMLTextAreaElement | null =
+      capturePanel.querySelector(".fl-notes-capture-editor");
 
     if (editor) {
       window.requestAnimationFrame(() => {
@@ -766,7 +765,7 @@ export class NotesWidget implements FocusWidget {
   private renderContent(): void {
     if (!this.container) return;
 
-    const contentWrapper = this.container.createEl('div', {
+    const contentWrapper = this.container.createDiv({
       cls: "fl-widget-content-expanded fl-notes-scroll-surface"
     });
 
@@ -776,7 +775,7 @@ export class NotesWidget implements FocusWidget {
     // (Presentación en CSS: regla .fl-notes-scroll-surface.)
 
     if (!this.currentFile) {
-      contentWrapper.createEl('div', {
+      contentWrapper.createDiv({
         cls: "fl-widget-content-empty",
         text: i18n.t('widgets.notesWidget.empty.noteRequired')
       });
@@ -793,7 +792,7 @@ export class NotesWidget implements FocusWidget {
     // La lógica de contenido se migrará en las etapas siguientes.
     // ============================================================
 
-    const capturePanel = contentWrapper.createEl('div', {
+    const capturePanel = contentWrapper.createDiv({
       cls: "fl-notes-capture-panel"
     });
     capturePanel.toggleClass(
@@ -801,7 +800,7 @@ export class NotesWidget implements FocusWidget {
       this.sessionView !== "capture"
     );
 
-    const todayPanel = contentWrapper.createEl('div', {
+    const todayPanel = contentWrapper.createDiv({
       cls: "fl-notes-today-panel"
     });
     todayPanel.toggleClass(
@@ -811,11 +810,11 @@ export class NotesWidget implements FocusWidget {
 
 
 
-    const draftProxy = todayPanel.createEl('div', {
+    const draftProxy = todayPanel.createDiv({
       cls: "fl-notes-draft-proxy"
     });
 
-    const draftProxyText = draftProxy.createEl('div', {
+    const draftProxyText = draftProxy.createDiv({
       cls: "fl-notes-draft-proxy-text"
     });
 
@@ -837,7 +836,7 @@ export class NotesWidget implements FocusWidget {
 
 
 
-    const todayList = todayPanel.createEl('div', {
+    const todayList = todayPanel.createDiv({
       cls: "fl-notes-today-list"
     });
 
@@ -910,13 +909,11 @@ export class NotesWidget implements FocusWidget {
   ): void {
     if (!draftRoot) return;
 
-    const draftContent = draftRoot.querySelector(
-      ".fl-notes-draft-item"
-    ) as HTMLElement | null;
+    const draftContent: HTMLElement | null =
+      draftRoot.querySelector(".fl-notes-draft-item");
 
-    const editor = draftRoot.querySelector(
-      ".fl-notes-draft-textarea"
-    ) as HTMLTextAreaElement | null;
+    const editor: HTMLTextAreaElement | null =
+      draftRoot.querySelector(".fl-notes-draft-textarea");
 
     if (compact) {
       // MODO COMPACTO - Para sesión "Hoy"
@@ -1381,17 +1378,13 @@ export class NotesWidget implements FocusWidget {
     blockContent: HTMLElement,
     listElement: HTMLElement
   ): void {
-    const scrollSurface =
-      listElement.closest(
-        ".fl-notes-scroll-surface"
-      ) as HTMLElement | null;
+    const scrollSurface: HTMLElement | null =
+      listElement.closest(".fl-notes-scroll-surface");
 
     if (!scrollSurface) return;
 
-    const blockRoot =
-      blockContent.closest(
-        ".fl-notes-item-content"
-      ) as HTMLElement | null;
+    const blockRoot: HTMLElement | null =
+      blockContent.closest(".fl-notes-item-content");
 
     const target =
       blockRoot?.parentElement ?? blockContent;

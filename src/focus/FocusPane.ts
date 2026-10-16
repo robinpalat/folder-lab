@@ -69,7 +69,7 @@ export class FocusPane {
     // .fl-widget-frame.)
 
     // Crear únicamente la superficie visual del widget.
-    this.widgetContainer = this.container.createEl('div', {
+    this.widgetContainer = this.container.createDiv({
       cls: `fl-widget-frame fl-widget-frame-${this.position}`
     });
 
@@ -399,10 +399,8 @@ export class FocusPane {
           return;
         }
 
-        const iconEl =
-          itemEl.querySelector(
-            '.menu-item-icon'
-          ) as HTMLElement | null;
+        const iconEl: HTMLElement | null =
+          itemEl.querySelector('.menu-item-icon');
 
         if (!iconEl) {
           return;
@@ -441,11 +439,11 @@ export class FocusPane {
   private showError(message: string): void {
     if (!this.widgetContainer) return;
     this.widgetContainer.empty();
-    const error = this.widgetContainer.createEl('div', {
+    const error = this.widgetContainer.createDiv({
       cls: 'fl-widget-error'
     });
-    error.createEl('div', { cls: 'fl-widget-error-icon', text: '⚠️' });
-    error.createEl('div', { text: message });
+    error.createDiv({ cls: 'fl-widget-error-icon', text: '⚠️' });
+    error.createDiv({ text: message });
   }
 
   updateContext(context: FocusContext): void {

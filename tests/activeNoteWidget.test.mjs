@@ -155,6 +155,10 @@ class FakeEl {
     return el;
   }
 
+  createDiv(opts = {}) {
+    return this.createEl('div', opts);
+  }
+
   createSpan(opts = {}) {
     return this.createEl('span', opts);
   }

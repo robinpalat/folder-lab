@@ -220,7 +220,7 @@ export function createExpandableText(
       ? typeof options.saveExpandedEdit === 'function'
       : true);
 
-  const root = container.createEl('div', {
+  const root = container.createDiv({
     cls: options.rootClass || 'fl-expandable-text'
   });
 
@@ -228,7 +228,7 @@ export function createExpandableText(
     `fl-fragment-text-${textSize}`
   );
 
-  const content = root.createEl('div', {
+  const content = root.createDiv({
     cls: options.contentClass || 'fl-expandable-text-content'
   });
 
@@ -252,7 +252,7 @@ export function createExpandableText(
   let collapseAction: HTMLElement | null = null;
 
   if (!expandedEditing) {
-    collapseAction = root.createEl('div', {
+    collapseAction = root.createDiv({
       cls: `${options.actionClass || 'fl-expandable-text-action'} fl-expandable-text-collapse-action`,
       text: collapseLabel
     });
@@ -389,7 +389,7 @@ export function createExpandableText(
 
     textAtOverlayOpen = content.innerText;
 
-    const overlay = anchor.createEl('div', {
+    const overlay = anchor.createDiv({
       cls: editable
         ? 'fl-expandable-editor-overlay'
         : 'fl-expandable-editor-overlay fl-expandable-editor-readonly'
@@ -434,7 +434,7 @@ export function createExpandableText(
     let closeButton: HTMLElement;
 
     if (toolbar) {
-      const closeWrap = toolbar.createEl('div', {
+      const closeWrap = toolbar.createDiv({
         cls: 'fl-expandable-editor-toolbar-close'
       });
 
@@ -640,7 +640,7 @@ export function applyDropCap(
     );
   }
 
-  const dropCap = content.createEl('span', {
+  const dropCap = content.createSpan({
     cls: 'fl-dropcap',
     text: firstLetter.toLocaleUpperCase('es-ES')
   });
@@ -1197,17 +1197,14 @@ export function applyMenuItemIdentity(
     return;
   }
 
-  const itemEl =
-    item?.dom as HTMLElement | undefined;
+  const itemEl = item?.dom;
 
   if (!itemEl) {
     return;
   }
 
-  const iconEl =
-    itemEl.querySelector(
-      '.menu-item-icon'
-    ) as HTMLElement | null;
+  const iconEl: HTMLElement | null =
+    itemEl.querySelector('.menu-item-icon');
 
   if (!iconEl) {
     return;

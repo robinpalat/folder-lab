@@ -67,13 +67,13 @@ export class AddResourceModal extends Modal {
       });
 
     // Contenedor para campos dinámicos
-    const dynamicContainer = this.contentEl.createEl('div', { cls: 'fl-resource-dynamic-fields' });
+    const dynamicContainer = this.contentEl.createDiv({ cls: 'fl-resource-dynamic-fields' });
 
     // Inicializar campos dinámicos
     this.renderDynamicFields(dynamicContainer);
 
     // Botones de acción
-    const actions = this.contentEl.createEl('div', {
+    const actions = this.contentEl.createDiv({
       cls: 'fl-resource-actions'
     });
 
@@ -116,7 +116,7 @@ export class AddResourceModal extends Modal {
         .setName(i18n.t('resources.field.url'))
         .addText(text => {
           text
-            .setPlaceholder('https://...')
+            .setPlaceholder('Ejemplo: https://...')
             .onChange((value) => {
               this.url = value;
             });
@@ -271,13 +271,13 @@ class FileSuggesterModal extends FuzzySuggestModal<TFile> {
     };
     const iconName = iconMap[file.extension.toLowerCase()] || 'file';
 
-    const iconSpan = el.createEl('span', { cls: 'fl-suggestion-icon' });
+    const iconSpan = el.createSpan({ cls: 'fl-suggestion-icon' });
     setIcon(iconSpan, iconName);
 
-    const textSpan = el.createEl('span', { cls: 'fl-suggestion-text' });
+    const textSpan = el.createSpan({ cls: 'fl-suggestion-text' });
     textSpan.textContent = file.path;
 
-    const extSpan = el.createEl('span', { cls: 'fl-suggestion-extension' });
+    const extSpan = el.createSpan({ cls: 'fl-suggestion-extension' });
     extSpan.textContent = file.extension.toUpperCase();
   }
 

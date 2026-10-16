@@ -43,7 +43,7 @@ export class InputModal extends Modal {
       cls: 'fo-modal-input'
     });
 
-    const buttonContainer = contentEl.createEl('div', {
+    const buttonContainer = contentEl.createDiv({
       cls: 'fl-modal-actions'
     });
 
@@ -99,7 +99,7 @@ export class ConfirmModal extends Modal {
 
     contentEl.createEl('p', { text: this.message });
 
-    const buttonContainer = contentEl.createEl('div', {
+    const buttonContainer = contentEl.createDiv({
       cls: 'fl-modal-actions fl-modal-actions-confirm'
     });
 

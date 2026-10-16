@@ -75,6 +75,7 @@ class FakeEl {
     this.children.push(el);
     return el;
   }
+  createDiv(opts) { return this.createEl('div', opts); }
   createSpan(opts) { return this.createEl('span', opts); }
   empty() { this.children = []; }
   addClass(c) { this.classes.add(c); }

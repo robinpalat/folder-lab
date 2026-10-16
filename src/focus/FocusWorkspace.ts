@@ -89,17 +89,17 @@ export class FocusWorkspace {
 
 
     // 1. Área principal
-    this.mainArea = this.container.createEl('div', {
+    this.mainArea = this.container.createDiv({
       cls: 'focus-main-area'
     });
 
     // 2. Panel superior
-    this.topContainer = this.mainArea.createEl('div', {
+    this.topContainer = this.mainArea.createDiv({
       cls: 'fl-widget-container'
     });
 
     // 3. Splitter - USANDO FocusSplitter
-    this.splitterContainer = this.mainArea.createEl('div', {
+    this.splitterContainer = this.mainArea.createDiv({
       cls: 'fl-splitter-wrapper'
     });
 
@@ -116,7 +116,7 @@ export class FocusWorkspace {
     this.splitter.render();  //  Esto renderiza el handle y los eventos
 
     // 4. Panel inferior
-    this.bottomContainer = this.mainArea.createEl('div', {
+    this.bottomContainer = this.mainArea.createDiv({
       cls: 'fl-widget-container'
     });
 
@@ -188,7 +188,7 @@ export class FocusWorkspace {
     this.bottomPane.render();
 
     // 5. Controles inferiores: [Cerrar] [Board]
-    this.closeContainer = this.mainArea.createEl('div', {
+    this.closeContainer = this.mainArea.createDiv({
       cls: 'fl-context-close'
     });
 

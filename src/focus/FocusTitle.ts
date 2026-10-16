@@ -16,29 +16,29 @@ export class FocusTitle {
       this.element.remove();
     }
 
-    this.element = this.container.createEl('div', {
+    this.element = this.container.createDiv({
       cls: 'focus-title'
     });
 
     // 
-    const leftContainer = this.element.createEl('div', {
+    const leftContainer = this.element.createDiv({
       cls: 'focus-title-left'
     });
 
     if (!activeFile) {
-      leftContainer.createEl('span', {
+      leftContainer.createSpan({
         cls: 'focus-title-text focus-title-empty',
         text: i18n.t('focus.title.noActiveNote')
       });
     } else {
-      leftContainer.createEl('span', {
+      leftContainer.createSpan({
         cls: 'focus-title-text',
         text: activeFile.basename
       });
     }
 
     // Lado derecho: botón cerrar
-    const rightContainer = this.element.createEl('div', {
+    const rightContainer = this.element.createDiv({
       cls: 'focus-title-right'
     });
 

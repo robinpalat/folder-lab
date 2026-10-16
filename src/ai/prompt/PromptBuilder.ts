@@ -99,7 +99,7 @@ buildUser(): string {
         .flatMap((entry) => {
           if (typeof entry !== 'object' || entry === null) return [];
           const items = (entry as { items?: unknown }).items;
-          return Array.isArray(items) ? items : [];
+          return Array.isArray(items) ? (items as unknown[]) : [];
         })
         .map((item) => {
           if (typeof item === 'object' && item !== null) {
@@ -135,7 +135,7 @@ buildUser(): string {
         .flatMap((entry) => {
           if (typeof entry !== 'object' || entry === null) return [];
           const items = (entry as { items?: unknown }).items;
-          return Array.isArray(items) ? items : [];
+          return Array.isArray(items) ? (items as unknown[]) : [];
         })
         .map((item) => {
           if (typeof item === 'object' && item !== null) {

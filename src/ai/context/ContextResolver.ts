@@ -371,7 +371,7 @@ export class ContextResolver {
 
         default:
           throw new Error(
-            `[ContextResolver] Fuente no soportada: ${source}`
+            `[ContextResolver] Fuente no soportada: ${String(source)}`
           );
       }
     }

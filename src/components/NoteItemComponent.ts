@@ -28,7 +28,7 @@ export class NoteItemComponent {
     const isEmpty = item.isEmpty || false;
     const displayName = item.name.replace(/\.[^/.]+$/, '');
 
-    this.element = this.container.createEl('div', {
+    this.element = this.container.createDiv({
       cls: 'folder-order-item',
       attr: { 'data-index': index.toString(), 'data-filename': item.name }
     });
@@ -58,7 +58,7 @@ export class NoteItemComponent {
   }
 
   private renderNumber(index: number, isSpecial: boolean): void {
-    const numSpan = this.element.createEl('span', { cls: 'fo-number' });
+    const numSpan = this.element.createSpan({ cls: 'fo-number' });
 
     const state = this.controller.getState();
     if (!isSpecial && state.settings.showNumbers) {
@@ -72,12 +72,12 @@ export class NoteItemComponent {
   }
 
   private renderNormalNote(displayName: string, isEmpty: boolean, item: FolderLabItem): void {
-    const nameSpan = this.element.createEl('span', { cls: 'folder-order-name' });
+    const nameSpan = this.element.createSpan({ cls: 'folder-order-name' });
     nameSpan.textContent = displayName;
 
     // Icono de estado
-    const statusContainer = this.element.createEl('span', { cls: 'folder-order-status' });
-    const icon = statusContainer.createEl('span', { cls: 'folder-order-status-icon' });
+    const statusContainer = this.element.createSpan({ cls: 'folder-order-status' });
+    const icon = statusContainer.createSpan({ cls: 'folder-order-status-icon' });
 
     if (isEmpty) {
       setIcon(icon, 'alert-circle');
@@ -101,11 +101,11 @@ export class NoteItemComponent {
   }
 
   private renderSpecialNote(displayName: string): void {
-    const specialContainer = this.element.createEl('div', {
+    const specialContainer = this.element.createDiv({
       cls: 'folder-order-special-container'
     });
 
-    const refreshIcon = specialContainer.createEl('span', {
+    const refreshIcon = specialContainer.createSpan({
       cls: 'folder-order-refresh-icon'
     });
     setIcon(refreshIcon, 'refresh-cw');
@@ -116,7 +116,7 @@ export class NoteItemComponent {
       await this.controller.exportAllNotes();
     };
 
-    const titleSpan = specialContainer.createEl('span', {
+    const titleSpan = specialContainer.createSpan({
       cls: 'folder-order-special-title'
     });
     titleSpan.textContent = displayName;

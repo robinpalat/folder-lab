@@ -155,19 +155,19 @@ export class ResourcesWidget implements FocusWidget {
     this.dropCleanup?.();
     this.dropCleanup = null;
 
-    const contentEl = this.container.createEl('div', {
+    const contentEl = this.container.createDiv({
       cls: 'fl-widget-content fl-widget-content-expanded'
     });
 
-    const listWrapper = contentEl.createEl('div', {
+    const listWrapper = contentEl.createDiv({
       cls: 'fl-focus-list-wrapper'
     });
 
-    this.listElement = listWrapper.createEl('div', {
+    this.listElement = listWrapper.createDiv({
       cls: 'fl-focus-list'
     });
 
-    this.emptyElement = listWrapper.createEl('div', {
+    this.emptyElement = listWrapper.createDiv({
       cls: 'fl-resources-empty'
     });
 
@@ -248,17 +248,17 @@ export class ResourcesWidget implements FocusWidget {
 
     this.emptyElement.empty();
 
-    this.emptyElement.createEl('div', {
+    this.emptyElement.createDiv({
       cls: 'fl-resources-empty-icon',
       text: '🔗'
     });
 
-    this.emptyElement.createEl('div', {
+    this.emptyElement.createDiv({
       cls: 'fl-resources-empty-text',
       text: text
     });
 
-    this.emptyElement.createEl('div', {
+    this.emptyElement.createDiv({
       cls: 'fl-resources-empty-hint',
       text: i18n.t('widgets.resourcesWidget.empty.hint')
     });
@@ -357,7 +357,7 @@ export class ResourcesWidget implements FocusWidget {
 
     const content = item.getContentElement();
 
-    const resourceContent = content.createEl('div', {
+    const resourceContent = content.createDiv({
       cls: 'fl-resource-content'
     });
 
@@ -365,7 +365,7 @@ export class ResourcesWidget implements FocusWidget {
     // ICONO DEL RECURSO
     // ----------------------------------------------------------
 
-    const iconContainer = resourceContent.createEl('div', {
+    const iconContainer = resourceContent.createDiv({
       cls: 'fl-resource-item-icon'
     });
 
@@ -380,18 +380,18 @@ export class ResourcesWidget implements FocusWidget {
     // CONTENIDO
     // ----------------------------------------------------------
 
-    const textContainer = resourceContent.createEl('div', {
+    const textContainer = resourceContent.createDiv({
       cls: 'fl-resource-item-content'
     });
 
-    const title = textContainer.createEl('div', {
+    const title = textContainer.createDiv({
       cls: 'fl-resource-item-title'
     });
 
     title.textContent = resource.title;
 
     if (resource.description) {
-      const desc = textContainer.createEl('div', {
+      const desc = textContainer.createDiv({
         cls: 'fl-resource-item-description'
       });
 
@@ -402,7 +402,7 @@ export class ResourcesWidget implements FocusWidget {
     // META
     // ----------------------------------------------------------
 
-    const meta = textContainer.createEl('div', {
+    const meta = textContainer.createDiv({
       cls: 'fl-resource-item-meta'
     });
 

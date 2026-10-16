@@ -48,12 +48,12 @@ export class ClaimDataModal extends FuzzySuggestModal<PendingClaim> {
               'No se reclamó nada (los datos quedan conservados).'
           );
         } else {
-          new Notice('Folder Lab: no se pudo reclamar el dato seleccionado.');
+          new Notice('No se pudo reclamar el dato seleccionado.');
         }
       })
       .catch((error) => {
         console.error('[FolderLab] Error reclamando datos:', error);
-        new Notice('Folder Lab: error al reclamar los datos.');
+        new Notice('Error al reclamar los datos.');
       });
   }
 }

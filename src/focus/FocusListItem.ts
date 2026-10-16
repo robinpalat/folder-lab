@@ -29,15 +29,15 @@ export class FocusListItem {
     container: HTMLElement,
     config: FocusListItemConfig = {}
   ) {
-    this.item = container.createEl('div', {
+    this.item = container.createDiv({
       cls: 'fl-focus-list-item'
     });
 
-    this.content = this.item.createEl('div', {
+    this.content = this.item.createDiv({
       cls: 'fl-focus-list-item-content'
     });
 
-    this.actions = this.item.createEl('div', {
+    this.actions = this.item.createDiv({
       cls: 'fl-focus-list-item-actions'
     });
 
@@ -89,7 +89,7 @@ export class FocusListItem {
       }
     });
 
-    this.primaryIndicator = button.createEl('span', {
+    this.primaryIndicator = button.createSpan({
       cls: 'fl-focus-list-item-action-indicator'
     });
 

@@ -23,7 +23,7 @@ export class StatsComponent {
       this.element.remove();
     }
 
-    this.element = this.container.createEl('div', { cls: 'folder-order-stats' });
+    this.element = this.container.createDiv({ cls: 'folder-order-stats' });
 
     // Actualizar stats asincrónicamente
     void this.updateStats().catch((error) => {

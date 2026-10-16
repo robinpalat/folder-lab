@@ -359,6 +359,15 @@ status: status || undefined
       const abstractFile = this.app.vault.getAbstractFileByPath(node.filePath);
       const file = abstractFile instanceof TFile ? abstractFile : null;
       if (file) {
+        /*
+         * El estado se consultaba aquí contra un `status` inexistente:
+         * el nombre resolvía al global obsoleto window.status (siempre
+         * ''), de modo que esta ruta nunca fijaba el estado de la nota.
+         * Se replica la consulta de walkNavigationTree.
+         */
+        const status =
+          await this.noteService.getNoteStatusByFile(file);
+
         items.push({
           type: 'note',
           data: {

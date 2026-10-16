@@ -34,25 +34,25 @@ export class BoardPolishModal extends Modal {
 
     contentEl.createEl('h2', { text: i18n.t('modal.polish.title') });
 
-    const originalSection = contentEl.createEl('div', {
+    const originalSection = contentEl.createDiv({
       cls: 'fl-polish-original-section'
     });
 
-    originalSection.createEl('div', {
+    originalSection.createDiv({
       cls: 'fl-polish-section-label',
       text: i18n.t('modal.polish.originalLabel')
     });
 
-    originalSection.createEl('div', {
+    originalSection.createDiv({
       cls: 'fl-polish-original-text',
       text: this.originalText
     });
 
-    const personalSection = contentEl.createEl('div', {
+    const personalSection = contentEl.createDiv({
       cls: 'fl-polish-personal-section'
     });
 
-    personalSection.createEl('div', {
+    personalSection.createDiv({
       cls: 'fl-polish-section-label',
       text: i18n.t('modal.polish.personalLabel')
     });
@@ -71,7 +71,7 @@ export class BoardPolishModal extends Modal {
       );
     });
 
-    const actions = contentEl.createEl('div', {
+    const actions = contentEl.createDiv({
       cls: 'fl-polish-actions'
     });
 

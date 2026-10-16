@@ -36,17 +36,17 @@ export class QuarantineCandidateModal extends Modal {
     });
 
     for (const candidate of this.candidates) {
-      const row = contentEl.createEl('div', {
+      const row = contentEl.createDiv({
         cls: 'folder-lab-quarantine-candidate'
       });
       row.createEl('code', { text: candidate.path });
-      row.createEl('div', {
+      row.createDiv({
         text: `identidad: ${candidate.noteId} · motivo: ${candidate.reason}`
       });
-      const resultEl = row.createEl('div', {
+      const resultEl = row.createDiv({
         cls: 'folder-lab-quarantine-result'
       });
-      const btnRow = row.createEl('div');
+      const btnRow = row.createDiv();
       const confirmBtn = btnRow.createEl('button', {
         text: 'Cuarentenar'
       });

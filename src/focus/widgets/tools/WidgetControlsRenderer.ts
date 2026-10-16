@@ -56,7 +56,7 @@ static render(
   callbacks: WidgetControlsRendererCallbacks = {}
 ): WidgetControlsHandle {
 
-  const controlsEl = container.createEl('div', {
+  const controlsEl = container.createDiv({
     cls: 'fl-widget-controls'
   });
 
@@ -64,7 +64,7 @@ static render(
   // CONTEXTO — IDENTIDAD DEL WIDGET
   // ============================================================
 
-  const contextEl = controlsEl.createEl('div', {
+  const contextEl = controlsEl.createDiv({
     cls: 'fl-widget-toolbar-context'
   });
 
@@ -80,7 +80,7 @@ static render(
 
   if (config.source) {
 
-    const sourceEl = controlsEl.createEl('div', {
+    const sourceEl = controlsEl.createDiv({
       cls: 'fl-widget-toolbar-source'
     });
 
@@ -129,7 +129,7 @@ const executionControls =
 
   if (executionControls.length > 0) {
 
-    const executionEl = controlsEl.createEl('div', {
+    const executionEl = controlsEl.createDiv({
       cls: 'fl-widget-toolbar-execution'
     });
 
@@ -174,7 +174,7 @@ const executionControls =
       const iconElement =
         existingIcon instanceof HTMLElement
           ? existingIcon
-          : status.createEl('span', {
+          : status.createSpan({
               cls: 'fl-control-icon'
             });
 
@@ -214,7 +214,7 @@ private static renderSourceSelector(
     return;
   }
 
-  const wrapper = container.createEl('div', {
+  const wrapper = container.createDiv({
     cls: 'fl-widget-source'
   });
 
@@ -229,7 +229,7 @@ private static renderSourceSelector(
 
   // La fuente se representa visualmente por su icono.
   if (source.icon) {
-    const iconSpan = btn.createEl('span', {
+    const iconSpan = btn.createSpan({
       cls: 'fl-widget-source-icon'
     });
 
@@ -252,7 +252,7 @@ private static renderSourceSelector(
   // Fuente seleccionable.
   if (source.mode === 'selectable') {
 
-    const arrowSpan = btn.createEl('span', {
+    const arrowSpan = btn.createSpan({
       cls: 'fl-widget-source-arrow'
     });
 
@@ -293,7 +293,7 @@ private static renderSourceSelector(
 
     const widget = config.widget;
 
-    const wrapper = container.createEl('div', {
+    const wrapper = container.createDiv({
       cls: 'fl-widget-selector'
     });
 
@@ -313,7 +313,7 @@ private static renderSourceSelector(
      * lógica nueva). El estado abierto/cerrado se refleja en
      * aria-expanded (rotación vía CSS).
      */
-    const chevronSpan = btn.createEl('span', {
+    const chevronSpan = btn.createSpan({
       cls: 'fl-widget-selector-arrow fl-widget-selector-chevron'
     });
 
@@ -321,7 +321,7 @@ private static renderSourceSelector(
 
     // Icono del widget
     if (widget.icon) {
-      const iconSpan = btn.createEl('span', {
+      const iconSpan = btn.createSpan({
         cls: 'fl-widget-selector-icon'
       });
 
@@ -335,7 +335,7 @@ private static renderSourceSelector(
     }
 
     // el botón muestra el nombre
-    btn.createEl('span', {
+    btn.createSpan({
       cls: 'fl-widget-selector-label',
       text: widget.label
     });
@@ -378,7 +378,7 @@ private static renderSourceSelector(
     callbacks: WidgetControlsRendererCallbacks
   ): void {
 
-    const wrapper = container.createEl('div', {
+    const wrapper = container.createDiv({
       cls: 'fl-widget-dynamic-controls'
     });
 
@@ -446,22 +446,22 @@ private static renderSourceSelector(
       }
     });
 
-    btn.createEl('span', {
+    btn.createSpan({
       cls: 'fl-control-label',
       text: control.label
     });
 
-    btn.createEl('span', {
+    btn.createSpan({
       cls: 'fl-control-separator',
       text: '·'
     });
 
-    btn.createEl('span', {
+    btn.createSpan({
       cls: 'fl-control-value',
       text: control.value ?? ''
     });
 
-    const arrow = btn.createEl('span', {
+    const arrow = btn.createSpan({
       cls: 'fl-control-arrow'
     });
 
@@ -518,19 +518,19 @@ private static renderSourceSelector(
 	  });
 	  
 	  if (control.icon) {
-		  const iconSpan = btn.createEl('span', {
+		  const iconSpan = btn.createSpan({
 			cls: 'fl-control-icon'
 		  });
 
 		  setIcon(iconSpan, control.icon);
 		}
 
-	  btn.createEl('span', {
+	  btn.createSpan({
 		cls: 'fl-control-label',
 		text: control.label
 	  });
 
-	  const arrow = btn.createEl('span', {
+	  const arrow = btn.createSpan({
 		cls: 'fl-control-arrow'
 	  });
 
@@ -581,7 +581,7 @@ private static renderSourceSelector(
       btn.addClass('is-primary');
     }
 
-    btn.createEl('span', {
+    btn.createSpan({
       cls: 'fl-control-label',
       text: control.label
     });
@@ -614,7 +614,7 @@ private static renderSourceSelector(
       }
     });
 
-    const iconSpan = btn.createEl('span', {
+    const iconSpan = btn.createSpan({
       cls: 'fl-control-icon'
     });
 
@@ -643,7 +643,7 @@ private static renderSourceSelector(
     control: Extract<WidgetDynamicControl, { type: 'status' }>
   ): void {
 
-    const item = container.createEl('div', {
+    const item = container.createDiv({
 	  cls: 'fl-widget-control-status',
 	  attr: {
 		'data-control-id': control.id
@@ -655,14 +655,14 @@ private static renderSourceSelector(
     }
 
     if (control.icon) {
-      const iconSpan = item.createEl('span', {
+      const iconSpan = item.createSpan({
         cls: 'fl-control-icon'
       });
 
       setIcon(iconSpan, control.icon);
     }
 
-    item.createEl('span', {
+    item.createSpan({
       cls: 'fl-control-label',
       text: control.label
     });

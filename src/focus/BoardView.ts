@@ -47,7 +47,21 @@ export class BoardView extends TextFileView {
     return 'Board';
   }
 
-  async setViewData(
+  /*
+   * TextFileView.setViewData es síncrono en la API de Obsidian.
+   * El trabajo asíncrono se dispara sin esperar: era exactamente
+   * el comportamiento anterior (Obsidian nunca esperaba la
+   * promesa del método), solo que ahora el contrato de la
+   * clase base se respeta.
+   */
+  setViewData(
+    _data: string,
+    _clear: boolean
+  ): void {
+    void this.applyViewData(_data, _clear);
+  }
+
+  private async applyViewData(
     _data: string,
     _clear: boolean
   ): Promise<void> {

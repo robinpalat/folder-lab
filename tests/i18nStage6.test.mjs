@@ -268,7 +268,7 @@ test('AddResourceModal: selector por placeholder sustituido por referencia estab
   assert.ok(source.includes('this.titleInput = text.inputEl'));
   assert.ok(source.includes('this.titleInput.value = file.basename'));
   // Placeholder técnico conservado (no traducible).
-  assert.ok(source.includes("'https://...'"));
+  assert.ok(source.includes("'Ejemplo: https://...'"));
 });
 
 test('navegadores usan resolutores compartidos (sin vía que ignore el idioma)', () => {

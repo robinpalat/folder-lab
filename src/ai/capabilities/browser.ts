@@ -54,7 +54,7 @@ export class CapabilityBrowser extends Modal {
     const content = this.contentEl;
     content.empty();
 
-    const layout = content.createEl('div', {
+    const layout = content.createDiv({
       cls: 'fl-capability-browser-layout'
     });
 
@@ -62,16 +62,16 @@ export class CapabilityBrowser extends Modal {
     // LEFT PANEL: FUENTES
     // ========================================================
 
-    const sourcesPanel = layout.createEl('div', {
+    const sourcesPanel = layout.createDiv({
       cls: 'fl-capability-browser-sources'
     });
 
-    const sourcesTitle = sourcesPanel.createEl('div', {
+    const sourcesTitle = sourcesPanel.createDiv({
       cls: 'fl-capability-browser-section-title'
     });
     sourcesTitle.textContent = i18n.t('library.section.sources');
 
-    const sourcesContainer = sourcesPanel.createEl('div', {
+    const sourcesContainer = sourcesPanel.createDiv({
       cls: 'fl-capability-browser-sources-list'
     });
 
@@ -87,7 +87,7 @@ export class CapabilityBrowser extends Modal {
     ];
 
     for (const source of sources) {
-      const sourceEl = sourcesContainer.createEl('div', {
+      const sourceEl = sourcesContainer.createDiv({
         cls: 'fl-capability-browser-source'
       });
 
@@ -97,7 +97,7 @@ export class CapabilityBrowser extends Modal {
         sourceEl.addClass('is-selected');
       }
 
-      sourceEl.createEl('span', {
+      sourceEl.createSpan({
         cls: 'fl-capability-browser-source-icon'
       });
 
@@ -106,7 +106,7 @@ export class CapabilityBrowser extends Modal {
         source.icon
       );
 
-      sourceEl.createEl('span', {
+      sourceEl.createSpan({
         cls: 'fl-capability-browser-source-label',
         text: source.label
       });
@@ -135,23 +135,23 @@ export class CapabilityBrowser extends Modal {
     // LEFT PANEL: DOMINIOS
     // ========================================================
 
-    const groupsPanel = layout.createEl('div', {
+    const groupsPanel = layout.createDiv({
       cls: 'fl-capability-browser-groups'
     });
 
-    const groupsTitle = groupsPanel.createEl('div', {
+    const groupsTitle = groupsPanel.createDiv({
       cls: 'fl-capability-browser-section-title'
     });
     groupsTitle.textContent = i18n.t('library.section.domains');
 
-    this.groupsContainer = groupsPanel.createEl('div', {
+    this.groupsContainer = groupsPanel.createDiv({
       cls: 'fl-capability-browser-groups-list'
     });
 
     const groups = this.registry.getGroups();
 
     for (const group of groups) {
-      const groupEl = this.groupsContainer.createEl('div', {
+      const groupEl = this.groupsContainer.createDiv({
         cls: 'fl-capability-browser-group'
       });
       groupEl.textContent = getDomainLabel(group.id, group.label);
@@ -180,16 +180,16 @@ export class CapabilityBrowser extends Modal {
     // RIGHT PANEL: CAPACIDADES
     // ========================================================
 
-    const capabilitiesPanel = layout.createEl('div', {
+    const capabilitiesPanel = layout.createDiv({
       cls: 'fl-capability-browser-capabilities'
     });
 
-    const capabilitiesTitle = capabilitiesPanel.createEl('div', {
+    const capabilitiesTitle = capabilitiesPanel.createDiv({
       cls: 'fl-capability-browser-section-title'
     });
     capabilitiesTitle.textContent = i18n.t('library.section.capabilities');
 
-    this.capabilitiesContainer = capabilitiesPanel.createEl('div', {
+    this.capabilitiesContainer = capabilitiesPanel.createDiv({
       cls: 'fl-capability-browser-capabilities-list'
     });
 
@@ -199,7 +199,7 @@ export class CapabilityBrowser extends Modal {
     // FOOTER
     // ========================================================
 
-    const footer = content.createEl('div', {
+    const footer = content.createDiv({
       cls: 'fl-capability-browser-footer'
     });
 
@@ -244,7 +244,7 @@ export class CapabilityBrowser extends Modal {
     const capabilities = this.registry.getByGroup(this.selectedGroupId);
 
     if (capabilities.length === 0) {
-      const empty = this.capabilitiesContainer.createEl('div', {
+      const empty = this.capabilitiesContainer.createDiv({
         cls: 'fl-capability-browser-empty'
       });
       empty.textContent = i18n.t('library.capabilitiesEmpty');
@@ -272,12 +272,12 @@ export class CapabilityBrowser extends Modal {
       return;
     }
 
-    const item = this.capabilitiesContainer.createEl('div', {
+    const item = this.capabilitiesContainer.createDiv({
       cls: 'fl-capability-browser-item'
     });
     item.setAttribute('data-capability-id', capability.id);
 
-    const label = item.createEl('div', {
+    const label = item.createDiv({
       cls: 'fl-capability-browser-item-label'
     });
     label.textContent = getCapabilityLabel(
@@ -286,7 +286,7 @@ export class CapabilityBrowser extends Modal {
     );
 
     if (capability.description) {
-      const description = item.createEl('div', {
+      const description = item.createDiv({
         cls: 'fl-capability-browser-item-description'
       });
       description.textContent = getCapabilityDescription(

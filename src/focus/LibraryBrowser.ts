@@ -83,21 +83,21 @@ export class LibraryBrowser extends Modal {
     // PESTAÑAS
     // ========================================================
 
-    const tabs = content.createEl('div', {
+    const tabs = content.createDiv({
       cls: 'fl-capability-browser-tabs'
     });
 
-    const widgetsTab = tabs.createEl('div', {
+    const widgetsTab = tabs.createDiv({
       cls: 'fl-capability-browser-tab',
       text: i18n.t('library.tab.widgets')
     });
 
-    const assistantTab = tabs.createEl('div', {
+    const assistantTab = tabs.createDiv({
       cls: 'fl-capability-browser-tab',
       text: i18n.t('library.tab.assistant')
     });
 
-    const recipesTab = tabs.createEl('div', {
+    const recipesTab = tabs.createDiv({
       cls: 'fl-capability-browser-tab',
       text: i18n.t('library.tab.recipes')
     });
@@ -109,7 +109,7 @@ export class LibraryBrowser extends Modal {
     // CONTENIDO WIDGETS
     // ========================================================
 
-    this.widgetsContent = content.createEl('div', {
+    this.widgetsContent = content.createDiv({
       cls: 'fl-capability-browser-tab-content fl-widget-tab-content is-hidden'
     });
 
@@ -119,7 +119,7 @@ export class LibraryBrowser extends Modal {
     // CONTENIDO ASISTENTE
     // ========================================================
 
-    this.assistantContent = content.createEl('div', {
+    this.assistantContent = content.createDiv({
       cls: 'fl-capability-browser-tab-content'
     });
 
@@ -127,11 +127,11 @@ export class LibraryBrowser extends Modal {
     // CONTENIDO RECETAS
     // ========================================================
 
-    this.recipesContent = content.createEl('div', {
+    this.recipesContent = content.createDiv({
       cls: 'fl-capability-browser-tab-content is-hidden'
     });
 
-    this.recipesContent.createEl('div', {
+    this.recipesContent.createDiv({
       cls: 'fl-capability-browser-empty',
       text: i18n.t('library.recipesEmpty')
     });
@@ -232,19 +232,19 @@ export class LibraryBrowser extends Modal {
 
     this.widgetsContent.empty();
 
-    const container = this.widgetsContent.createEl('div', {
+    const container = this.widgetsContent.createDiv({
       cls: 'fl-widget-manager'
     });
 
-    const columns = container.createEl('div', {
+    const columns = container.createDiv({
       cls: 'fl-widget-manager-columns'
     });
 
-    const leftColumn = columns.createEl('div', {
+    const leftColumn = columns.createDiv({
       cls: 'fl-widget-manager-column fl-widget-manager-available'
     });
 
-    const rightColumn = columns.createEl('div', {
+    const rightColumn = columns.createDiv({
       cls: 'fl-widget-manager-column fl-widget-manager-instances'
     });
 
@@ -252,12 +252,12 @@ export class LibraryBrowser extends Modal {
     // Widgets disponibles
     // ─────────────────────────────────────────────
 
-    leftColumn.createEl('div', {
+    leftColumn.createDiv({
       cls: 'fl-widget-manager-column-title',
       text: i18n.t('library.widgetsColumn.available')
     });
 
-    const leftScroll = leftColumn.createEl('div', {
+    const leftScroll = leftColumn.createDiv({
       cls: 'fl-widget-manager-column-scroll'
     });
 
@@ -266,16 +266,16 @@ export class LibraryBrowser extends Modal {
     for (const definition of definitions) {
 
 
-      const card = leftScroll.createEl('div', {
+      const card = leftScroll.createDiv({
         cls: 'fl-widget-manager-card'
       });
 
-      const header = card.createEl('div', {
+      const header = card.createDiv({
         cls: 'fl-widget-manager-card-header'
       });
 
       if (definition.identity.icon) {
-const iconEl = header.createEl('span', {
+const iconEl = header.createSpan({
   cls: 'fl-widget-manager-card-icon'
 });
 
@@ -290,13 +290,13 @@ if (definition.identity.color) {
 }
       }
 
-      header.createEl('span', {
+      header.createSpan({
         cls: 'fl-widget-manager-card-name',
         text: getWidgetDefinitionLabel(definition)
       });
 
       if (definition.identity.description) {
-        card.createEl('div', {
+        card.createDiv({
           cls: 'fl-widget-manager-card-description',
           text: getWidgetDefinitionDescription(definition)
         });
@@ -372,18 +372,18 @@ if (definition.identity.color) {
     // Instancias de la nota
     // ─────────────────────────────────────────────
 
-    rightColumn.createEl('div', {
+    rightColumn.createDiv({
       cls: 'fl-widget-manager-column-title',
       text: i18n.t('library.widgetsColumn.instances')
     });
 
-    const rightScroll = rightColumn.createEl('div', {
+    const rightScroll = rightColumn.createDiv({
       cls: 'fl-widget-manager-column-scroll'
     });
 
     if (this.draftInstances.length === 0) {
 
-      rightScroll.createEl('div', {
+      rightScroll.createDiv({
         cls: 'fl-widget-manager-empty',
         text: i18n.t('library.widgetsEmpty')
       });
@@ -392,7 +392,7 @@ if (definition.identity.color) {
 
       for (const instance of this.draftInstances) {
 
-        const card = rightScroll.createEl('div', {
+        const card = rightScroll.createDiv({
           cls: 'fl-widget-manager-instance-card'
         });
 
@@ -401,7 +401,7 @@ if (definition.identity.color) {
             instance.typeId
           );
 
-        const header = card.createEl('div', {
+        const header = card.createDiv({
           cls: 'fl-widget-manager-instance-header'
         });
 
@@ -410,7 +410,7 @@ if (definition.identity.color) {
         // ─────────────────────────────────────────
 
         if (definition?.identity.icon) {
-          const iconEl = header.createEl('span', {
+          const iconEl = header.createSpan({
             cls: 'fl-widget-manager-card-icon'
           });
 
@@ -426,7 +426,7 @@ if (definition.identity.color) {
         // Nombre
         // ─────────────────────────────────────────
 
-        const name = header.createEl('span', {
+        const name = header.createSpan({
           cls: 'fl-widget-manager-instance-name',
           text: instance.name
         });
@@ -530,7 +530,7 @@ if (definition.identity.color) {
     // ─────────────────────────────────────────────
 
 
-    const footer = container.createEl('div', {
+    const footer = container.createDiv({
       cls: 'fl-widget-manager-footer'
     });
 
@@ -577,7 +577,7 @@ if (definition.identity.color) {
     this.assistantContent.empty();
 
     const layout =
-      this.assistantContent.createEl('div', {
+      this.assistantContent.createDiv({
         cls: 'fl-capability-browser-layout'
       });
 
@@ -585,19 +585,19 @@ if (definition.identity.color) {
     // LEFT PANEL: FUENTES
     // ========================================================
 
-    const sourcesPanel = layout.createEl('div', {
+    const sourcesPanel = layout.createDiv({
       cls: 'fl-capability-browser-sources'
     });
 
     const sourcesTitle =
-      sourcesPanel.createEl('div', {
+      sourcesPanel.createDiv({
         cls: 'fl-capability-browser-section-title'
       });
 
     sourcesTitle.textContent = i18n.t('library.section.sources');
 
     const sourcesContainer =
-      sourcesPanel.createEl('div', {
+      sourcesPanel.createDiv({
         cls: 'fl-capability-browser-sources-list'
       });
 
@@ -630,7 +630,7 @@ if (definition.identity.color) {
 
     for (const source of sources) {
       const sourceEl =
-        sourcesContainer.createEl('div', {
+        sourcesContainer.createDiv({
           cls: 'fl-capability-browser-source'
         });
 
@@ -647,7 +647,7 @@ if (definition.identity.color) {
         sourceEl.addClass('is-selected');
       }
 
-      sourceEl.createEl('span', {
+      sourceEl.createSpan({
         cls: 'fl-capability-browser-source-icon'
       });
 
@@ -660,7 +660,7 @@ if (definition.identity.color) {
           source.icon
         );
 
-      sourceEl.createEl('span', {
+      sourceEl.createSpan({
         cls: 'fl-capability-browser-source-label',
         text: source.label
       });
@@ -707,19 +707,19 @@ if (definition.identity.color) {
     // LEFT PANEL: DOMINIOS
     // ========================================================
 
-    const groupsPanel = layout.createEl('div', {
+    const groupsPanel = layout.createDiv({
       cls: 'fl-capability-browser-groups'
     });
 
     const groupsTitle =
-      groupsPanel.createEl('div', {
+      groupsPanel.createDiv({
         cls: 'fl-capability-browser-section-title'
       });
 
     groupsTitle.textContent = i18n.t('library.section.domains');
 
     this.groupsContainer =
-      groupsPanel.createEl('div', {
+      groupsPanel.createDiv({
         cls: 'fl-capability-browser-groups-list'
       });
 
@@ -728,12 +728,9 @@ if (definition.identity.color) {
 
     for (const group of groups) {
       const groupEl =
-        this.groupsContainer.createEl(
-          'div',
-          {
+        this.groupsContainer.createDiv({
             cls: 'fl-capability-browser-group'
-          }
-        );
+          });
 
       groupEl.textContent = getDomainLabel(group.id, group.label);
 
@@ -788,30 +785,24 @@ if (definition.identity.color) {
     // ========================================================
 
     const capabilitiesPanel =
-      layout.createEl('div', {
+      layout.createDiv({
         cls:
           'fl-capability-browser-capabilities'
       });
 
     const capabilitiesTitle =
-      capabilitiesPanel.createEl(
-        'div',
-        {
+      capabilitiesPanel.createDiv({
           cls:
             'fl-capability-browser-section-title'
-        }
-      );
+        });
 
     capabilitiesTitle.textContent = i18n.t('library.section.capabilities');
 
     this.capabilitiesContainer =
-      capabilitiesPanel.createEl(
-        'div',
-        {
+      capabilitiesPanel.createDiv({
           cls:
             'fl-capability-browser-capabilities-list'
-        }
-      );
+        });
 
     this.renderCapabilities();
 
@@ -820,13 +811,10 @@ if (definition.identity.color) {
     // ========================================================
 
     const footer =
-      this.assistantContent.createEl(
-        'div',
-        {
+      this.assistantContent.createDiv({
           cls:
             'fl-capability-browser-footer'
-        }
-      );
+        });
 
     const cancelButton =
       footer.createEl('button', {
@@ -884,13 +872,10 @@ if (definition.identity.color) {
       )
     if (capabilities.length === 0) {
       const empty =
-        this.capabilitiesContainer.createEl(
-          'div',
-          {
+        this.capabilitiesContainer.createDiv({
             cls:
               'fl-capability-browser-empty'
-          }
-        );
+          });
 
       empty.textContent =
         i18n.t('library.capabilitiesEmpty');
@@ -952,13 +937,10 @@ if (definition.identity.color) {
     }
 
     const item =
-      this.capabilitiesContainer.createEl(
-        'div',
-        {
+      this.capabilitiesContainer.createDiv({
           cls:
             'fl-capability-browser-item'
-        }
-      );
+        });
 
     item.setAttribute(
       'data-capability-id',
@@ -966,7 +948,7 @@ if (definition.identity.color) {
     );
 
     const label =
-      item.createEl('div', {
+      item.createDiv({
         cls:
           'fl-capability-browser-item-label'
       });
@@ -978,7 +960,7 @@ if (definition.identity.color) {
 
     if (capability.description) {
       const description =
-        item.createEl('div', {
+        item.createDiv({
           cls:
             'fl-capability-browser-item-description'
         });

@@ -161,7 +161,7 @@ onStatusChange: (file: TFile, status: string) => {
       this.element.remove();
     }
 
-    this.element = this.container.createEl('div', {
+    this.element = this.container.createDiv({
       cls: 'folder-lab-items'
     });
 
@@ -271,7 +271,7 @@ onStatusChange: (file: TFile, status: string) => {
       noteCount
     } = data;
 
-    const header = this.element.createEl('div', {
+    const header = this.element.createDiv({
       cls: 'folder-lab-folder-header',
       attr: {
         'data-indent': Math.min(level, 5).toString(),
@@ -280,7 +280,7 @@ onStatusChange: (file: TFile, status: string) => {
       }
     });
 
-    const nameSpan = header.createEl('span', {
+    const nameSpan = header.createSpan({
       cls: 'folder-lab-folder-name'
     });
 
@@ -290,7 +290,7 @@ onStatusChange: (file: TFile, status: string) => {
       noteCount !== undefined &&
       noteCount > 0
     ) {
-      const countSpan = header.createEl('span', {
+      const countSpan = header.createSpan({
         cls: 'folder-lab-folder-count'
       });
 

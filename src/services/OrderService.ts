@@ -99,7 +99,7 @@ export class OrderService {
       await this.updateFolderOrder(parentPath, currentOrder);
     }
 
-    const globalOrder = await this.repository.getGlobalOrder();
+    const globalOrder = this.repository.getGlobalOrder();
     if (globalOrder) {
       const parentData = this.repository.getFolderData(parentPath);
       if (parentData) {
@@ -116,7 +116,7 @@ export class OrderService {
     const masterPath = this.settings.bookRootPath;
     if (!masterPath) return;
 
-    const globalOrder = await this.repository.getGlobalOrder();
+    const globalOrder = this.repository.getGlobalOrder();
     if (globalOrder) {
       const parentData = this.repository.getFolderData(parentPath);
       if (parentData?.folders) {
@@ -273,7 +273,7 @@ export class OrderService {
       currentOrder.splice(index, 1);
       await this.updateFolderOrder(oldParentPath, currentOrder);
 
-      const globalOrder = await this.repository.getGlobalOrder();
+      const globalOrder = this.repository.getGlobalOrder();
       if (globalOrder) {
         const parentData = this.repository.getFolderData(oldParentPath);
         if (parentData?.folders) {
@@ -288,7 +288,7 @@ export class OrderService {
     currentOrder[index] = newName;
     await this.updateFolderOrder(oldParentPath, currentOrder);
 
-    const globalOrder = await this.repository.getGlobalOrder();
+    const globalOrder = this.repository.getGlobalOrder();
     if (globalOrder) {
       const parentData = this.repository.getFolderData(oldParentPath);
       if (parentData?.folders) {

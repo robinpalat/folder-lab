@@ -432,7 +432,7 @@ export class DeclarativeRuntime {
       ) {
 
         errors.push(
-          `[${widgetId}] selection.mode inválido: ${mode}`
+          `[${widgetId}] selection.mode inválido: ${String(mode)}`
         );
       }
 
@@ -466,7 +466,7 @@ export class DeclarativeRuntime {
       ) {
 
         errors.push(
-          `[${widgetId}] ordering.direction inválido: ${direction}`
+          `[${widgetId}] ordering.direction inválido: ${String(direction)}`
         );
       }
 
@@ -654,7 +654,7 @@ export class DeclarativeRuntime {
         ) {
 
           errors.push(
-            `[${widgetId}] transfer.board.participation inválido: ${board.participation}`
+            `[${widgetId}] transfer.board.participation inválido: ${String(board.participation)}`
           );
         }
       }

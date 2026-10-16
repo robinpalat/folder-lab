@@ -66,16 +66,16 @@ export class BoardArchitectureView {
     container.empty();
     container.addClass('fl-board-architecture');
 
-    const header = container.createEl('div', {
+    const header = container.createDiv({
       cls: 'fl-arch-header'
     });
 
-    header.createEl('div', {
+    header.createDiv({
       cls: 'fl-arch-header-title',
       text: i18n.t('board.architecture.title')
     });
 
-    header.createEl('div', {
+    header.createDiv({
       cls: 'fl-arch-header-hint',
       text: i18n.t('board.architecture.hint')
     });
@@ -98,7 +98,7 @@ export class BoardArchitectureView {
     container: HTMLElement,
     host: BoardArchitectureHost
   ): void {
-    const invitations = container.createEl('div', {
+    const invitations = container.createDiv({
       cls: 'fl-arch-invitations'
     });
 
@@ -133,7 +133,7 @@ export class BoardArchitectureView {
     nodes: BoardArchNode[],
     blocks: BoardBlock[]
   ): void {
-    const list = container.createEl('div', {
+    const list = container.createDiv({
       cls: 'fl-arch-list'
     });
 
@@ -154,18 +154,18 @@ export class BoardArchitectureView {
     total: number,
     blockById: Map<string, BoardBlock>
   ): void {
-    const row = list.createEl('div', {
+    const row = list.createDiv({
       cls: 'fl-arch-node'
     });
 
     row.setAttr('data-arch-node-id', node.id);
     row.style.paddingLeft = `${12 + node.level * 22}px`;
 
-    const main = row.createEl('div', {
+    const main = row.createDiv({
       cls: 'fl-arch-node-main'
     });
 
-    const levelTag = main.createEl('span', {
+    const levelTag = main.createSpan({
       cls: 'fl-arch-node-level',
       text: node.level === 0 ? i18n.t('board.architecture.level.title') : i18n.t('board.architecture.level.numbered', { level: node.level })
     });
@@ -193,7 +193,7 @@ export class BoardArchitectureView {
       }
     });
 
-    const controls = main.createEl('div', {
+    const controls = main.createDiv({
       cls: 'fl-arch-node-controls'
     });
 
@@ -225,12 +225,12 @@ export class BoardArchitectureView {
 
     // ---- Bloques asignados ----
 
-    const assigned = row.createEl('div', {
+    const assigned = row.createDiv({
       cls: 'fl-arch-assigned'
     });
 
     if (node.blockIds.length === 0) {
-      assigned.createEl('div', {
+      assigned.createDiv({
         cls: 'fl-arch-assigned-empty',
         text: i18n.t('board.architecture.empty.noMaterial')
       });
@@ -260,7 +260,7 @@ export class BoardArchitectureView {
     index: number,
     total: number
   ): void {
-    const item = assigned.createEl('div', {
+    const item = assigned.createDiv({
       cls: 'fl-arch-assigned-block'
     });
 
@@ -268,19 +268,19 @@ export class BoardArchitectureView {
       item.addClass('is-inactive');
     }
 
-    item.createEl('span', {
+    item.createSpan({
       cls: 'fl-arch-block-preview',
       text: preview(block.text)
     });
 
     if (block.active === false) {
-      item.createEl('span', {
+      item.createSpan({
         cls: 'fl-arch-inactive-badge',
         text: i18n.t('board.architecture.badge.inactive')
       });
     }
 
-    const controls = item.createEl('div', {
+    const controls = item.createDiv({
       cls: 'fl-arch-block-controls'
     });
 
@@ -319,17 +319,17 @@ export class BoardArchitectureView {
       return;
     }
 
-    const tray = container.createEl('div', {
+    const tray = container.createDiv({
       cls: 'fl-arch-tray'
     });
 
-    tray.createEl('div', {
+    tray.createDiv({
       cls: 'fl-arch-tray-title',
       text: i18n.t('board.architecture.tray.title')
     });
 
     for (const block of unassigned) {
-      const item = tray.createEl('div', {
+      const item = tray.createDiv({
         cls: 'fl-arch-tray-item'
       });
 
@@ -337,13 +337,13 @@ export class BoardArchitectureView {
         item.addClass('is-inactive');
       }
 
-      item.createEl('span', {
+      item.createSpan({
         cls: 'fl-arch-block-preview',
         text: preview(block.text)
       });
 
       if (block.active === false) {
-        item.createEl('span', {
+        item.createSpan({
           cls: 'fl-arch-inactive-badge',
           text: i18n.t('board.architecture.badge.inactive')
         });
@@ -387,7 +387,7 @@ export class BoardArchitectureView {
     host: BoardArchitectureHost,
     nodeCount: number
   ): void {
-    const bar = container.createEl('div', {
+    const bar = container.createDiv({
       cls: 'fl-arch-add-bar'
     });
 

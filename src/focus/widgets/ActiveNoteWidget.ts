@@ -139,7 +139,7 @@ export class ActiveNoteWidget implements FocusWidget {
   private renderEditor(): void {
     if (!this.container || !this.currentFile) return;
 
-    const content = this.container.createEl("div", {
+    const content = this.container.createDiv({
       cls: "fl-active-note-content"
     });
 
@@ -163,7 +163,7 @@ export class ActiveNoteWidget implements FocusWidget {
   }
 
   private renderEmpty(): void {
-    this.container?.createEl("div", {
+    this.container?.createDiv({
       cls: "fl-widget-content-empty",
       text: i18n.t('widgets.activeNote.empty.noteRequired')
     });

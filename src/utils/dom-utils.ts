@@ -219,7 +219,7 @@ export function createFlexContainer(
   
   if (className) classes.push(className);
   
-  const el = parent.createEl('div', { cls: classes.join(' ') });
+  const el = parent.createDiv({ cls: classes.join(' ') });
   return el;
 }
 
@@ -252,7 +252,7 @@ export function createFlexContainerWithAlignment(
   
   if (className) classes.push(className);
   
-  const el = parent.createEl('div', { cls: classes.join(' ') });
+  const el = parent.createDiv({ cls: classes.join(' ') });
   return el;
 }
 
@@ -291,7 +291,7 @@ export function createIconButton(
     attr: { 'aria-label': title, 'title': title }
   });
   
-  const iconEl = btn.createEl('span');
+  const iconEl = btn.createSpan();
   setIcon(iconEl, icon);
   
   if (size === 'sm') {

@@ -69,17 +69,17 @@ export class RestoreQuarantineModal extends Modal {
     }
 
     for (const entry of this.outcome.pending) {
-      const row = contentEl.createEl('div', {
+      const row = contentEl.createDiv({
         cls: 'folder-lab-restore-candidate'
       });
       row.createEl('code', { text: entry.originPath });
-      row.createEl('div', {
+      row.createDiv({
         text: `en cuarentena desde ${new Date(entry.quarantinedAt).toLocaleString()} · identidad: ${entry.noteId}`
       });
-      const resultEl = row.createEl('div', {
+      const resultEl = row.createDiv({
         cls: 'folder-lab-restore-result'
       });
-      const btnRow = row.createEl('div');
+      const btnRow = row.createDiv();
       const confirmBtn = btnRow.createEl('button', {
         text: 'Restaurar'
       });

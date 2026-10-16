@@ -63,13 +63,6 @@ export async function runStartupMaintenance(
     report.reconcileOrphans = reconcile.orphans.length;
     report.reconcilePendingExisting = reconcile.pendingExisting.length;
     report.reconcileDuplicateIds = reconcile.duplicateIds.length;
-    if (
-      reconcile.orphans.length ||
-      reconcile.pendingExisting.length ||
-      reconcile.duplicateIds.length
-    ) {
-      console.info('[FolderLab] Reconciliación de identidad:', reconcile);
-    }
   } catch (error) {
     console.error('[FolderLab] Reconciliación de identidad fallida:', error);
   }
@@ -85,20 +78,6 @@ export async function runStartupMaintenance(
       );
       report.orphanAudit = audit;
       report.orphanCandidates = audit.candidates.length;
-      if (
-        audit.candidates.length ||
-        audit.identityOrphans.length ||
-        audit.ambiguous.length ||
-        audit.unreadable.length
-      ) {
-        console.info('[FolderLab] Auditoría de huérfanos (solo lectura):', {
-          candidates: audit.candidates,
-          identityOrphans: audit.identityOrphans,
-          ambiguous: audit.ambiguous.length,
-          unreadable: audit.unreadable.length,
-          recentOrphans: audit.recentOrphans.length
-        });
-      }
     } catch (error) {
       console.error('[FolderLab] Auditoría de huérfanos fallida:', error);
     }
