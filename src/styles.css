@@ -4985,7 +4985,7 @@ body.focus-splitter-dragging {
 
 /* --- Cabecera e identidad --- */
 .fl-settings-header {
-  padding-bottom: 16px;
+  padding-bottom: 0;
 }
 
 .fl-settings-header-title {
@@ -5007,7 +5007,7 @@ body.focus-splitter-dragging {
 }
 
 .fl-settings-header-desc {
-  margin: 0 0 4px;
+  margin: 0 0 16px;
   color: var(--text-muted);
   font-size: 0.9em;
 }
