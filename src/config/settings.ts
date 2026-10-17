@@ -52,7 +52,7 @@ export interface FolderOrderSettings {
   bookRootPath: string;
   lastOpenedNote: string;
   // IA
-  aiProvider: "openai" | "gemini" | "anthropic";
+  aiProvider: "openai" | "gemini" | "anthropic" | "groq";
   aiApiKey: string;
   aiModel: string;
   aiUseRecommendedModel: boolean;

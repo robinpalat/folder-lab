@@ -62,6 +62,8 @@ async function loadProvider(entry) {
 const { OpenAIProvider } = await loadProvider('src/ai/providers/OpenAIProvider.ts');
 const { AnthropicProvider } = await loadProvider('src/ai/providers/AnthropicProvider.ts');
 const { GeminiProvider } = await loadProvider('src/ai/providers/GeminiProvider.ts');
+const { GroqProvider } = await loadProvider('src/ai/providers/GroqProvider.ts');
+const { LLMProviderFactory } = await loadProvider('src/ai/providers/LLMProviderFactory.ts');
 
 // ------------------------------------------------------------
 // Stub de requestUrl (aislado y restaurado en after)
@@ -152,6 +154,24 @@ const providers = [
     },
     expectedContent: 'hola gemini',
     expectedUsage: { promptTokens: 5, completionTokens: 7, totalTokens: 12 }
+  },
+  {
+    // Groq: API compatible con OpenAI (mismo formato de respuesta).
+    name: 'Groq',
+    create: () => new GroqProvider('key', 'llama-3.3-70b-versatile'),
+    success: {
+      choices: [{ message: { content: '  hola groq  ' } }],
+      usage: { prompt_tokens: 2, completion_tokens: 3, total_tokens: 5 }
+    },
+    successNoUsage: {
+      choices: [{ message: { content: 'sin metricas' } }]
+    },
+    successBadUsage: {
+      choices: [{ message: { content: 'metricas malas' } }],
+      usage: { prompt_tokens: 2, completion_tokens: null, total_tokens: 5 }
+    },
+    expectedContent: 'hola groq',
+    expectedUsage: { promptTokens: 2, completionTokens: 3, totalTokens: 5 }
   }
 ];
 
@@ -242,4 +262,25 @@ test('buildAnthropicUsage: la suma desbordada no emite métricas inválidas', as
     result.buildAnthropicUsage(4, 6),
     { promptTokens: 4, completionTokens: 6, totalTokens: 10 }
   );
+});
+
+// ------------------------------------------------------------
+// FÁBRICA: registro del proveedor Groq
+// ------------------------------------------------------------
+
+test('factory: Groq está registrado con su modelo y nombre por defecto', () => {
+  const provider = LLMProviderFactory.create({
+    provider: 'groq',
+    apiKey: 'gsk-test',
+    model: '',
+    useRecommendedModel: true,
+    temperature: 0.3,
+    maxTokens: 500
+  });
+
+  assert.ok(provider, 'el proveedor groq se crea');
+  assert.equal(provider.id, 'groq');
+  assert.equal(provider.getDefaultModel(), 'llama-3.3-70b-versatile');
+  assert.equal(LLMProviderFactory.getDefaultModel('groq'), 'llama-3.3-70b-versatile');
+  assert.equal(LLMProviderFactory.getProviderName('groq'), 'Groq');
 });

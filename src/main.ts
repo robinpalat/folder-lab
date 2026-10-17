@@ -1308,8 +1308,9 @@ class FolderLabSettingTab extends PluginSettingTab {
         .addOption('openai', 'OpenAI')
         .addOption('gemini', 'Google Gemini')
         .addOption('anthropic', 'Anthropic Claude')
+        .addOption('groq', 'Groq')
         .setValue(this.plugin.settings.aiProvider || 'openai')
-        .onChange(async (value: 'openai' | 'gemini' | 'anthropic') => {
+        .onChange(async (value: 'openai' | 'gemini' | 'anthropic' | 'groq') => {
           this.plugin.settings.aiProvider = value;
           switch (value) {
             case 'openai':
@@ -1320,6 +1321,9 @@ class FolderLabSettingTab extends PluginSettingTab {
               break;
             case 'anthropic':
               this.plugin.settings.aiModel = 'claude-3-5-haiku-20241022';
+              break;
+            case 'groq':
+              this.plugin.settings.aiModel = 'llama-3.3-70b-versatile';
               break;
           }
           await this.plugin.saveSettings();
@@ -1340,7 +1344,8 @@ class FolderLabSettingTab extends PluginSettingTab {
     const providerApiKeys: Array<{ id: string; name: string; url: string }> = [
       { id: 'openai', name: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
       { id: 'gemini', name: 'Google Gemini', url: 'https://aistudio.google.com/apikey' },
-      { id: 'anthropic', name: 'Anthropic Claude', url: 'https://console.anthropic.com/settings/keys' }
+      { id: 'anthropic', name: 'Anthropic Claude', url: 'https://console.anthropic.com/settings/keys' },
+      { id: 'groq', name: 'Groq', url: 'https://console.groq.com/keys' }
     ];
 
     const apiKeysContainer = containerEl.createDiv({
@@ -1402,6 +1407,7 @@ class FolderLabSettingTab extends PluginSettingTab {
               case 'openai': this.plugin.settings.aiModel = 'gpt-4o-mini'; break;
               case 'gemini': this.plugin.settings.aiModel = 'gemini-1.5-flash'; break;
               case 'anthropic': this.plugin.settings.aiModel = 'claude-3-5-haiku-20241022'; break;
+              case 'groq': this.plugin.settings.aiModel = 'llama-3.3-70b-versatile'; break;
             }
           }
           await this.plugin.saveSettings();

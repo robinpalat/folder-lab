@@ -1,7 +1,7 @@
 import type { AIService } from '../AIService';
 
 export interface AISettings {
-  provider: "openai" | "gemini" | "anthropic";
+  provider: "openai" | "gemini" | "anthropic" | "groq";
   apiKey: string;
   model: string;
   useRecommendedModel: boolean;

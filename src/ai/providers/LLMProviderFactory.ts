@@ -3,6 +3,7 @@ import { LLMProvider } from './LLMProvider';
 import { OpenAIProvider } from './OpenAIProvider';
 import { GeminiProvider } from './GeminiProvider';
 import { AnthropicProvider } from './AnthropicProvider';
+import { GroqProvider } from './GroqProvider';
 
 export class LLMProviderFactory {
   static create(settings: AISettings): LLMProvider | null {
@@ -19,6 +20,8 @@ export class LLMProviderFactory {
         return new GeminiProvider(settings.apiKey, model || "gemini-1.5-flash");
       case "anthropic":
         return new AnthropicProvider(settings.apiKey, model || "claude-3-5-haiku-20241022");
+      case "groq":
+        return new GroqProvider(settings.apiKey, model || "llama-3.3-70b-versatile");
       default:
         return null;
     }
@@ -29,6 +32,7 @@ export class LLMProviderFactory {
       case "openai": return "gpt-4o-mini";
       case "gemini": return "gemini-1.5-flash";
       case "anthropic": return "claude-3-5-haiku-20241022";
+      case "groq": return "llama-3.3-70b-versatile";
       default: return "";
     }
   }
@@ -38,6 +42,7 @@ export class LLMProviderFactory {
       case "openai": return "OpenAI";
       case "gemini": return "Google Gemini";
       case "anthropic": return "Anthropic Claude";
+      case "groq": return "Groq";
       default: return "Desconocido";
     }
   }
