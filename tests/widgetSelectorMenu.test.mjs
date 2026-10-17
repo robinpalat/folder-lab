@@ -241,6 +241,21 @@ test('bloque fijo: NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS en orden Apuntes/Asistente
   assert.deepEqual(ids, ['notes', 'memory', 'active-note']);
 });
 
+test('bootstrap: WidgetManager crea los tres tipos fijos (incluye active-note)', () => {
+  const source = read('src/focus/WidgetManager.ts');
+
+  // initializeDefaults y el bootstrap de loadForNote crean los 3.
+  const initIdx = source.indexOf('initializeDefaults(): void {');
+  const initBlock = source.slice(initIdx, initIdx + 600);
+  assert.ok(initBlock.includes("addInstance('memory'"));
+  assert.ok(initBlock.includes("addInstance('notes'"));
+  assert.ok(initBlock.includes("addInstance('active-note'"), 'initializeDefaults crea active-note');
+
+  const loadIdx = source.indexOf('// Primera vez que esta nota utiliza Contexto.');
+  const loadBlock = source.slice(loadIdx, loadIdx + 600);
+  assert.ok(loadBlock.includes("createInstanceInternal('active-note'"), 'loadForNote bootstrap crea active-note');
+});
+
 test('FocusPane: orden exacto Agregar → bloque fijo → Contexto → Tarjetas', () => {
   const source = read('src/focus/FocusPane.ts');
 

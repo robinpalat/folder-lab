@@ -129,17 +129,17 @@ test('P2-B: bootstrap de primera visita — instancias por defecto y un guardado
   await pending;
 
   const instances = wm.getInstances();
-  assert.equal(instances.length, 2);
+  assert.equal(instances.length, 3);
   assert.deepEqual(
     instances.map((i) => i.typeId).sort(),
-    ['memory', 'notes']
+    ['active-note', 'memory', 'notes']
   );
   assert.equal(wm.getLayout().top, instances[1].instanceId);
   assert.equal(wm.getLayout().bottom, instances[0].instanceId);
 
   assert.equal(repo.saves.length, 1);
   assert.equal(repo.saves[0].path, 'Libro/Nueva.md');
-  assert.equal(repo.saves[0].data.widgets.length, 2);
+  assert.equal(repo.saves[0].data.widgets.length, 3);
 });
 
 test('P2-B: superposición con resolución antigua la última — la carga vieja se descarta', async () => {

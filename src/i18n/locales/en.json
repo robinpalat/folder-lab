@@ -619,7 +619,8 @@
     },
     "managerDefaultName": {
       "assistant": "Assistant",
-      "notes": "Notes"
+      "notes": "Notes",
+      "activeNote": "Active Note"
     },
     "declarative": {
       "empty": {

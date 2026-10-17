@@ -149,6 +149,7 @@ async createInstance(
 
     this.addInstance('memory', i18n.t('widgets.managerDefaultName.assistant'));
     this.addInstance('notes', i18n.t('widgets.managerDefaultName.notes'));
+    this.addInstance('active-note', i18n.t('widgets.managerDefaultName.activeNote'));
   }
 
   addInstance(typeId: string, name?: string): WidgetInstance | null {
@@ -407,6 +408,7 @@ async applyInstances(
 
 this.createInstanceInternal('memory', i18n.t('widgets.managerDefaultName.assistant'));
 this.createInstanceInternal('notes', i18n.t('widgets.managerDefaultName.notes'));
+this.createInstanceInternal('active-note', i18n.t('widgets.managerDefaultName.activeNote'));
 
 this.layout = {
   top: this.instances[1]?.instanceId ?? '',
