@@ -4481,6 +4481,8 @@ body.focus-splitter-dragging {
   display: flex;
   flex-direction: column;
   width: 100%;
+  /* Participa como flex-item del contenido de pestaña. */
+  flex: 1 1 auto;
   height: 100%;
   min-height: 0;
   padding-top: 24px;
@@ -4615,6 +4617,15 @@ body.focus-splitter-dragging {
 
 .fl-capability-browser-tab-content {
   width: 100%;
+  /*
+   * Reparte el alto disponible del modal (flex column). Sin esto
+   * el contenido crecía por su tamaño natural y el modal
+   * (overflow: hidden) recortaba el pie — en pantallas bajas
+   * (notebooks) desaparecían los botones Cancelar/Aplicar.
+   */
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
 }
 
