@@ -22,6 +22,8 @@ import { WidgetControlsRenderer } from './tools/WidgetControlsRenderer';
 
 import { WidgetController } from '../controllers/WidgetController';
 import { WidgetManager } from '../WidgetManager';
+import { LibraryBrowser } from '../LibraryBrowser';
+import type { FocusWidgetRegistry } from '../FocusWidgetRegistry';
 
 import { AIService } from '../../ai/AIService';
 import { CapabilityRegistry, CapabilityExecutor } from '../../ai/capabilities';
@@ -81,13 +83,14 @@ export class MemoryWidget implements FocusWidget {
 
   private aiService: AIService;
   private registry: CapabilityRegistry;
+  private widgetManager: WidgetManager;
+  private widgetRegistry: FocusWidgetRegistry;
   private executor: CapabilityExecutor;
   private contextResolver: ContextResolver;
 
   private selectedSources: Array<'note' | 'notes' | 'snips' | 'tasks'> = ['note'];
   private selectedDomain: string = 'Memoria';
   private selectedCapability: string = '';
-  private instructions: string = '';
 
   // Propiedades de resultado
   private resultContainer: HTMLElement | null = null;
@@ -123,13 +126,16 @@ constructor(
   aiService: AIService,
   registry: CapabilityRegistry,
   widgetController: WidgetController,
-  widgetManager: WidgetManager
+  widgetManager: WidgetManager,
+  widgetRegistry: FocusWidgetRegistry
 ) {
     this.app = app;
     // El widget solo se instancia desde el propio plugin cargado.
     this.plugin = app.plugins?.plugins?.['folder-lab'] as FolderLabPlugin;
     this.aiService = aiService;
     this.registry = registry;
+    this.widgetManager = widgetManager;
+    this.widgetRegistry = widgetRegistry;
     this.executor = new CapabilityExecutor(registry);
 this.contextResolver = new ContextResolver(
   app,
@@ -353,6 +359,12 @@ this.contextResolver = new ContextResolver(
       ]
     });
 
+    // Configuración de capacidades (biblioteca, pestaña
+    // Asistente): solo icono, sin label visible.
+    controls.iconAction({
+      id: 'open-capabilities',
+      icon: 'settings'
+    });
 
     return controls;
   }
@@ -423,6 +435,21 @@ this.contextResolver = new ContextResolver(
             return;
           }
 
+          if (controlId === 'open-capabilities') {
+            // Biblioteca existente en la pestaña Asistente:
+            // selección de capacidades y fuentes.
+            const browser = new LibraryBrowser(
+              this.app,
+              this.widgetRegistry,
+              this.registry,
+              this.widgetManager,
+              'assistant'
+            );
+
+            browser.open();
+            return;
+          }
+
           if (controlId === 'execute') {
             void this.execute();
           }
@@ -478,21 +505,6 @@ this.contextResolver = new ContextResolver(
         text: i18n.t('widgets.memory.placeholder.result')
       });
     }
-    // ------------------------------------------------------------
-    // INDICACIONES ADICIONALES
-    // ------------------------------------------------------------
-
-    const instructions = capturePanel.createEl('textarea', {
-      cls: 'fl-widget-instructions-input'
-    });
-
-    instructions.placeholder = i18n.t('widgets.memory.placeholder.instructions');
-    instructions.value = this.instructions;
-
-    instructions.addEventListener('input', () => {
-      this.instructions = instructions.value;
-    });
-
     // ============================================================
     // PANEL TODAY
     // ============================================================
@@ -789,7 +801,6 @@ this.contextResolver = new ContextResolver(
         // Compatibilidad temporal.
         contextType: this.selectedSources[0] || 'note',
 
-        instructions: this.instructions || undefined,
         activeNotePath: this.currentFile.path,
         temperature: this.plugin?.settings?.aiTemperature,
         maxTokens: this.plugin?.settings?.aiMaxTokens
@@ -1089,29 +1100,33 @@ export class MemoryWidgetFactory implements FocusWidgetFactory {
   private aiService: AIService;
   private registry: CapabilityRegistry;
   private widgetController: WidgetController;
-private widgetManager: WidgetManager;
+  private widgetManager: WidgetManager;
+  private widgetRegistry: FocusWidgetRegistry;
 
-constructor(
-  app: AppWithPluginRegistry,
-  aiService: AIService,
-  registry: CapabilityRegistry,
-  widgetController: WidgetController,
-  widgetManager: WidgetManager
-) {
-  this.app = app;
-  this.aiService = aiService;
-  this.registry = registry;
-  this.widgetController = widgetController;
-  this.widgetManager = widgetManager;
-}
+  constructor(
+    app: AppWithPluginRegistry,
+    aiService: AIService,
+    registry: CapabilityRegistry,
+    widgetController: WidgetController,
+    widgetManager: WidgetManager,
+    widgetRegistry: FocusWidgetRegistry
+  ) {
+    this.app = app;
+    this.aiService = aiService;
+    this.registry = registry;
+    this.widgetController = widgetController;
+    this.widgetManager = widgetManager;
+    this.widgetRegistry = widgetRegistry;
+  }
 
   create(): FocusWidget {
-return new MemoryWidget(
-  this.app,
-  this.aiService,
-  this.registry,
-  this.widgetController,
-  this.widgetManager
-);
+    return new MemoryWidget(
+      this.app,
+      this.aiService,
+      this.registry,
+      this.widgetController,
+      this.widgetManager,
+      this.widgetRegistry
+    );
   }
 }

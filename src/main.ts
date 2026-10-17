@@ -559,7 +559,8 @@ export default class FolderLabPlugin extends Plugin {
         this.aiService,
         this.capabilityRegistry,
         this.widgetController,
-        this.widgetManager
+        this.widgetManager,
+        this.widgetRegistry
       ),
       {
         id: 'memory',

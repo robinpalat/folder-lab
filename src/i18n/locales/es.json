@@ -666,8 +666,7 @@
         "deleteResponse": "Eliminar respuesta"
       },
       "placeholder": {
-        "result": "El resultado aparecerá aquí.",
-        "instructions": "Indicaciones adicionales..."
+        "result": "El resultado aparecerá aquí."
       },
       "notice": {
         "selectCapability": "Selecciona una capacidad"

@@ -666,8 +666,7 @@
         "deleteResponse": "Delete response"
       },
       "placeholder": {
-        "result": "The result will appear here.",
-        "instructions": "Additional instructions..."
+        "result": "The result will appear here."
       },
       "notice": {
         "selectCapability": "Select a capability"
