@@ -217,10 +217,8 @@
     "testContextResolver": "Probar ContextResolver (nota actual)"
   },
   "settings": {
-    "title": "📂 Configuración de Folder Lab",
-    "manualOrder": {
-      "name": "Usar orden manual",
-      "desc": "Activa el orden manual en el explorador de archivos"
+    "header": {
+      "description": "Organiza y trabaja con una carpeta de notas como un espacio de trabajo."
     },
     "showNumbers": {
       "name": "Mostrar números",
@@ -235,17 +233,29 @@
         "none": "Sin números"
       }
     },
-    "bookRoot": {
-      "heading": "📚 Carpeta raíz del libro",
-      "name": "Carpeta raíz del libro",
-      "desc": "Carpeta principal que contiene todo el libro. Al seleccionarla se inicializará el proyecto.",
+    "masterFolder": {
+      "heading": "Carpeta maestra",
+      "desc": {
+        "name": "Punto de partida",
+        "desc": "La carpeta maestra es la carpeta de la que arranca el espacio de trabajo de Folder Lab."
+      },
+      "current": {
+        "name": "Carpeta actual"
+      },
+      "currentFolderInfo": "Ubicación activa: {path}",
+      "empty": {
+        "name": "Sin carpeta maestra",
+        "desc": "Elige la carpeta que usará Folder Lab como punto de partida. Selecciona una carpeta con el botón de la derecha."
+      },
       "placeholder": "Ej: Libro/",
-      "selectButton": "📁 Seleccionar",
-      "configuredNotice": "✅ Carpeta raíz configurada: {path}",
-      "currentFolderInfo": "📂 Carpeta actual: {path}"
+      "selectButton": "Seleccionar carpeta",
+      "configuredNotice": "✅ Carpeta maestra configurada: {path}"
+    },
+    "general": {
+      "heading": "Opciones generales"
     },
     "navigation": {
-      "heading": "🧭 Navegación",
+      "heading": "Navegación",
       "type": {
         "name": "Tipo de navegación",
         "desc": "Elige cómo se organiza la navegación en Folder Lab",
@@ -296,9 +306,9 @@
       "button": "🔄 Refrescar"
     },
     "ai": {
-      "heading": "🤖 Configuración de IA",
+      "heading": "Inteligencia artificial",
       "provider": {
-        "name": "Proveedor de IA",
+        "name": "Proveedor",
         "desc": "Selecciona el servicio de IA que quieres usar"
       },
       "apiKey": {
@@ -324,27 +334,24 @@
         "desc": "Longitud máxima de la respuesta"
       },
       "testConnection": {
-        "name": "🔌 Probar conexión",
+        "name": "Probar conexión",
         "desc": "Verifica que tu configuración sea correcta",
         "button": "Probar",
-        "testing": "⏳ Probando...",
-        "connected": "✅ Conectado",
-        "error": "❌ Error"
+        "testing": "Probando...",
+        "connected": "Conectado",
+        "error": "Error"
       },
       "help": {
-        "heading": "📌 Cómo obtener tu API Key"
+        "heading": "Obtener una API Key",
+        "desc": "Enlace a la página oficial de cada proveedor para crear tu clave.",
+        "current": "(actual)",
+        "openKeys": "Obtener API key en la plataforma oficial de {provider}"
       }
-    },
-    "info": {
-      "heading": "ℹ️ Información",
-      "orderStorage": "El orden se guarda en un archivo _folder_order.json dentro de la carpeta .folder-order (oculta).",
-      "emptyNotes": "Notas vacías: se detectan automáticamente (< 10 caracteres sin contar el título).",
-      "wordCountExclusions": "El conteo de palabras excluye automáticamente archivos compilados y archivos dentro de .folder-order."
     }
   },
   "modal": {
     "selectRoot": {
-      "title": "Seleccionar carpeta raíz del libro",
+      "title": "Seleccionar la carpeta maestra",
       "description": "Elige la carpeta principal que contiene todo el libro."
     },
     "wordCount": {

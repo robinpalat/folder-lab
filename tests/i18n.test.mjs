@@ -101,7 +101,7 @@ test('setLocale acepta soportados e ignora los demás', () => {
 
 test('resuelve claves anidadas en cualquier profundidad', () => {
   assert.equal(i18n.t('common.cancel'), 'Cancelar');
-  assert.equal(i18n.t('settings.ai.provider.name'), 'Proveedor de IA');
+  assert.equal(i18n.t('settings.ai.provider.name'), 'Proveedor');
   assert.equal(
     i18n.t('board.architecture.action.moveUp'),
     'Mover arriba'

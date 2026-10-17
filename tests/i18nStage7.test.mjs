@@ -46,10 +46,19 @@ function inEnglish(fn) {
 // 1. CONFIGURACIÓN (Settings)
 // ============================================================
 
-test('settings: título, orden manual y números', () => {
-  assert.equal(i18n.t('settings.title'), '📂 Configuración de Folder Lab');
-  assert.equal(i18n.t('settings.manualOrder.name'), 'Usar orden manual');
+test('settings: cabecera, carpeta maestra y números', () => {
+  assert.equal(i18n.t('settings.header.description'), 'Organiza y trabaja con una carpeta de notas como un espacio de trabajo.');
+  assert.equal(i18n.t('settings.general.heading'), 'Opciones generales');
+  assert.equal(i18n.t('settings.masterFolder.heading'), 'Carpeta maestra');
+  assert.equal(i18n.t('settings.masterFolder.empty.name'), 'Sin carpeta maestra');
   assert.equal(i18n.t('settings.showNumbers.name'), 'Mostrar números');
+
+  /*
+   * La opción «Usar orden manual» se retiró de la interfaz, pero
+   * la clave de AVISO se conserva: es contrato de i18n
+   * (es/en en paridad) y cualquier ruta restante que la emita
+   * debe seguir resolviendo.
+   */
   assert.equal(
     i18n.t('notices.manualOrderToggled', {
       state: i18n.t('notices.manualOrder.enabled')
@@ -64,26 +73,33 @@ test('settings: título, orden manual y números', () => {
     ),
     'Manual order disabled'
   );
+
+  // La opción retirada ya no existe en el catálogo: t() devuelve
+  // la propia clave como señal visible de ausencia.
+  assert.equal(i18n.t('settings.manualOrder.name'), 'settings.manualOrder.name');
 });
 
-test('settings: numeración y carpeta raíz con interpolación de ruta', () => {
+test('settings: numeración y carpeta maestra con interpolación de ruta', () => {
   assert.equal(i18n.t('settings.numberingStyle.option.roman'), 'Romanos (I, II, III)');
-  assert.equal(i18n.t('settings.bookRoot.heading'), '📚 Carpeta raíz del libro');
-  assert.equal(i18n.t('settings.bookRoot.placeholder'), 'Ej: Libro/');
-  assert.equal(i18n.t('settings.bookRoot.selectButton'), '📁 Seleccionar');
+  assert.equal(i18n.t('settings.masterFolder.heading'), 'Carpeta maestra');
+  assert.equal(i18n.t('settings.masterFolder.placeholder'), 'Ej: Libro/');
+  assert.equal(i18n.t('settings.masterFolder.selectButton'), 'Seleccionar carpeta');
   assert.equal(
-    i18n.t('settings.bookRoot.configuredNotice', { path: 'Libros/MiLibro' }),
-    '✅ Carpeta raíz configurada: Libros/MiLibro'
+    i18n.t('settings.masterFolder.configuredNotice', { path: 'Libros/MiLibro' }),
+    '✅ Carpeta maestra configurada: Libros/MiLibro'
   );
   assert.equal(
-    i18n.t('settings.bookRoot.currentFolderInfo', { path: 'Libros/MiLibro' }),
-    '📂 Carpeta actual: Libros/MiLibro'
+    i18n.t('settings.masterFolder.currentFolderInfo', { path: 'Libros/MiLibro' }),
+    'Ubicación activa: Libros/MiLibro'
   );
 
   assert.equal(
-    inEnglish(() => i18n.t('settings.bookRoot.currentFolderInfo', { path: 'Books/Main' })),
-    '📂 Current folder: Books/Main'
+    inEnglish(() => i18n.t('settings.masterFolder.currentFolderInfo', { path: 'Books/Main' })),
+    'Active location: Books/Main'
   );
+
+  // El literal retirado «Carpeta raíz del libro» ya no existe.
+  assert.equal(i18n.t('settings.bookRoot.heading'), 'settings.bookRoot.heading');
 });
 
 test('settings: navegación con interpolación anidada del tipo', () => {
@@ -126,18 +142,23 @@ test('settings: preset, propiedades e ignoradas', () => {
 // ============================================================
 
 test('settings.ai: sección completa y estados del botón de prueba', () => {
-  assert.equal(i18n.t('settings.ai.heading'), '🤖 Configuración de IA');
+  assert.equal(i18n.t('settings.ai.heading'), 'Inteligencia artificial');
   assert.equal(i18n.t('settings.ai.apiKey.placeholder'), 'Introduce tu API Key');
   assert.equal(i18n.t('settings.ai.customModel.placeholder'), 'Nombre del modelo');
   assert.equal(i18n.t('settings.ai.testConnection.button'), 'Probar');
-  assert.equal(i18n.t('settings.ai.testConnection.testing'), '⏳ Probando...');
-  assert.equal(i18n.t('settings.ai.testConnection.connected'), '✅ Conectado');
-  assert.equal(i18n.t('settings.ai.testConnection.error'), '❌ Error');
+  assert.equal(i18n.t('settings.ai.testConnection.testing'), 'Probando...');
+  assert.equal(i18n.t('settings.ai.testConnection.connected'), 'Conectado');
+  assert.equal(i18n.t('settings.ai.testConnection.error'), 'Error');
   assert.equal(i18n.t('errors.ai.notInitialized'), '❌ Servicio de IA no inicializado');
-  assert.equal(i18n.t('settings.ai.help.heading'), '📌 Cómo obtener tu API Key');
+  assert.equal(i18n.t('settings.ai.help.heading'), 'Obtener una API Key');
+  assert.equal(i18n.t('settings.ai.help.current'), '(actual)');
+  assert.equal(
+    i18n.t('settings.ai.help.openKeys', { provider: 'OpenAI' }),
+    'Obtener API key en la plataforma oficial de OpenAI'
+  );
 
-  assert.equal(inEnglish(() => i18n.t('settings.ai.testConnection.testing')), '⏳ Testing...');
-  assert.equal(inEnglish(() => i18n.t('settings.ai.testConnection.connected')), '✅ Connected');
+  assert.equal(inEnglish(() => i18n.t('settings.ai.testConnection.testing')), 'Testing...');
+  assert.equal(inEnglish(() => i18n.t('settings.ai.testConnection.connected')), 'Connected');
 });
 
 test('ai.connection: mensajes de testConnection/chat en ambos idiomas', () => {
@@ -190,14 +211,12 @@ test('avisos: ribbon, init, contexto y menú de carpetas', () => {
   );
 });
 
-test('settings.info: textos informativos conservan nombres de archivo literales', () => {
-  assert.ok(i18n.t('settings.info.orderStorage').includes('_folder_order.json'));
-  assert.ok(i18n.t('settings.info.orderStorage').includes('.folder-order'));
-  assert.ok(i18n.t('settings.info.wordCountExclusions').includes('.folder-order'));
-  assert.equal(
-    inEnglish(() => i18n.t('settings.info.emptyNotes')),
-    'Empty notes: detected automatically (< 10 characters excluding the title).'
-  );
+test('settings.info: sección retirada del catálogo (claves ausentes)', () => {
+  // La sección «Información» se retiró del panel; sus claves ya no
+  // existen y t() devuelve la propia clave como señal de ausencia.
+  assert.equal(i18n.t('settings.info.orderStorage'), 'settings.info.orderStorage');
+  assert.equal(i18n.t('settings.info.emptyNotes'), 'settings.info.emptyNotes');
+  assert.equal(i18n.t('settings.info.wordCountExclusions'), 'settings.info.wordCountExclusions');
 });
 
 // ============================================================

@@ -965,68 +965,49 @@ class FolderLabSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
+    // ============================================================
+    // CABECERA — identidad del plugin
+    // ============================================================
+    containerEl.addClass('fl-settings-header');
 
+    const headerTitle = containerEl.createDiv({
+      cls: 'fl-settings-header-title'
+    });
+
+    headerTitle.createSpan({
+      text: this.plugin.manifest.name,
+      cls: 'fl-settings-header-name'
+    });
+
+    headerTitle.createSpan({
+      text: `v${this.plugin.manifest.version}`,
+      cls: 'fl-settings-header-version'
+    });
+
+    containerEl.createEl('p', {
+      text: i18n.t('settings.header.description'),
+      cls: 'fl-settings-header-desc'
+    });
+
+    // ============================================================
+    // SECCIÓN: CARPETA MAESTRA
+    // ============================================================
     new Setting(containerEl)
-      .setName(i18n.t('settings.title'))
+      .setName(i18n.t('settings.masterFolder.heading'))
       .setHeading();
 
-    // ===== ORDEN MANUAL =====
     new Setting(containerEl)
-      .setName(i18n.t('settings.manualOrder.name'))
-      .setDesc(i18n.t('settings.manualOrder.desc'))
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.useManualOrder)
-        .onChange(async (value) => {
-          this.plugin.settings.useManualOrder = value;
-          await this.plugin.saveSettings();
-          this.app.workspace.trigger('layout-change');
-          new Notice(i18n.t('notices.manualOrderToggled', {
-            state: i18n.t(value
-              ? 'notices.manualOrder.enabled'
-              : 'notices.manualOrder.disabled')
-          }));
-        }));
-
-    // ===== MOSTRAR NÚMEROS =====
-    new Setting(containerEl)
-      .setName(i18n.t('settings.showNumbers.name'))
-      .setDesc(i18n.t('settings.showNumbers.desc'))
-      .addToggle(toggle => toggle
-        .setValue(this.plugin.settings.showNumbers)
-        .onChange(async (value) => {
-          this.plugin.settings.showNumbers = value;
-          await this.plugin.saveSettings();
-        }));
-
-    // ===== ESTILO DE NUMERACIÓN =====
-    new Setting(containerEl)
-      .setName(i18n.t('settings.numberingStyle.name'))
-      .setDesc(i18n.t('settings.numberingStyle.desc'))
-      .addDropdown(dropdown => dropdown
-        .addOption('roman', i18n.t('settings.numberingStyle.option.roman'))
-        .addOption('arabic', i18n.t('settings.numberingStyle.option.arabic'))
-        .addOption('none', i18n.t('settings.numberingStyle.option.none'))
-        .setValue(this.plugin.settings.numberingStyle)
-        .onChange(async (value: 'roman' | 'arabic' | 'none') => {
-          this.plugin.settings.numberingStyle = value;
-          await this.plugin.saveSettings();
-        }));
-
-    // ===== CARPETA RAÍZ DEL LIBRO =====
-    containerEl.createEl('hr');
-
-    new Setting(containerEl)
-      .setName(i18n.t('settings.bookRoot.heading'))
-      .setHeading();
+      .setName(i18n.t('settings.masterFolder.desc.name'))
+      .setDesc(i18n.t('settings.masterFolder.desc.desc'));
 
     let rootPathInput: HTMLInputElement | null = null;
 
     const rootSetting = new Setting(containerEl)
-      .setName(i18n.t('settings.bookRoot.name'))
-      .setDesc(i18n.t('settings.bookRoot.desc'))
+      .setName(i18n.t('settings.masterFolder.desc.name'))
+      .setDesc(i18n.t('settings.masterFolder.desc.desc'))
       .addText(text => {
         text
-          .setPlaceholder(i18n.t('settings.bookRoot.placeholder'))
+          .setPlaceholder(i18n.t('settings.masterFolder.placeholder'))
           .setValue(this.plugin.settings.bookRootPath || '')
           .onChange(async (value) => {
             await this.plugin.setBookRootPath(value);
@@ -1035,7 +1016,7 @@ class FolderLabSettingTab extends PluginSettingTab {
       });
 
     rootSetting.addButton(button => button
-      .setButtonText(i18n.t('settings.bookRoot.selectButton'))
+      .setButtonText(i18n.t('settings.masterFolder.selectButton'))
       .onClick(async () => {
         const folders: string[] = [];
         const root = this.app.vault.getRoot();
@@ -1058,7 +1039,7 @@ class FolderLabSettingTab extends PluginSettingTab {
             .then(() => {
               if (rootPathInput) rootPathInput.value = selected;
 
-              new Notice(i18n.t('settings.bookRoot.configuredNotice', { path: selected }));
+              new Notice(i18n.t('settings.masterFolder.configuredNotice', { path: selected }));
             })
             .catch((error) => {
               console.error(
@@ -1070,17 +1051,23 @@ class FolderLabSettingTab extends PluginSettingTab {
         modal.open();
       }));
 
-    if (this.plugin.settings.bookRootPath) {
-      containerEl.createEl('p', {
-        text: i18n.t('settings.bookRoot.currentFolderInfo', { path: this.plugin.settings.bookRootPath }),
-        cls: 'folder-lab-info-text'
-      });
+    const masterPath = this.plugin.settings.bookRootPath;
+
+    if (masterPath) {
+      new Setting(containerEl)
+        .setName(i18n.t('settings.masterFolder.current.name'))
+        .setDesc(i18n.t('settings.masterFolder.currentFolderInfo', { path: masterPath }))
+        .setClass('fl-settings-current-folder');
+    } else {
+      new Setting(containerEl)
+        .setName(i18n.t('settings.masterFolder.empty.name'))
+        .setDesc(i18n.t('settings.masterFolder.empty.desc'))
+        .setClass('fl-settings-current-folder');
     }
 
     // ============================================================
     // SECCIÓN: NAVEGACIÓN
     // ============================================================
-    containerEl.createEl('hr');
     new Setting(containerEl)
       .setName(i18n.t('settings.navigation.heading'))
       .setHeading();
@@ -1282,8 +1269,40 @@ class FolderLabSettingTab extends PluginSettingTab {
         })
       );
 
+    // ============================================================
+    // SECCIÓN: OPCIONES GENERALES
+    // ============================================================
+    new Setting(containerEl)
+      .setName(i18n.t('settings.general.heading'))
+      .setHeading();
+
+    // ===== MOSTRAR NÚMEROS =====
+    new Setting(containerEl)
+      .setName(i18n.t('settings.showNumbers.name'))
+      .setDesc(i18n.t('settings.showNumbers.desc'))
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.showNumbers)
+        .onChange(async (value) => {
+          this.plugin.settings.showNumbers = value;
+          await this.plugin.saveSettings();
+        }));
+
+    // ===== ESTILO DE NUMERACIÓN =====
+    new Setting(containerEl)
+      .setName(i18n.t('settings.numberingStyle.name'))
+      .setDesc(i18n.t('settings.numberingStyle.desc'))
+      .setClass('fl-settings-sub-option')
+      .addDropdown(dropdown => dropdown
+        .addOption('roman', i18n.t('settings.numberingStyle.option.roman'))
+        .addOption('arabic', i18n.t('settings.numberingStyle.option.arabic'))
+        .addOption('none', i18n.t('settings.numberingStyle.option.none'))
+        .setValue(this.plugin.settings.numberingStyle)
+        .onChange(async (value: 'roman' | 'arabic' | 'none') => {
+          this.plugin.settings.numberingStyle = value;
+          await this.plugin.saveSettings();
+        }));
+
     // ===== SECCIÓN DE IA =====
-    containerEl.createEl('hr');
     new Setting(containerEl)
       .setName(i18n.t('settings.ai.heading'))
       .setHeading();
@@ -1454,43 +1473,51 @@ class FolderLabSettingTab extends PluginSettingTab {
           });
       });
 
-    // Ayuda: cómo obtener API Key
-    containerEl.createEl('hr');
+    /*
+     * Enlaces a la página oficial donde cada proveedor soportado
+     * permite crear su API key. Misma decisión de apertura que
+     * ResourcesWidget (window.open con _blank); la lista de
+     * proveedores y sus URL se deriva del dropdown de arriba.
+     */
     new Setting(containerEl)
       .setName(i18n.t('settings.ai.help.heading'))
-      .setHeading();
+      .setDesc(i18n.t('settings.ai.help.desc'));
 
-    const helpDiv = containerEl.createDiv({ cls: 'fl-settings-help' });
+    const currentProvider = this.plugin.settings.aiProvider || 'openai';
+    const providerApiKeys: Array<{ id: string; name: string; url: string }> = [
+      { id: 'openai', name: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
+      { id: 'gemini', name: 'Google Gemini', url: 'https://aistudio.google.com/apikey' },
+      { id: 'anthropic', name: 'Anthropic Claude', url: 'https://console.anthropic.com/settings/keys' }
+    ];
 
-    const provider = this.plugin.settings.aiProvider || 'openai';
-    const helpLinks: Record<string, string> = {
-      openai: 'https://platform.openai.com/api-keys',
-      gemini: 'https://aistudio.google.com/apikey',
-      anthropic: 'https://console.anthropic.com/settings/keys'
-    };
-
-    helpDiv.createEl('p', {
-      text: `📎 ${provider === 'openai' ? 'OpenAI' : provider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude'}: ${helpLinks[provider]}`
+    const apiKeysContainer = containerEl.createDiv({
+      cls: 'fl-settings-apikeys'
     });
 
-    // ===== INFORMACIÓN =====
-    containerEl.createEl('hr');
-    new Setting(containerEl)
-      .setName(i18n.t('settings.info.heading'))
-      .setHeading();
+    for (const p of providerApiKeys) {
+      const row = apiKeysContainer.createDiv({
+        cls: 'fl-settings-apikey-row'
+      });
 
-    containerEl.createEl('p', {
-      text: i18n.t('settings.info.orderStorage')
-    });
+      row.createSpan({
+        text: p.name,
+        cls: 'fl-settings-apikey-name'
+      });
 
-    containerEl.createEl('p', {
-      text: i18n.t('settings.info.emptyNotes'),
-      cls: 'fl-settings-info'
-    });
+      if (p.id === currentProvider) {
+        row.createSpan({
+          text: i18n.t('settings.ai.help.current'),
+          cls: 'fl-settings-apikey-current'
+        });
+      }
 
-    containerEl.createEl('p', {
-      text: i18n.t('settings.info.wordCountExclusions'),
-      cls: 'fl-settings-info'
-    });
+      const linkBtn = row.createEl('button', {
+        cls: 'fl-settings-apikey-link'
+      });
+      setIcon(linkBtn, 'globe');
+      linkBtn.setAttr('aria-label', i18n.t('settings.ai.help.openKeys', { provider: p.name }));
+      linkBtn.setAttr('title', i18n.t('settings.ai.help.openKeys', { provider: p.name }));
+      linkBtn.onclick = () => window.open(p.url, '_blank');
+    }
   }
 }

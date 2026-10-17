@@ -164,7 +164,7 @@ test('stats compactas: interpolación con doble espacio (formato histórico)', (
 test('selección de raíz: título, descripción y estado vacío', () => {
   assert.equal(
     i18n.t('modal.selectRoot.title'),
-    'Seleccionar carpeta raíz del libro'
+    'Seleccionar la carpeta maestra'
   );
   assert.equal(
     i18n.t('modal.selectRoot.description'),
@@ -177,7 +177,7 @@ test('selección de raíz: título, descripción y estado vacío', () => {
 
   assert.equal(
     inEnglish(() => i18n.t('modal.selectRoot.title')),
-    "Select the book's root folder"
+    "Select the master folder"
   );
   assert.equal(
     inEnglish(() => i18n.t('empty.noRootFolders')),

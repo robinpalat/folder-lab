@@ -4983,17 +4983,90 @@ body.focus-splitter-dragging {
   display: none;
 }
 
-.fl-settings-help {
-  padding: 8px 12px;
-  background: var(--background-primary-alt);
-  border-radius: 6px;
-  font-size: 0.85em;
+/* --- Cabecera e identidad --- */
+.fl-settings-header {
+  padding-bottom: 4px;
+}
+
+.fl-settings-header-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.fl-settings-header-name {
+  font-size: 1.15em;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.fl-settings-header-version {
+  font-size: 0.8em;
+  color: var(--text-faint);
+}
+
+.fl-settings-header-desc {
+  margin: 0 0 4px;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+/* --- Carpeta maestra: estado actual --- */
+.fl-settings-current-folder .setting-item-control,
+.fl-settings-current-folder .setting-item-description {
   color: var(--text-muted);
 }
 
-.fl-settings-info {
-  color: var(--text-muted);
+/* --- Opción subordinada: estilo de numeración --- */
+.fl-settings-sub-option {
+  padding-left: 24px;
+  opacity: 0.9;
+}
+
+/* --- Acceso a API keys por proveedor --- */
+.fl-settings-apikeys {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+.fl-settings-apikey-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.fl-settings-apikey-name {
+  color: var(--text-normal);
+  font-size: 0.9em;
+}
+
+.fl-settings-apikey-current {
+  color: var(--text-faint);
   font-size: 0.8em;
+}
+
+.fl-settings-apikey-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fl-settings-apikey-link:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
 }
 
 .folder-select-description {

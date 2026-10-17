@@ -217,10 +217,8 @@
     "testContextResolver": "Test ContextResolver (current note)"
   },
   "settings": {
-    "title": "📂 Folder Lab settings",
-    "manualOrder": {
-      "name": "Use manual order",
-      "desc": "Enables manual ordering in the file explorer"
+    "header": {
+      "description": "Organize and work with a notes folder as a workspace."
     },
     "showNumbers": {
       "name": "Show numbers",
@@ -235,17 +233,29 @@
         "none": "No numbers"
       }
     },
-    "bookRoot": {
-      "heading": "📚 Book root folder",
-      "name": "Book root folder",
-      "desc": "Main folder that contains the whole book. Selecting it initializes the project.",
+    "masterFolder": {
+      "heading": "Master folder",
+      "desc": {
+        "name": "Starting point",
+        "desc": "The master folder is the folder where the Folder Lab workspace begins."
+      },
+      "current": {
+        "name": "Current folder"
+      },
+      "currentFolderInfo": "Active location: {path}",
+      "empty": {
+        "name": "No master folder",
+        "desc": "Choose the folder Folder Lab will use as its starting point. Select a folder with the button on the right."
+      },
       "placeholder": "E.g., Book/",
-      "selectButton": "📁 Select",
-      "configuredNotice": "✅ Root folder configured: {path}",
-      "currentFolderInfo": "📂 Current folder: {path}"
+      "selectButton": "Select folder",
+      "configuredNotice": "✅ Master folder configured: {path}"
+    },
+    "general": {
+      "heading": "General options"
     },
     "navigation": {
-      "heading": "🧭 Navigation",
+      "heading": "Navigation",
       "type": {
         "name": "Navigation type",
         "desc": "Choose how navigation is organized in Folder Lab",
@@ -296,9 +306,9 @@
       "button": "🔄 Refresh"
     },
     "ai": {
-      "heading": "🤖 AI settings",
+      "heading": "Artificial intelligence",
       "provider": {
-        "name": "AI provider",
+        "name": "Provider",
         "desc": "Select the AI service you want to use"
       },
       "apiKey": {
@@ -324,27 +334,24 @@
         "desc": "Maximum length of the response"
       },
       "testConnection": {
-        "name": "🔌 Test connection",
+        "name": "Test connection",
         "desc": "Verify that your configuration is correct",
         "button": "Test",
-        "testing": "⏳ Testing...",
-        "connected": "✅ Connected",
-        "error": "❌ Error"
+        "testing": "Testing...",
+        "connected": "Connected",
+        "error": "Error"
       },
       "help": {
-        "heading": "📌 How to get your API key"
+        "heading": "Get an API key",
+        "desc": "Link to each provider's official page to create your key.",
+        "current": "(current)",
+        "openKeys": "Get an API key on the official {provider} platform"
       }
-    },
-    "info": {
-      "heading": "ℹ️ Information",
-      "orderStorage": "The order is stored in a _folder_order.json file inside the .folder-order folder (hidden).",
-      "emptyNotes": "Empty notes: detected automatically (< 10 characters excluding the title).",
-      "wordCountExclusions": "The word count automatically excludes compiled files and files inside .folder-order."
     }
   },
   "modal": {
     "selectRoot": {
-      "title": "Select the book's root folder",
+      "title": "Select the master folder",
       "description": "Choose the main folder that contains the whole book."
     },
     "wordCount": {
