@@ -1333,6 +1333,53 @@ class FolderLabSettingTab extends PluginSettingTab {
           this.display();
         }));
 
+    /*
+     * Enlaces a la página oficial donde cada proveedor soportado
+     * permite crear su API key. Misma decisión de apertura que
+     * ResourcesWidget (window.open con _blank); la lista de
+     * proveedores y sus URL se deriva del dropdown de arriba.
+     */
+    new Setting(containerEl)
+      .setName(i18n.t('settings.ai.help.heading'))
+      .setDesc(i18n.t('settings.ai.help.desc'));
+
+    const currentProvider = this.plugin.settings.aiProvider || 'openai';
+    const providerApiKeys: Array<{ id: string; name: string; url: string }> = [
+      { id: 'openai', name: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
+      { id: 'gemini', name: 'Google Gemini', url: 'https://aistudio.google.com/apikey' },
+      { id: 'anthropic', name: 'Anthropic Claude', url: 'https://console.anthropic.com/settings/keys' }
+    ];
+
+    const apiKeysContainer = containerEl.createDiv({
+      cls: 'fl-settings-apikeys'
+    });
+
+    for (const p of providerApiKeys) {
+      const row = apiKeysContainer.createDiv({
+        cls: 'fl-settings-apikey-row'
+      });
+
+      row.createSpan({
+        text: p.name,
+        cls: 'fl-settings-apikey-name'
+      });
+
+      if (p.id === currentProvider) {
+        row.createSpan({
+          text: i18n.t('settings.ai.help.current'),
+          cls: 'fl-settings-apikey-current'
+        });
+      }
+
+      const linkBtn = row.createEl('button', {
+        cls: 'fl-settings-apikey-link'
+      });
+      setIcon(linkBtn, 'globe');
+      linkBtn.setAttr('aria-label', i18n.t('settings.ai.help.openKeys', { provider: p.name }));
+      linkBtn.setAttr('title', i18n.t('settings.ai.help.openKeys', { provider: p.name }));
+      linkBtn.onclick = () => window.open(p.url, '_blank');
+    }
+
     // API Key
     new Setting(containerEl)
       .setName(i18n.t('settings.ai.apiKey.name'))
@@ -1473,51 +1520,41 @@ class FolderLabSettingTab extends PluginSettingTab {
           });
       });
 
-    /*
-     * Enlaces a la página oficial donde cada proveedor soportado
-     * permite crear su API key. Misma decisión de apertura que
-     * ResourcesWidget (window.open con _blank); la lista de
-     * proveedores y sus URL se deriva del dropdown de arriba.
-     */
-    new Setting(containerEl)
-      .setName(i18n.t('settings.ai.help.heading'))
-      .setDesc(i18n.t('settings.ai.help.desc'));
-
-    const currentProvider = this.plugin.settings.aiProvider || 'openai';
-    const providerApiKeys: Array<{ id: string; name: string; url: string }> = [
-      { id: 'openai', name: 'OpenAI', url: 'https://platform.openai.com/api-keys' },
-      { id: 'gemini', name: 'Google Gemini', url: 'https://aistudio.google.com/apikey' },
-      { id: 'anthropic', name: 'Anthropic Claude', url: 'https://console.anthropic.com/settings/keys' }
-    ];
-
-    const apiKeysContainer = containerEl.createDiv({
-      cls: 'fl-settings-apikeys'
+    // ============================================================
+    // NOTA INFORMATIVA — cierre de la sección de IA
+    // ============================================================
+    const aiInfoContainer = containerEl.createDiv({
+      cls: 'fl-settings-ai-info'
     });
 
-    for (const p of providerApiKeys) {
-      const row = apiKeysContainer.createDiv({
-        cls: 'fl-settings-apikey-row'
-      });
+    const aiInfoHeader = aiInfoContainer.createDiv({
+      cls: 'fl-settings-ai-info-header'
+    });
 
-      row.createSpan({
-        text: p.name,
-        cls: 'fl-settings-apikey-name'
-      });
+    const aiInfoIcon = aiInfoHeader.createSpan({
+      cls: 'fl-settings-ai-info-icon'
+    });
+    setIcon(aiInfoIcon, 'info');
 
-      if (p.id === currentProvider) {
-        row.createSpan({
-          text: i18n.t('settings.ai.help.current'),
-          cls: 'fl-settings-apikey-current'
-        });
-      }
+    aiInfoHeader.createSpan({
+      text: i18n.t('settings.ai.about.heading'),
+      cls: 'fl-settings-ai-info-title'
+    });
 
-      const linkBtn = row.createEl('button', {
-        cls: 'fl-settings-apikey-link'
-      });
-      setIcon(linkBtn, 'globe');
-      linkBtn.setAttr('aria-label', i18n.t('settings.ai.help.openKeys', { provider: p.name }));
-      linkBtn.setAttr('title', i18n.t('settings.ai.help.openKeys', { provider: p.name }));
-      linkBtn.onclick = () => window.open(p.url, '_blank');
-    }
+    const aiInfoBody = aiInfoContainer.createDiv({
+      cls: 'fl-settings-ai-info-body'
+    });
+
+    aiInfoBody.createEl('p', {
+      text: i18n.t('settings.ai.about.intro')
+    });
+
+    aiInfoBody.createEl('p', {
+      text: i18n.t('settings.ai.about.capabilities')
+    });
+
+    aiInfoBody.createEl('p', {
+      text: i18n.t('settings.ai.about.requirements')
+    });
   }
 }

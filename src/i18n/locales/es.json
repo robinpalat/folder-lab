@@ -346,6 +346,12 @@
         "desc": "Enlace a la página oficial de cada proveedor para crear tu clave.",
         "current": "(actual)",
         "openKeys": "Obtener API key en la plataforma oficial de {provider}"
+      },
+      "about": {
+        "heading": "Acerca de la inteligencia artificial",
+        "intro": "Folder Lab usa servicios externos de inteligencia artificial para ayudarte a trabajar con tus notas. El plugin envía el texto seleccionado de la nota activa al proveedor que elijas y muestra la respuesta en el widget Asistente.",
+        "capabilities": "Las capacidades disponibles te permiten explorar y ampliar información (identificar preguntas, referencias, conceptos clave o hipótesis), evaluar la calidad del contenido (claridad y coherencia) y transformar el contenido en estructuras útiles como esquemas, mapas mentales o preguntas de estudio. Elige una capacidad y pulsa «Aplicar» para ejecutarla sobre las fuentes seleccionadas.",
+        "requirements": "Para usarlas necesitas configurar un proveedor con su API key. Algunos proveedores requieren crear una cuenta o iniciar sesión, y según el servicio puede ser necesario habilitar la API, configurar la facturación o disponer de saldo. El uso de la API puede tener un coste independiente de una suscripción a la aplicación o a otros productos del proveedor; contar con una cuenta o una API key no garantiza que el uso sea gratuito. Consulta las condiciones y los precios del proveedor que elijas."
       }
     }
   },
