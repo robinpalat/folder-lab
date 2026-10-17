@@ -9,16 +9,19 @@ import {
 } from './httpJson';
 
 /**
- * Modelos candidato de respaldo. Groq retira modelos con
- * frecuencia (devuelve HTTP 404 "model_not_found"); la cadena se
+ * Modelos candidato de respaldo. Fuente: página oficial de
+ * deprecaciones de Groq (console.groq.com/docs/deprecations,
+ * consultada el 16/10/2026): llama-3.1-8b-instant y
+ * llama-3.3-70b-versatile fueron retirados el 08/16/26 y
+ * openai/gpt-oss-120b es el reemplazo recomendado (con
+ * qwen/qwen3.8-27b como sucesor de qwen3.6). La cadena se
  * reintenta SOLO ante 404, nunca ante 401 (clave inválida) u
- * otros errores. Actualizar esta lista cuando Groq deprecé un
- * modelo es mantenimiento puntual de este archivo.
+ * otros errores. Actualizar cuando Groq deprecé un modelo es
+ * mantenimiento puntual de este archivo.
  */
 const GROQ_FALLBACK_MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
-  'openai/gpt-oss-120b'
+  'openai/gpt-oss-120b',
+  'qwen/qwen3.8-27b'
 ];
 
 /**
@@ -47,7 +50,8 @@ export class GroqProvider implements LLMProvider {
   ) {}
 
   getDefaultModel(): string {
-    return "llama-3.3-70b-versatile";
+    // Reemplazo oficial de los llama retirados (08/16/26).
+    return "openai/gpt-oss-120b";
   }
 
   async chat(request: AIRequest): Promise<AIResponse> {

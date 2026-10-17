@@ -87,20 +87,13 @@ export class AIService {
       };
     }
 
-    const text = result.content ?? "";
-
     /*
-     * El contrato histórico exige confirmar con 'OK'. Un contenido
-     * vacío o sin 'OK' no prueba la conexión, pero el texto no es
-     * un error del proveedor: se informa sin inventar un motivo.
+     * Éxito = la API respondió sin error (2xx). NO se exige el
+     * literal 'OK': los modelos de razonamiento (p. ej. GPT-OSS
+     * en Groq) pueden responder vacíos con maxTokens bajos y
+     * otros modelos responden en su idioma. La prueba valida la
+     * clave y la conectividad, no el contenido.
      */
-    if (!text.includes("OK")) {
-      return {
-        success: false,
-        message: i18n.t('ai.connection.failed')
-      };
-    }
-
     return {
       success: true,
       message: i18n.t('ai.connection.connected', { name, model })

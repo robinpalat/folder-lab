@@ -1323,7 +1323,7 @@ class FolderLabSettingTab extends PluginSettingTab {
               this.plugin.settings.aiModel = 'claude-3-5-haiku-20241022';
               break;
             case 'groq':
-              this.plugin.settings.aiModel = 'llama-3.3-70b-versatile';
+              this.plugin.settings.aiModel = 'openai/gpt-oss-120b';
               break;
           }
           await this.plugin.saveSettings();
@@ -1407,7 +1407,7 @@ class FolderLabSettingTab extends PluginSettingTab {
               case 'openai': this.plugin.settings.aiModel = 'gpt-4o-mini'; break;
               case 'gemini': this.plugin.settings.aiModel = 'gemini-1.5-flash'; break;
               case 'anthropic': this.plugin.settings.aiModel = 'claude-3-5-haiku-20241022'; break;
-              case 'groq': this.plugin.settings.aiModel = 'llama-3.3-70b-versatile'; break;
+              case 'groq': this.plugin.settings.aiModel = 'openai/gpt-oss-120b'; break;
             }
           }
           await this.plugin.saveSettings();

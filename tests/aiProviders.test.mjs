@@ -280,8 +280,8 @@ test('factory: Groq está registrado con su modelo y nombre por defecto', () => 
 
   assert.ok(provider, 'el proveedor groq se crea');
   assert.equal(provider.id, 'groq');
-  assert.equal(provider.getDefaultModel(), 'llama-3.3-70b-versatile');
-  assert.equal(LLMProviderFactory.getDefaultModel('groq'), 'llama-3.3-70b-versatile');
+  assert.equal(provider.getDefaultModel(), 'openai/gpt-oss-120b');
+  assert.equal(LLMProviderFactory.getDefaultModel('groq'), 'openai/gpt-oss-120b');
   assert.equal(LLMProviderFactory.getProviderName('groq'), 'Groq');
 });
 
@@ -311,7 +311,7 @@ test('Groq: modelo retirado (404) reintenta con el siguiente candidato', async (
   assert.equal(requests[0].model, 'modelo-retirado-2024');
   assert.equal(
     requests[1].model,
-    'llama-3.3-70b-versatile',
+    'openai/gpt-oss-120b',
     'candidato ordenado tras el modelo configurado'
   );
 });

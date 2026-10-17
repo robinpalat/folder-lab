@@ -52,6 +52,18 @@ export async function requestUrl(request) {
     throw new TypeError('net::ERR_CONNECTION_REFUSED https://api.openai.com');
   }
 
+  if (mode === 'empty-content') {
+    // Modelos de razonamiento (GPT-OSS en Groq): 200 con
+    // contenido vacío cuando maxTokens es muy bajo.
+    return {
+      status: 200,
+      text: JSON.stringify({
+        choices: [{ message: { content: '' } }],
+        usage: { prompt_tokens: 5, completion_tokens: 0, total_tokens: 5 }
+      })
+    };
+  }
+
   if (mode === 'http-error') {
     return {
       status: 401,
@@ -262,4 +274,13 @@ test('el modo throw no deja errores sin registrar', async () => {
   } finally {
     restoreErrors();
   }
+});
+
+test('respuesta 200 con contenido vacío sigue siendo éxito (modelos de razonamiento)', async () => {
+  globalThis.__requestUrlMode = 'empty-content';
+
+  const result = await createService().testConnection();
+
+  assert.equal(result.success, true, 'la API respondió: la conexión funciona');
+  assert.ok(result.message.includes('gpt-4o-mini'), result.message);
 });

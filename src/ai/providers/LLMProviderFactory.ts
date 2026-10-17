@@ -21,7 +21,7 @@ export class LLMProviderFactory {
       case "anthropic":
         return new AnthropicProvider(settings.apiKey, model || "claude-3-5-haiku-20241022");
       case "groq":
-        return new GroqProvider(settings.apiKey, model || "llama-3.3-70b-versatile");
+        return new GroqProvider(settings.apiKey, model || "openai/gpt-oss-120b");
       default:
         return null;
     }
@@ -32,7 +32,7 @@ export class LLMProviderFactory {
       case "openai": return "gpt-4o-mini";
       case "gemini": return "gemini-1.5-flash";
       case "anthropic": return "claude-3-5-haiku-20241022";
-      case "groq": return "llama-3.3-70b-versatile";
+      case "groq": return "openai/gpt-oss-120b";
       default: return "";
     }
   }
