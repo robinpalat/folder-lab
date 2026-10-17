@@ -566,7 +566,10 @@ export default class FolderLabPlugin extends Plugin {
 
         identity: {
           label: i18n.t('widgets.registered.memory.label'),
-          icon: 'bot',
+          // cpu: icono con evidencia de render en produccion;
+          // 'bot' (lucide >= 0.263) no es verificable contra el
+          // catalogo runtime de la version minima soportada.
+          icon: 'cpu',
           description:
             i18n.t('widgets.registered.memory.description')
         },

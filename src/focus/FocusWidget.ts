@@ -55,7 +55,14 @@ export interface FocusWidget {
   /** Identidad de la instancia concreta del widget */
   setInstanceIdentity?(
     instanceId: string,
-    instanceName: string
+    instanceName: string,
+    /**
+     * Identidad VISUAL canónica (icono/color) tomada de la
+     * definición registrada del tipo. Inyectada por FocusPane
+     * al montar el widget: los consumidores del toolbar la
+     * usan en lugar de valores propios duplicados.
+     */
+    visual?: { icon?: string; color?: string }
  ): void;
   
 }

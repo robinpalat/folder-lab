@@ -332,11 +332,11 @@ test('iconos: los registros imperativos conservan su asignación semántica', ()
   const source = read('src/main.ts');
 
   // Nota activa: file-text (documento); Apuntes: pencil (lápiz);
-  // Asistente: bot (robot); Resources: folder (carpeta).
+  // Asistente: cpu (IA); Resources: folder (carpeta).
   const blocks = [
     { id: 'active-note', icon: 'file-text' },
     { id: 'notes', icon: 'pencil' },
-    { id: 'memory', icon: 'bot' },
+    { id: 'memory', icon: 'cpu' },
     { id: 'resources', icon: 'folder' }
   ];
 

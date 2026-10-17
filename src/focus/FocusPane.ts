@@ -109,9 +109,24 @@ export class FocusPane {
     }
 
     if (newWidget.setInstanceIdentity) {
+      /*
+       * Identidad VISUAL canónica: se toma de la definición
+       * registrada del tipo (misma fuente que usa el menú del
+       * selector). El widget no debe mantener iconos propios
+       * duplicados.
+       */
+      const definitionIdentity =
+        this.widgetManager.getDefinition(
+          instance.typeId
+        )?.identity;
+
       newWidget.setInstanceIdentity(
         instance.instanceId,
-        instance.name
+        instance.name,
+        {
+          icon: definitionIdentity?.icon,
+          color: definitionIdentity?.color
+        }
       );
     }
 

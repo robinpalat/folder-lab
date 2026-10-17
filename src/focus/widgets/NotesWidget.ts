@@ -38,7 +38,17 @@ export class NotesWidget implements FocusWidget {
   get label(): string {
     return i18n.t('widgets.registered.notes.label');
   }
-  readonly icon = "pencil";
+
+  /*
+   * Identidad visual canónica: inyectada por FocusPane desde la
+   * definición registrada del tipo (fuente única; sin iconos
+   * propios duplicados en la clase).
+   */
+  private visualIdentity: { icon?: string; color?: string } | null = null;
+
+  get icon(): string {
+    return this.visualIdentity?.icon ?? "";
+  }
 
   private container: HTMLElement | null = null;
   private lastContext: FocusContext | null = null;
@@ -154,6 +164,14 @@ export class NotesWidget implements FocusWidget {
   // ============================================================
   // FOCUS WIDGET INTERFACE
   // ============================================================
+
+  setInstanceIdentity(
+    _instanceId: string,
+    _instanceName: string,
+    visual?: { icon?: string; color?: string }
+  ): void {
+    this.visualIdentity = visual ?? null;
+  }
 
   setPosition(position: "top" | "bottom"): void {
     this.position = position;
