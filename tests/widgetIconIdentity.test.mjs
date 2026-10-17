@@ -72,18 +72,29 @@ export class MarkdownRenderer {
   static async render() {}
 }
 export class Menu {
-  addItem() { return this; }
+  constructor() {
+    if (!globalThis.__folderLabMenus) globalThis.__folderLabMenus = [];
+    this.__items = [];
+    globalThis.__folderLabMenus.push(this);
+  }
+  addItem(cb) {
+    const it = new MenuItem();
+    this.__items.push(it);
+    cb(it);
+    return this;
+  }
   addSeparator() { return this; }
-  showAtPosition() {}
+  showAtPosition() { globalThis.__folderLabLastMenu = this; }
   onHide() {}
   hide() {}
 }
 export class MenuItem {
-  setTitle() { return this; }
-  setIcon() { return this; }
-  onClick() { return this; }
+  constructor() { this.title = ''; this.icon = undefined; this.disabled = false; }
+  setTitle(t) { this.title = String(t); return this; }
+  setIcon(i) { this.icon = i; return this; }
+  onClick(fn) { this.onClickFn = fn; return this; }
   setChecked() { return this; }
-  setDisabled() { return this; }
+  setDisabled(d) { this.disabled = !!d; return this; }
 }
 export class Notice {}
 export class FileSystemAdapter {
@@ -97,7 +108,9 @@ export class TextAreaComponent {}
 export class FuzzySuggestModal extends Modal {}
 export class PluginSettingTab {}
 export class EventRef {}
-export function setIcon() {}
+export function setIcon(el, name) {
+  (globalThis.__folderLabIconCalls ??= []).push({ el, name });
+}
 export function debounce(fn) { return fn; }
 export function normalizePath(p) { return p; }
 export const Platform = { isDesktop: true, isMobile: false };
@@ -269,4 +282,138 @@ test('coherencia: 11 ids reales con iconos de tipo únicos (sin divergencia)', (
     ...Object.values(declarative)
   ];
   assert.equal(new Set(allIcons).size, allIcons.length, 'iconos únicos');
+});
+
+// ------------------------------------------------------------
+// 5. MENÚ DEL SELECTOR: POST-PROCESADO (causa raíz #2)
+// ------------------------------------------------------------
+
+test('estructural: showWidgetMenu no asocia available[index] a items del DOM', () => {
+  const source = read('src/focus/FocusPane.ts');
+
+  // La asociación residual por índice de la colección de
+  // instancias era la causa que pisaba «plus» con cpu y
+  // cruzaba los iconos de Asistente/Colecciones.
+  assert.ok(
+    !source.includes('available[index]'),
+    'sin mapeo residual available[index]'
+  );
+
+  // El post-procesado usa el mapeo 1:1 por orden de creación.
+  assert.ok(source.includes('itemVisuals'));
+  assert.ok(source.includes('items.length !== itemVisuals.length'));
+});
+
+test('funcional: el menú conserva los iconos construidos (plus, cpu, layers) con cabeceras intercaladas', async () => {
+  const mod = await bundleWidget('src/focus/FocusPane.ts');
+  const FocusPane = mod.FocusPane;
+  assert.ok(FocusPane, 'FocusPane exportado');
+
+  // Instancias en un orden HOSTIL respecto de los items del
+  // menú: Colecciones primero, pero el menú reordena (bloque
+  // fijo antes; Tarjetas al final). Con el mapeo residual
+  // antiguo, «Agregar widget…» recibía layers y Asistente el
+  // icono de otra instancia.
+  const instances = [
+    { instanceId: 'collections-1', typeId: 'collections', name: 'Mis Colecciones' },
+    { instanceId: 'memory-1', typeId: 'memory', name: 'Asistente' },
+    { instanceId: 'notes-1', typeId: 'notes', name: 'Apuntes' }
+  ];
+
+  const defs = {
+    collections: { identity: { icon: 'layers', color: '#3355aa' }, category: 'card' },
+    memory: { identity: { icon: 'cpu' } },
+    notes: { identity: { icon: 'pencil' } }
+  };
+
+  const widgetManager = {
+    getInstances: () => instances.map((i) => ({ ...i })),
+    getDefinition: (id) => defs[id]
+  };
+
+  const fakeBtn = {
+    getBoundingClientRect: () => ({
+      left: 10, bottom: 20, top: 10, width: 100, height: 10
+    })
+  };
+  const container = { querySelector: () => fakeBtn };
+
+  // DOM falso del menú: 5 items = [Agregar, Apuntes, Asistente,
+  // Tarjetas (cabecera, sin icono), Mis Colecciones].
+  const makeIconEl = () => ({
+    classes: new Set(),
+    attrs: {},
+    style: { setProperty() {}, removeProperty() {} },
+    addClass(c) { this.classes.add(c); },
+    removeClass(c) { this.classes.delete(c); },
+    setAttribute(k, v) { this.attrs[k] = v; },
+    removeAttribute(k) { delete this.attrs[k]; }
+  });
+
+  const domItems = [0, 1, 2, 3, 4].map(() => {
+    const iconEl = makeIconEl();
+    return {
+      iconEl,
+      querySelector: (sel) => (sel === '.menu-item-icon' ? iconEl : null)
+    };
+  });
+  // La cabecera «Tarjetas» no tiene icono en el DOM.
+  domItems[3].querySelector = () => null;
+
+  globalThis.document = {
+    querySelectorAll: (sel) => ({
+      length: 1,
+      item: () => ({ querySelectorAll: () => domItems })
+    })
+  };
+  // showWidgetMenu usa window.setTimeout (runtime Obsidian).
+  globalThis.window = {
+    setTimeout: (...args) => setTimeout(...args),
+    clearTimeout: (...args) => clearTimeout(...args)
+  };
+  globalThis.__folderLabIconCalls = [];
+
+  const pane = new FocusPane(
+    container, 'top', 'notes-1',
+    {}, widgetManager, {}, {}, {}, undefined
+  );
+
+  // this.element solo se asigna en render(); para el test basta
+  // con apuntar al contenedor fake (campo accesible en el bundle).
+  pane.element = container;
+
+  pane.showWidgetMenu();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  const built = globalThis.__folderLabLastMenu.__items;
+
+  // Orden exacto del menú construido (es locale por defecto).
+  assert.deepEqual(
+    built.map((i) => i.title),
+    ['Agregar widget…', 'Apuntes', 'Asistente', 'Tarjetas', 'Mis Colecciones']
+  );
+
+  // Iconos registrados EN CONSTRUCCIÓN.
+  assert.equal(built[0].icon, 'plus', 'Agregar widget… construido con plus');
+  assert.equal(built[1].icon, 'pencil');
+  assert.equal(built[2].icon, 'cpu', 'Asistente construido con cpu');
+  assert.equal(built[4].icon, 'layers', 'Colecciones construido con layers');
+
+  // Post-procesado (color): solo los items con identidad de
+  // instancia reciben setIcon; nunca la acción ni las cabeceras.
+  const calls = globalThis.__folderLabIconCalls;
+  const callFor = (iconEl) =>
+    calls.filter((c) => c.el === iconEl).map((c) => c.name);
+
+  // «Agregar widget…»: sin reaplicación (conserva plus).
+  assert.deepEqual(callFor(domItems[0].iconEl), []);
+  // Cabecera Tarjetas: sin iconEl y sin reaplicación.
+  assert.deepEqual(callFor(domItems[3].iconEl ?? null), []);
+  // Apuntes / Asistente / Colecciones: icono de SU tipo.
+  assert.deepEqual(callFor(domItems[1].iconEl), ['pencil']);
+  assert.deepEqual(callFor(domItems[2].iconEl), ['cpu']);
+  assert.deepEqual(callFor(domItems[4].iconEl), ['layers']);
+
+  delete globalThis.document;
+  delete globalThis.window;
 });

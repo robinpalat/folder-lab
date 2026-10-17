@@ -316,11 +316,25 @@ export class FocusPane {
   private showWidgetMenu(): void {
     const menu = new Menu();
 
+    /*
+     * Identidad visual de cada item del menú, alineada 1:1 con
+     * el ORDEN REAL DE CREACIÓN (null para la acción «Agregar
+     * widget…» y las cabeceras; identity para cada instancia).
+     * El post-procesado de color usa este array; NUNCA se infiere
+     * la identidad a partir del índice de otra colección.
+     */
+    const itemVisuals: Array<{
+      icon?: string;
+      color?: string;
+    } | null> = [];
+
     // ─────────────────────────────────────────────
     // 1. Añadir widget… (biblioteca, pestaña widgets)
     // ─────────────────────────────────────────────
 
     menu.addItem((item) => {
+      itemVisuals.push(null);
+
       item
         .setTitle(i18n.t('focus.widgetMenu.addWidget'))
         .setIcon('plus')
@@ -366,6 +380,8 @@ export class FocusPane {
       if (!definition) {
         return;
       }
+
+      itemVisuals.push(definition.identity);
 
       const isActive =
         instance.instanceId ===
@@ -438,6 +454,8 @@ export class FocusPane {
 
       // Encabezado deshabilitado: no seleccionable, sin icono.
       menu.addItem((item) => {
+        itemVisuals.push(null);
+
         item
           .setTitle(i18n.t('focus.widgetMenu.groupContext'))
           .setDisabled(true);
@@ -453,6 +471,8 @@ export class FocusPane {
       menu.addSeparator();
 
       menu.addItem((item) => {
+        itemVisuals.push(null);
+
         item
           .setTitle(i18n.t('focus.widgetMenu.groupCards'))
           .setDisabled(true);
@@ -521,22 +541,25 @@ export class FocusPane {
         )
       );
 
+    /*
+     * Mapeo 1:1 con el orden real de creación (itemVisuals).
+     * Si el DOM no coincide con lo construido (p. ej. otro menú
+     * abierto), NO se aplica nada: nunca se infiere la identidad
+     * a partir del índice de otra colección.
+     */
+    if (items.length !== itemVisuals.length) {
+      return;
+    }
+
     items.forEach(
       (itemEl, index) => {
 
-        const instance =
-          available[index];
+        const visual =
+          itemVisuals[index];
 
-        if (!instance) {
-          return;
-        }
-
-        const definition =
-          this.widgetManager.getDefinition(
-            instance.typeId
-          );
-
-        if (!definition) {
+        // Acción «Agregar widget…» y cabeceras: sin identidad
+        // de widget; sus iconos de construcción no se tocan.
+        if (!visual) {
           return;
         }
 
@@ -549,7 +572,7 @@ export class FocusPane {
 
         applyWidgetIdentity(
           iconEl,
-          definition.identity
+          visual
         );
       }
     );
