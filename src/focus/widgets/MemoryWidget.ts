@@ -347,6 +347,13 @@ this.contextResolver = new ContextResolver(
     });
 
 
+    // Ajustes de capacidades (biblioteca, pestaña Asistente):
+    // solo icono sliders, entre Aplicar y Sesión.
+    controls.iconAction({
+      id: 'open-capabilities',
+      icon: 'sliders-horizontal'
+    });
+
     controls.select({
       id: 'session',
       label: i18n.t('widgets.common.session'),
@@ -357,13 +364,6 @@ this.contextResolver = new ContextResolver(
           label: i18n.t('widgets.common.sessionToday')
         }
       ]
-    });
-
-    // Configuración de capacidades (biblioteca, pestaña
-    // Asistente): solo icono, sin label visible.
-    controls.iconAction({
-      id: 'open-capabilities',
-      icon: 'settings'
     });
 
     return controls;
