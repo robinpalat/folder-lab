@@ -39,7 +39,14 @@ export class LibraryBrowser extends Modal {
   private selectedGroupId: string;
   private selectedCapabilityId = '';
 
-  private onSelect!: (
+  /**
+   * Callback de confirmación de la pestaña Asistente.
+   *
+   * Sin callback (p. ej. la pestaña Widgets, que solo agrega
+   * instancias) el botón Select se convierte en no-op y el modal
+   * se cierra: evita el TypeError silencioso que impedía cerrar.
+   */
+  private onSelect: (
     selection: CapabilitySelection
   ) => void;
 
@@ -60,7 +67,8 @@ export class LibraryBrowser extends Modal {
     widgetRegistry: FocusWidgetRegistry,
     capabilityRegistry: CapabilityRegistry,
     widgetManager: WidgetManager,
-    initialTab: BrowserTab = 'assistant'
+    initialTab: BrowserTab = 'assistant',
+    onSelect?: (selection: CapabilitySelection) => void
   ) {
     super(app);
 
@@ -68,6 +76,13 @@ export class LibraryBrowser extends Modal {
     this.capabilityRegistry = capabilityRegistry;
     this.widgetManager = widgetManager;
     this.selectedTab = initialTab;
+    /*
+     * Sin callback (pestaña Widgets u otros usos), Select no
+     * emite selección pero el modal se cierra igual que en el
+     * flujo normal. Evita el TypeError silencioso que impedía
+     * cerrar.
+     */
+    this.onSelect = onSelect ?? (() => { });
 
     this.selectedGroupId =
       this.capabilityRegistry.getDefaultGroup();
@@ -864,7 +879,7 @@ if (definition.identity.color) {
         return;
       }
 
-      this.onSelect({
+      const selection: CapabilitySelection = {
         sourceIds: [
           ...this.selectedSourceIds
         ],
@@ -872,7 +887,17 @@ if (definition.identity.color) {
           this.selectedGroupId,
         capabilityId:
           this.selectedCapabilityId
-      });
+      };
+
+      try {
+        this.onSelect(selection);
+      } catch (error) {
+        console.error(
+          '[LibraryBrowser] Error aplicando la selección:',
+          error
+        );
+        return;
+      }
 
       this.close();
     };
@@ -1052,7 +1077,7 @@ if (definition.identity.color) {
       );
 
       selectBtn.onclick = () => {
-        this.onSelect({
+        const selection: CapabilitySelection = {
           sourceIds: [
             ...this.selectedSourceIds
           ],
@@ -1060,7 +1085,18 @@ if (definition.identity.color) {
             this.selectedGroupId,
           capabilityId:
             this.selectedCapabilityId
-        });
+        };
+
+        try {
+          this.onSelect(selection);
+        } catch (error) {
+          console.error(
+            '[LibraryBrowser] Error aplicando la selección:',
+            error
+          );
+          // Se conserva la selección para reintentar; no se cierra.
+          return;
+        }
 
         this.close();
       };

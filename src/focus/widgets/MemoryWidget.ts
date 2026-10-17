@@ -443,7 +443,18 @@ this.contextResolver = new ContextResolver(
               this.widgetRegistry,
               this.registry,
               this.widgetManager,
-              'assistant'
+              'assistant',
+              (selection) => {
+                this.selectedSources = selection.sourceIds;
+                this.selectedDomain = selection.groupId;
+                this.selectedCapability = selection.capabilityId;
+
+                this.saveState();
+
+                if (this.container && this.lastContext) {
+                  this.render(this.container, this.lastContext);
+                }
+              }
             );
 
             browser.open();
