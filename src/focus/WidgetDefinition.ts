@@ -51,13 +51,24 @@ export interface WidgetSemanticDefinition {
 /**
  * TypeIds del bloque FIJO del selector de widgets (Contexto de
  * nota): Apuntes, Asistente y Nota activa. No se agrupan en
- * Contexto/Tarjetas, no se agregan desde la biblioteca y
- * conservan su mecanismo actual de disponibilidad.
+ * Contexto/Tarjetas y conservan su mecanismo actual de
+ * disponibilidad.
  */
 export const NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS = [
   'notes',
   'memory',
   'active-note'
+] as const;
+
+/**
+ * Subconjunto de los fijos que se CREAN POR DEFECTO en toda nota
+ * (bootstrap de WidgetManager) y por tanto NO se muestran en la
+ * biblioteca. Nota activa no está aquí: es agregable desde la
+ * biblioteca y, una vez agregada, aparece en el bloque fijo.
+ */
+export const NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS = [
+  'notes',
+  'memory'
 ] as const;
 
 export interface WidgetDefinition {

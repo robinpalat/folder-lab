@@ -5,7 +5,7 @@ import { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
 import type { Capability } from '../ai/capabilities/types';
 import { WidgetManager } from './WidgetManager';
 import type { WidgetInstance } from './WidgetDefinition';
-import { NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS } from './WidgetDefinition';
+import { NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS } from './WidgetDefinition';
 import {
   applyWidgetIdentity
 } from './FocusWidgetsUtils';
@@ -279,12 +279,13 @@ export class LibraryBrowser extends Modal {
     for (const definition of definitions) {
 
       /*
-       * Bloque fijo del selector (Apuntes, Asistente, Nota
-       * activa): no se agregan ni se gestionan desde la
-       * biblioteca; conservan su mecanismo actual.
+       * Tipos fijos que se crean por defecto (Apuntes,
+       * Asistente): no se agregan desde la biblioteca. Nota
+       * activa NO está en este conjunto: es agregable desde la
+       * biblioteca y aparece en el bloque fijo al existir.
        */
       if (
-        (NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS as readonly string[])
+        (NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS as readonly string[])
           .includes(definition.id)
       ) {
         continue;

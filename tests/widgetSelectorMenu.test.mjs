@@ -241,19 +241,36 @@ test('bloque fijo: NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS en orden Apuntes/Asistente
   assert.deepEqual(ids, ['notes', 'memory', 'active-note']);
 });
 
-test('bootstrap: WidgetManager crea los tres tipos fijos (incluye active-note)', () => {
+test('bootstrap: solo Apuntes y Asistente se crean por defecto (Nota activa no)', () => {
   const source = read('src/focus/WidgetManager.ts');
 
-  // initializeDefaults y el bootstrap de loadForNote crean los 3.
   const initIdx = source.indexOf('initializeDefaults(): void {');
   const initBlock = source.slice(initIdx, initIdx + 600);
   assert.ok(initBlock.includes("addInstance('memory'"));
   assert.ok(initBlock.includes("addInstance('notes'"));
-  assert.ok(initBlock.includes("addInstance('active-note'"), 'initializeDefaults crea active-note');
+  assert.ok(!initBlock.includes("addInstance('active-note'"), 'sin active-note por defecto');
 
   const loadIdx = source.indexOf('// Primera vez que esta nota utiliza Contexto.');
   const loadBlock = source.slice(loadIdx, loadIdx + 600);
-  assert.ok(loadBlock.includes("createInstanceInternal('active-note'"), 'loadForNote bootstrap crea active-note');
+  assert.ok(!loadBlock.includes("createInstanceInternal('active-note'"), 'bootstrap sin active-note');
+});
+
+test('biblioteca: excluye solo Apuntes y Asistente; Nota activa es agregable', () => {
+  const defSource = read('src/focus/WidgetDefinition.ts');
+
+  // El conjunto DEFAULT (excluido de la biblioteca) es notes+memory.
+  const defBlock = defSource.slice(
+    defSource.indexOf('NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS'),
+    defSource.indexOf(']', defSource.indexOf('NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS'))
+  );
+  const defaultIds = [...defBlock.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  assert.deepEqual(defaultIds, ['notes', 'memory']);
+  assert.ok(!defaultIds.includes('active-note'));
+
+  // LibraryBrowser filtra por DEFAULT (no por FIXED).
+  const libSource = read('src/focus/LibraryBrowser.ts');
+  assert.ok(libSource.includes('NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS'));
+  assert.ok(!libSource.includes('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS'));
 });
 
 test('FocusPane: orden exacto Agregar → bloque fijo → Contexto → Tarjetas', () => {
@@ -293,14 +310,14 @@ test('FocusPane: el bloque fijo no tiene encabezado de texto', () => {
 // 6. EXCLUSIONES: NOTA ACTIVA EN BIBLIOTECA Y GRUPOS
 // ------------------------------------------------------------
 
-test('LibraryBrowser: excluye los widgets del bloque fijo', () => {
+test('LibraryBrowser: excluye solo los tipos por defecto (Apuntes/Asistente)', () => {
   const source = read('src/focus/LibraryBrowser.ts');
   assert.ok(
-    source.includes('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS'),
-    'la biblioteca filtra el bloque fijo'
+    source.includes('NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS'),
+    'la biblioteca filtra los tipos por defecto'
   );
   // El filtro se aplica antes de crear la tarjeta.
-  const filterIndex = source.indexOf('NOTE_CONTEXT_FIXED_WIDGET_TYPE_IDS');
+  const filterIndex = source.indexOf('NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS');
   const cardIndex = source.indexOf("cls: 'fl-widget-manager-card'");
   assert.ok(filterIndex < cardIndex, 'el filtro precede a la tarjeta');
 });
