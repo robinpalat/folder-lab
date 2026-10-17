@@ -1548,8 +1548,10 @@ body.focus-splitter-dragging {
   border-radius: 0 !important;
   background: transparent !important;
   color: var(--text-normal);
+  /* Tipo de fuente y tamaño igualados a Nota activa
+     (--font-text + --font-ui-normal). */
   font-size: var(--font-ui-normal);
-  font-family: var(--font-monospace);
+  font-family: var(--font-text);
   resize: none;
   outline: none;
   line-height: 1.6;
@@ -4379,7 +4381,8 @@ body.focus-splitter-dragging {
   color: var(--text-normal);
   padding: 14px;
   font-family: var(--font-text);
-  font-size: var(--font-ui-small);
+  /* Mismo tamaño que el modo edición de bloques de texto. */
+  font-size: var(--font-ui-normal);
   line-height: var(--line-height-normal);
 }
 
@@ -4954,7 +4957,9 @@ body.focus-splitter-dragging {
   overflow-y: auto;
   overflow-x: hidden;
 
-  font-size: var(--font-ui-large);
+  /* Un paso por debajo de --font-ui-large, alineado con
+     Nota activa y la entrada de texto de Apuntes. */
+  font-size: var(--font-ui-normal);
   line-height: 1.6;
 
   outline: none;
