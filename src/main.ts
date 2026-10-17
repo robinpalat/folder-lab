@@ -992,13 +992,6 @@ class FolderLabSettingTab extends PluginSettingTab {
     // ============================================================
     // SECCIÓN: CARPETA MAESTRA
     // ============================================================
-    new Setting(containerEl)
-      .setName(i18n.t('settings.masterFolder.heading'))
-      .setHeading();
-
-    new Setting(containerEl)
-      .setName(i18n.t('settings.masterFolder.desc.name'))
-      .setDesc(i18n.t('settings.masterFolder.desc.desc'));
 
     let rootPathInput: HTMLInputElement | null = null;
 
