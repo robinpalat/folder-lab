@@ -4985,7 +4985,7 @@ body.focus-splitter-dragging {
 
 /* --- Cabecera e identidad --- */
 .fl-settings-header {
-  padding-bottom: 4px;
+  padding-bottom: 16px;
 }
 
 .fl-settings-header-title {
