@@ -284,3 +284,63 @@ test('factory: Groq está registrado con su modelo y nombre por defecto', () => 
   assert.equal(LLMProviderFactory.getDefaultModel('groq'), 'llama-3.3-70b-versatile');
   assert.equal(LLMProviderFactory.getProviderName('groq'), 'Groq');
 });
+
+// ------------------------------------------------------------
+// GROQ: tolerancia a la retirada de modelos (404)
+// ------------------------------------------------------------
+
+test('Groq: modelo retirado (404) reintenta con el siguiente candidato', async () => {
+  const requests = [];
+  stubRequestUrl((params) => {
+    requests.push(JSON.parse(params.body));
+    if (requests.length === 1) {
+      // requestUrl lanza en 4xx en Obsidian real.
+      throw new Error('Request failed, status 404');
+    }
+    return response(200, {
+      choices: [{ message: { content: 'OK fallback' } }]
+    });
+  });
+
+  const provider = new GroqProvider('gsk-test', 'modelo-retirado-2024');
+  const result = await provider.chat(request());
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.content, 'OK fallback');
+  assert.equal(requests.length, 2, 'reintenta una vez con el candidato');
+  assert.equal(requests[0].model, 'modelo-retirado-2024');
+  assert.equal(
+    requests[1].model,
+    'llama-3.3-70b-versatile',
+    'candidato ordenado tras el modelo configurado'
+  );
+});
+
+test('Groq: clave inválida (401) NO reintenta con otro modelo', async () => {
+  let calls = 0;
+  stubRequestUrl(() => {
+    calls += 1;
+    throw new Error('Request failed, status 401');
+  });
+
+  const provider = new GroqProvider('gsk-mala', 'llama-3.3-70b-versatile');
+  const result = await provider.chat(request());
+
+  assert.ok(result.error.includes('401'));
+  assert.equal(calls, 1, 'sin reintento para errores que no son 404');
+});
+
+test('Groq: agota los candidatos y devuelve el último error 404', async () => {
+  let calls = 0;
+  stubRequestUrl(() => {
+    calls += 1;
+    throw new Error('Request failed, status 404');
+  });
+
+  const provider = new GroqProvider('gsk-test', 'llama-3.3-70b-versatile');
+  const result = await provider.chat(request());
+
+  assert.ok(result.error.includes('404'));
+  // Configurado + 2 candidatos restantes (sin repetir el configurado).
+  assert.equal(calls, 3);
+});
