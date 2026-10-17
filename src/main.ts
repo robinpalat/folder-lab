@@ -1395,8 +1395,9 @@ class FolderLabSettingTab extends PluginSettingTab {
       .setName(i18n.t('settings.ai.testConnection.name'))
       .setDesc(i18n.t('settings.ai.testConnection.desc'))
       .addButton(button => {
+        const idleText = i18n.t('settings.ai.testConnection.button');
         button
-          .setButtonText(i18n.t('settings.ai.testConnection.button'))
+          .setButtonText(idleText)
           .setCta()
           .onClick(async () => {
             if (!this.plugin.aiService) {
@@ -1407,21 +1408,48 @@ class FolderLabSettingTab extends PluginSettingTab {
             button.setButtonText(i18n.t('settings.ai.testConnection.testing'));
             button.setDisabled(true);
 
-            const result = await this.plugin.aiService.testConnection();
+            /*
+             * try/finally: el control vuelve a su estado inicial
+             * aunque la prueba resuelva o lance. Sin esto, una
+             * excepción dejaba el botón bloqueado en «Probando…»
+             * y el rechazo quedaba sin gestionar.
+             */
+            try {
+              const result = await this.plugin.aiService.testConnection();
 
-            button.setDisabled(false);
-            if (result.success) {
-              new Notice(`✅ ${result.message}`);
-              button.setButtonText(i18n.t('settings.ai.testConnection.connected'));
-              window.setTimeout(() => {
-                button.setButtonText(i18n.t('settings.ai.testConnection.button'));
-              }, 3000);
-            } else {
-              new Notice(`❌ ${result.message}`);
+              if (result.success) {
+                new Notice(`✅ ${result.message}`);
+                button.setButtonText(i18n.t('settings.ai.testConnection.connected'));
+                window.setTimeout(() => {
+                  button.setButtonText(idleText);
+                }, 3000);
+              } else {
+                new Notice(`❌ ${result.message}`);
+                button.setButtonText(i18n.t('settings.ai.testConnection.error'));
+                window.setTimeout(() => {
+                  button.setButtonText(idleText);
+                }, 3000);
+              }
+            } catch (error) {
+              // Rechazo inesperado (nunca debería ocurrir con la
+              // versión actual de testConnection, que captura todo,
+              // pero el control no debe quedarse bloqueado).
+              const detail =
+                error instanceof Error && error.message
+                  ? error.message
+                  : i18n.t('common.unknownError');
+
+              console.error(
+                '[FolderLab] Excepción probando la conexión de IA:',
+                error
+              );
+              new Notice(`❌ ${i18n.t('ai.connection.failed')}: ${detail}`);
               button.setButtonText(i18n.t('settings.ai.testConnection.error'));
               window.setTimeout(() => {
-                button.setButtonText(i18n.t('settings.ai.testConnection.button'));
+                button.setButtonText(idleText);
               }, 3000);
+            } finally {
+              button.setDisabled(false);
             }
           });
       });
