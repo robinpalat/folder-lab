@@ -1,8 +1,6 @@
 import { App, Modal, setIcon } from 'obsidian';
 
 import { FocusWidgetRegistry } from './FocusWidgetRegistry';
-import { CapabilityRegistry } from '../ai/capabilities/CapabilityRegistry';
-import type { Capability } from '../ai/capabilities/types';
 import { WidgetManager } from './WidgetManager';
 import type { WidgetInstance } from './WidgetDefinition';
 import { NOTE_CONTEXT_DEFAULT_WIDGET_TYPE_IDS } from './WidgetDefinition';
@@ -14,243 +12,57 @@ import {
   getWidgetDefinitionLabel,
   getWidgetDefinitionDescription
 } from './widgets/definitionTexts';
-import {
-  getDomainLabel,
-  getCapabilityLabel,
-  getCapabilityDescription
-} from '../ai/capabilities/capabilityTexts';
-export interface CapabilitySelection {
-  sourceIds: Array<'note' | 'notes' | 'snips' | 'tasks'>;
-  groupId: string;
-  capabilityId: string;
-}
 
-type BrowserTab = 'widgets' | 'assistant' | 'recipes';
-
+/**
+ * Administrador de widgets de Focus.
+ *
+ * Modal dedicado EXCLUSIVAMENTE a la gestión de instancias de
+ * widgets: explorar definiciones disponibles, agregar, renombrar
+ * y eliminar instancias. La biblioteca de capacidades del
+ * Asistente vive en `src/ai/capabilities/browser.ts`.
+ */
 export class LibraryBrowser extends Modal {
 
   private widgetRegistry: FocusWidgetRegistry;
-  private capabilityRegistry: CapabilityRegistry;
-
-  private selectedSourceIds: Array<
-    'note' | 'notes' | 'snips' | 'tasks'
-  > = ['note'];
-
-  private selectedGroupId: string;
-  private selectedCapabilityId = '';
-
-  /**
-   * Callback de confirmación de la pestaña Asistente.
-   *
-   * Sin callback (p. ej. la pestaña Widgets, que solo agrega
-   * instancias) el botón Select se convierte en no-op y el modal
-   * se cierra: evita el TypeError silencioso que impedía cerrar.
-   */
-  private onSelect: (
-    selection: CapabilitySelection
-  ) => void;
-
-  private groupsContainer: HTMLElement | null = null;
-  private capabilitiesContainer: HTMLElement | null = null;
-  private selectedCapabilityElement: HTMLElement | null = null;
-
-  private selectedTab: BrowserTab = 'assistant';
-
-  private widgetsContent: HTMLElement | null = null;
-  private assistantContent: HTMLElement | null = null;
-  private recipesContent: HTMLElement | null = null;
   private widgetManager: WidgetManager;
   private draftInstances: WidgetInstance[] = [];
+
+  private widgetsContent: HTMLElement | null = null;
 
   constructor(
     app: App,
     widgetRegistry: FocusWidgetRegistry,
-    capabilityRegistry: CapabilityRegistry,
-    widgetManager: WidgetManager,
-    initialTab: BrowserTab = 'assistant',
-    onSelect?: (selection: CapabilitySelection) => void
+    widgetManager: WidgetManager
   ) {
     super(app);
 
     this.widgetRegistry = widgetRegistry;
-    this.capabilityRegistry = capabilityRegistry;
     this.widgetManager = widgetManager;
-    this.selectedTab = initialTab;
-    /*
-     * Sin callback (pestaña Widgets u otros usos), Select no
-     * emite selección pero el modal se cierra igual que en el
-     * flujo normal. Evita el TypeError silencioso que impedía
-     * cerrar.
-     */
-    this.onSelect = onSelect ?? (() => { });
 
-    this.selectedGroupId =
-      this.capabilityRegistry.getDefaultGroup();
+    this.modalEl.addClass('fl-capability-browser');
   }
 
   onOpen(): void {
-    this.modalEl.addClass('fl-capability-browser');
-
     const content = this.contentEl;
 
     content.empty();
 
     this.initializeWidgetDraft();
 
-    // ========================================================
-    // PESTAÑAS
-    // ========================================================
-
-    const tabs = content.createDiv({
-      cls: 'fl-capability-browser-tabs'
-    });
-
-    const widgetsTab = tabs.createDiv({
-      cls: 'fl-capability-browser-tab',
-      text: i18n.t('library.tab.widgets')
-    });
-
-    const assistantTab = tabs.createDiv({
-      cls: 'fl-capability-browser-tab',
-      text: i18n.t('library.tab.assistant')
-    });
-
-    const recipesTab = tabs.createDiv({
-      cls: 'fl-capability-browser-tab',
-      text: i18n.t('library.tab.recipes')
-    });
-
-
-    // ========================================================
-    // CONTENIDO WIDGETS
-    // ========================================================
-
     this.widgetsContent = content.createDiv({
-      cls: 'fl-capability-browser-tab-content fl-widget-tab-content is-hidden'
-    });
-
-    this.renderWidgetsContent();
-
-    // ========================================================
-    // CONTENIDO ASISTENTE
-    // ========================================================
-
-    this.assistantContent = content.createDiv({
       cls: 'fl-capability-browser-tab-content'
     });
 
-    // ========================================================
-    // CONTENIDO RECETAS
-    // ========================================================
-
-    this.recipesContent = content.createDiv({
-      cls: 'fl-capability-browser-tab-content is-hidden'
-    });
-
-    this.recipesContent.createDiv({
-      cls: 'fl-capability-browser-empty',
-      text: i18n.t('library.recipesEmpty')
-    });
-
-    // ========================================================
-    // RENDER ASISTENTE
-    // ========================================================
-
-    this.renderAssistantContent();
-
-    // ========================================================
-    // EVENTOS DE PESTAÑAS
-    // ========================================================
-
-    widgetsTab.onclick = () => {
-      this.selectTab(
-        'widgets',
-        widgetsTab,
-        assistantTab,
-        recipesTab
-      );
-    };
-
-    assistantTab.onclick = () => {
-      this.selectTab(
-        'assistant',
-        widgetsTab,
-        assistantTab,
-        recipesTab
-      );
-    };
-
-    recipesTab.onclick = () => {
-      this.selectTab(
-        'recipes',
-        widgetsTab,
-        assistantTab,
-        recipesTab
-      );
-    };
-
-    /*
-     * Sincroniza la pestaña inicial (constructor: initialTab) con
-     * las clases y la visibilidad de los paneles. Con el default
-     * 'assistant' el comportamiento es idéntico al anterior.
-     */
-    this.selectTab(
-      this.selectedTab,
-      widgetsTab,
-      assistantTab,
-      recipesTab
-    );
+    this.renderWidgetsContent();
   }
 
-  // ========================================================
-  // PESTAÑAS
-  // ========================================================
-
-  private selectTab(
-    tab: BrowserTab,
-    widgetsTab: HTMLElement,
-    assistantTab: HTMLElement,
-    recipesTab: HTMLElement
-  ): void {
-
-    this.selectedTab = tab;
-
-    widgetsTab.removeClass('is-selected');
-    assistantTab.removeClass('is-selected');
-    recipesTab.removeClass('is-selected');
-
-    if (tab === 'widgets') {
-      widgetsTab.addClass('is-selected');
-    }
-
-    if (tab === 'assistant') {
-      assistantTab.addClass('is-selected');
-    }
-
-    if (tab === 'recipes') {
-      recipesTab.addClass('is-selected');
-    }
-
-    if (this.widgetsContent) {
-      this.widgetsContent.toggleClass(
-        'is-hidden',
-        tab !== 'widgets'
-      );
-    }
-
-    if (this.assistantContent) {
-      this.assistantContent.toggleClass(
-        'is-hidden',
-        tab !== 'assistant'
-      );
-    }
-
-    if (this.recipesContent) {
-      this.recipesContent.toggleClass(
-        'is-hidden',
-        tab !== 'recipes'
-      );
-    }
+  private initializeWidgetDraft(): void {
+    this.draftInstances =
+      this.widgetManager
+        .getInstances()
+        .map(instance => ({
+          ...instance
+        }));
   }
 
   private renderWidgetsContent(): void {
@@ -315,19 +127,19 @@ export class LibraryBrowser extends Modal {
       });
 
       if (definition.identity.icon) {
-const iconEl = header.createSpan({
-  cls: 'fl-widget-manager-card-icon'
-});
+        const iconEl = header.createSpan({
+          cls: 'fl-widget-manager-card-icon'
+        });
 
-applyWidgetIdentity(
-  iconEl,
-  definition.identity
-);
+        applyWidgetIdentity(
+          iconEl,
+          definition.identity
+        );
 
-if (definition.identity.color) {
-  iconEl.style.color =
-    definition.identity.color;
-}
+        if (definition.identity.color) {
+          iconEl.style.color =
+            definition.identity.color;
+        }
       }
 
       header.createSpan({
@@ -370,10 +182,6 @@ if (definition.identity.color) {
 
         addButton.onclick = () => {
 
-          // ----------------------------------------------------------
-          // Protección contra duplicación de widgets singleton
-          // ----------------------------------------------------------
-
           if (
             definition.cardinality === 'singleton' &&
             this.draftInstances.some(
@@ -393,8 +201,6 @@ if (definition.identity.color) {
             typeId:
               definition.id,
 
-            // Nombre por defecto al CREAR la instancia (traducible).
-            // Los nombres persistidos nunca pasan por aquí.
             name:
               getWidgetDefinitionLabel(definition)
           };
@@ -445,10 +251,6 @@ if (definition.identity.color) {
           cls: 'fl-widget-manager-instance-header'
         });
 
-        // ─────────────────────────────────────────
-        // Icono
-        // ─────────────────────────────────────────
-
         if (definition?.identity.icon) {
           const iconEl = header.createSpan({
             cls: 'fl-widget-manager-card-icon'
@@ -456,15 +258,11 @@ if (definition.identity.color) {
 
           setIcon(iconEl, definition.identity.icon);
 
-if (definition.identity.color) {
-  iconEl.style.color =
-    definition.identity.color;
-}
+          if (definition.identity.color) {
+            iconEl.style.color =
+              definition.identity.color;
+          }
         }
-
-        // ─────────────────────────────────────────
-        // Nombre
-        // ─────────────────────────────────────────
 
         const name = header.createSpan({
           cls: 'fl-widget-manager-instance-name',
@@ -524,10 +322,6 @@ if (definition.identity.color) {
           );
         };
 
-        // ─────────────────────────────────────────
-        // Eliminar
-        // ─────────────────────────────────────────
-
         const deleteButton = header.createEl('button', {
           cls: 'fl-widget-manager-delete-button',
           text: '🗑'
@@ -554,9 +348,6 @@ if (definition.identity.color) {
 
           this.renderWidgetsContent();
         };
-        // ─────────────────────────────────────────
-        // ID de instancia
-        // ─────────────────────────────────────────
 
         card.setAttribute(
           'data-instance-id',
@@ -566,9 +357,8 @@ if (definition.identity.color) {
     }
 
     // ─────────────────────────────────────────────
-    // Footer de Widgets
+    // Footer
     // ─────────────────────────────────────────────
-
 
     const footer = container.createDiv({
       cls: 'fl-widget-manager-footer'
@@ -594,381 +384,6 @@ if (definition.identity.color) {
     };
   }
 
-
-  private initializeWidgetDraft(): void {
-    this.draftInstances =
-      this.widgetManager
-        .getInstances()
-        .map(instance => ({
-          ...instance
-        }));
-  }
-
-  // ========================================================
-  // CONTENIDO ASISTENTE
-  // ========================================================
-
-
-  private renderAssistantContent(): void {
-    if (!this.assistantContent) {
-      return;
-    }
-
-    this.assistantContent.empty();
-
-    const layout =
-      this.assistantContent.createDiv({
-        cls: 'fl-capability-browser-layout'
-      });
-
-    // ========================================================
-    // LEFT PANEL: FUENTES
-    // ========================================================
-
-    const sourcesPanel = layout.createDiv({
-      cls: 'fl-capability-browser-sources'
-    });
-
-    const sourcesTitle =
-      sourcesPanel.createDiv({
-        cls: 'fl-capability-browser-section-title'
-      });
-
-    sourcesTitle.textContent = i18n.t('library.section.sources');
-
-    const sourcesContainer =
-      sourcesPanel.createDiv({
-        cls: 'fl-capability-browser-sources-list'
-      });
-
-    const sources: Array<{
-      id: 'note' | 'notes' | 'snips' | 'tasks';
-      label: string;
-      icon: string;
-    }> = [
-        {
-          id: 'note',
-          label: i18n.t('focus.sources.note'),
-          icon: 'file-text'
-        },
-        {
-          id: 'notes',
-          label: i18n.t('focus.sources.notes'),
-          icon: 'pencil'
-        },
-        {
-          id: 'snips',
-          label: i18n.t('focus.sources.snips'),
-          icon: 'scissors'
-        },
-        {
-          id: 'tasks',
-          label: i18n.t('focus.sources.tasks'),
-          icon: 'check-square'
-        }
-      ];
-
-    for (const source of sources) {
-      const sourceEl =
-        sourcesContainer.createDiv({
-          cls: 'fl-capability-browser-source'
-        });
-
-      sourceEl.setAttribute(
-        'data-source-id',
-        source.id
-      );
-
-      if (
-        this.selectedSourceIds.includes(
-          source.id
-        )
-      ) {
-        sourceEl.addClass('is-selected');
-      }
-
-      sourceEl.createSpan({
-        cls: 'fl-capability-browser-source-icon'
-      });
-
-      sourceEl
-        .querySelector(
-          '.fl-capability-browser-source-icon'
-        )
-        ?.setAttribute(
-          'data-icon',
-          source.icon
-        );
-
-      sourceEl.createSpan({
-        cls: 'fl-capability-browser-source-label',
-        text: source.label
-      });
-
-      sourceEl.onclick = () => {
-        const index =
-          this.selectedSourceIds.indexOf(
-            source.id
-          );
-
-        if (index >= 0) {
-
-          if (
-            this.selectedSourceIds.length === 1
-          ) {
-            return;
-          }
-
-          this.selectedSourceIds.splice(
-            index,
-            1
-          );
-
-          sourceEl.removeClass(
-            'is-selected'
-          );
-
-        } else {
-
-          this.selectedSourceIds.push(
-            source.id
-          );
-
-          sourceEl.addClass(
-            'is-selected'
-          );
-        }
-
-        this.updateSelectButton();
-      };
-    }
-
-    // ========================================================
-    // LEFT PANEL: DOMINIOS
-    // ========================================================
-
-    const groupsPanel = layout.createDiv({
-      cls: 'fl-capability-browser-groups'
-    });
-
-    const groupsTitle =
-      groupsPanel.createDiv({
-        cls: 'fl-capability-browser-section-title'
-      });
-
-    groupsTitle.textContent = i18n.t('library.section.domains');
-
-    this.groupsContainer =
-      groupsPanel.createDiv({
-        cls: 'fl-capability-browser-groups-list'
-      });
-
-    const groups =
-      this.capabilityRegistry.getGroups()
-
-    for (const group of groups) {
-      const groupEl =
-        this.groupsContainer.createDiv({
-            cls: 'fl-capability-browser-group'
-          });
-
-      groupEl.textContent = getDomainLabel(group.id, group.label);
-
-      groupEl.setAttribute(
-        'data-group-id',
-        group.id
-      );
-
-      if (
-        group.id === this.selectedGroupId
-      ) {
-        groupEl.addClass(
-          'is-selected'
-        );
-      }
-
-      groupEl.onclick = () => {
-        this.selectedGroupId =
-          group.id;
-
-        this.selectedCapabilityId =
-          '';
-
-        this.selectedCapabilityElement =
-          null;
-
-        const allGroupEls =
-          this.groupsContainer!
-            .querySelectorAll(
-              '.fl-capability-browser-group'
-            );
-
-        allGroupEls.forEach(
-          el =>
-            el.removeClass(
-              'is-selected'
-            )
-        );
-
-        groupEl.addClass(
-          'is-selected'
-        );
-
-        this.renderCapabilities();
-
-        this.updateSelectButton();
-      };
-    }
-
-    // ========================================================
-    // RIGHT PANEL: CAPACIDADES
-    // ========================================================
-
-    const capabilitiesPanel =
-      layout.createDiv({
-        cls:
-          'fl-capability-browser-capabilities'
-      });
-
-    const capabilitiesTitle =
-      capabilitiesPanel.createDiv({
-          cls:
-            'fl-capability-browser-section-title'
-        });
-
-    capabilitiesTitle.textContent = i18n.t('library.section.capabilities');
-
-    this.capabilitiesContainer =
-      capabilitiesPanel.createDiv({
-          cls:
-            'fl-capability-browser-capabilities-list'
-        });
-
-    this.renderCapabilities();
-
-    // ========================================================
-    // FOOTER
-    // ========================================================
-
-    const footer =
-      this.assistantContent.createDiv({
-          cls:
-            'fl-capability-browser-footer'
-        });
-
-    const cancelButton =
-      footer.createEl('button', {
-        text: i18n.t('common.cancel'),
-        cls:
-          'fl-capability-browser-cancel mod-secondary'
-      });
-
-    cancelButton.onclick = () => {
-      this.close();
-    };
-
-    const selectButton =
-      footer.createEl('button', {
-        text: i18n.t('common.select'),
-        cls:
-          'fl-capability-browser-select mod-cta'
-      });
-
-    selectButton.onclick = () => {
-      if (!this.selectedCapabilityId) {
-        return;
-      }
-
-      const selection: CapabilitySelection = {
-        sourceIds: [
-          ...this.selectedSourceIds
-        ],
-        groupId:
-          this.selectedGroupId,
-        capabilityId:
-          this.selectedCapabilityId
-      };
-
-      try {
-        this.onSelect(selection);
-      } catch (error) {
-        console.error(
-          '[LibraryBrowser] Error aplicando la selección:',
-          error
-        );
-        return;
-      }
-
-      this.close();
-    };
-
-    this.updateSelectButton();
-  }
-
-  // ========================================================
-  // CAPACIDADES
-  // ========================================================
-
-  private renderCapabilities(): void {
-    if (!this.capabilitiesContainer) {
-      return;
-    }
-
-    this.capabilitiesContainer.empty();
-
-    const capabilities =
-      this.capabilityRegistry.getByGroup(
-        this.selectedGroupId
-      )
-    if (capabilities.length === 0) {
-      const empty =
-        this.capabilitiesContainer.createDiv({
-            cls:
-              'fl-capability-browser-empty'
-          });
-
-      empty.textContent =
-        i18n.t('library.capabilitiesEmpty');
-
-      return;
-    }
-
-    for (const capability of capabilities) {
-      this.renderCapability(
-        capability
-      );
-    }
-
-    if (this.selectedCapabilityId) {
-      const items =
-        this.capabilitiesContainer
-          .querySelectorAll(
-            '.fl-capability-browser-item'
-          );
-
-      items.forEach(el => {
-        const dataCapId =
-          (
-            el as HTMLElement
-          ).getAttribute(
-            'data-capability-id'
-          );
-
-        if (
-          dataCapId ===
-          this.selectedCapabilityId
-        ) {
-          this.setSelectedCapability(
-            el as HTMLElement
-          );
-
-          this.selectedCapabilityElement =
-            el as HTMLElement;
-        }
-      });
-    }
-  }
-
   private async applyWidgetChanges(): Promise<void> {
     await this.widgetManager.applyInstances(
       this.draftInstances
@@ -976,139 +391,6 @@ if (definition.identity.color) {
 
     this.initializeWidgetDraft();
     this.renderWidgetsContent();
-  }
-
-  private renderCapability(
-    capability: Capability
-  ): void {
-
-    if (!this.capabilitiesContainer) {
-      return;
-    }
-
-    const item =
-      this.capabilitiesContainer.createDiv({
-          cls:
-            'fl-capability-browser-item'
-        });
-
-    item.setAttribute(
-      'data-capability-id',
-      capability.id
-    );
-
-    const label =
-      item.createDiv({
-        cls:
-          'fl-capability-browser-item-label'
-      });
-
-    label.textContent = getCapabilityLabel(
-        capability.id,
-        capability.label
-      )
-
-    if (capability.description) {
-      const description =
-        item.createDiv({
-          cls:
-            'fl-capability-browser-item-description'
-        });
-
-      description.textContent = getCapabilityDescription(
-        capability.id,
-        capability.description
-      )
-    }
-
-    item.onclick = () => {
-
-      if (
-        this.selectedCapabilityElement
-      ) {
-        this.deselectCapability(
-          this.selectedCapabilityElement
-        );
-      }
-
-      this.selectedCapabilityId =
-        capability.id;
-
-      this.selectedCapabilityElement =
-        item;
-
-      this.setSelectedCapability(
-        item
-      );
-
-      this.updateSelectButton();
-    };
-  }
-
-  private setSelectedCapability(
-    element: HTMLElement
-  ): void {
-    element.addClass(
-      'is-selected'
-    );
-  }
-
-  private deselectCapability(
-    element: HTMLElement
-  ): void {
-    element.removeClass(
-      'is-selected'
-    );
-  }
-
-  private updateSelectButton(): void {
-    const selectBtn =
-      this.modalEl.querySelector(
-        '.fl-capability-browser-select'
-      ) as HTMLElement;
-
-    if (!selectBtn) {
-      return;
-    }
-
-    if (this.selectedCapabilityId) {
-      selectBtn.removeClass(
-        'is-disabled'
-      );
-
-      selectBtn.onclick = () => {
-        const selection: CapabilitySelection = {
-          sourceIds: [
-            ...this.selectedSourceIds
-          ],
-          groupId:
-            this.selectedGroupId,
-          capabilityId:
-            this.selectedCapabilityId
-        };
-
-        try {
-          this.onSelect(selection);
-        } catch (error) {
-          console.error(
-            '[LibraryBrowser] Error aplicando la selección:',
-            error
-          );
-          // Se conserva la selección para reintentar; no se cierra.
-          return;
-        }
-
-        this.close();
-      };
-
-    } else {
-
-      selectBtn.addClass(
-        'is-disabled'
-      );
-
-      selectBtn.onclick = () => { };
-    }
   }
 
   onClose(): void {

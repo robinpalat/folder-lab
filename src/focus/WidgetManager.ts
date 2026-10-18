@@ -374,10 +374,13 @@ async applyInstances(
 
 
     async loadForNote(file: TFile): Promise<void> {
+    const diagStart = performance.now();
     const notePath = file.path;
     const generation = ++this.loadGeneration;
 
     this.currentNotePath = notePath;
+
+    console.warn(`[FolderLab][diag] loadForNote: inicio (${notePath})`);
 
     const data = await this.noteRepository.loadNote(notePath);
 
@@ -386,6 +389,9 @@ async applyInstances(
     // el estado del manager debe corresponder siempre a la
     // nota más reciente solicitada.
     if (generation !== this.loadGeneration) {
+      console.warn(
+        `[FolderLab][diag] loadForNote: resultado obsoleto descartado (${notePath})`
+      );
       return;
     }
 
@@ -398,6 +404,18 @@ async applyInstances(
     };
 
     this.ensureValidLayout();
+
+    console.warn(
+      `[FolderLab][diag] loadForNote: restaurado desde repositorio ` +
+      `(${this.instances.length} instancias, ${(performance.now() - diagStart).toFixed(1)} ms)`
+    );
+
+    console.warn(
+      `[FolderLab][diagID] FINAL nota=${notePath} ` +
+      `instancias=${this.instances.length} ` +
+      `layout-top=${this.layout.top ? 'OK' : 'FALTA'} ` +
+      `layout-bottom=${this.layout.bottom ? 'OK' : 'FALTA'}`
+    );
 
     return;
   }
@@ -414,6 +432,11 @@ this.layout = {
 };
 
     await this.saveForCurrentNote();
+
+    console.warn(
+      `[FolderLab][diag] loadForNote: bootstrap completado ` +
+      `(${this.instances.length} instancias, ${(performance.now() - diagStart).toFixed(1)} ms)`
+    );
   }
 
   async saveForCurrentNote(): Promise<void> {

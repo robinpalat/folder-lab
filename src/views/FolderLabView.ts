@@ -840,6 +840,17 @@ export class FolderLabView extends ItemView {
 
         const activeFile = this.app.workspace.getActiveFile();
         if (activeFile) {
+          /*
+           * [diag] Origen de la SEGUNDA carga de contexto: esta
+           * llamada es secuencial e incondicional tras render()
+           * (que YA cargó esta misma nota). Queda registrada para
+           * distinguirla de un cambio real de nota.
+           */
+          console.warn(
+            `[FolderLab][diag] FolderLabView: updateNote post-render ` +
+            `(origen=showFocusMode, nota=${activeFile.path})`
+          );
+
           void this.focusWorkspace.updateNote(activeFile).catch((error) => {
             console.error('[FolderLab] Error actualizando el Contexto a la nueva nota:', error);
           });

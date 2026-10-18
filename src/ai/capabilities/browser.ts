@@ -15,7 +15,6 @@ export interface CapabilitySelection {
 
 interface CapabilityBrowserOptions {
   registry: CapabilityRegistry;
-  selectedSources?: Array<'note' | 'notes' | 'snips' | 'tasks'>;
   selectedGroup?: string;
   selectedCapability?: string;
   onSelect: (selection: CapabilitySelection) => void;
@@ -23,7 +22,6 @@ interface CapabilityBrowserOptions {
 
 export class CapabilityBrowser extends Modal {
   private registry: CapabilityRegistry;
-  private selectedSourceIds: Array<'note' | 'notes' | 'snips' | 'tasks'>;
   private selectedGroupId: string;
   private selectedCapabilityId: string;
   private onSelect: (selection: CapabilitySelection) => void;
@@ -36,10 +34,6 @@ export class CapabilityBrowser extends Modal {
     super(app);
 
     this.registry = options.registry;
-    this.selectedSourceIds =
-      options.selectedSources?.length
-        ? [...options.selectedSources]
-        : ['note'];
     this.selectedGroupId =
       options.selectedGroup || this.registry.getDefaultGroup();
     this.selectedCapabilityId = options.selectedCapability || '';
@@ -57,79 +51,6 @@ export class CapabilityBrowser extends Modal {
     const layout = content.createDiv({
       cls: 'fl-capability-browser-layout'
     });
-
-    // ========================================================
-    // LEFT PANEL: FUENTES
-    // ========================================================
-
-    const sourcesPanel = layout.createDiv({
-      cls: 'fl-capability-browser-sources'
-    });
-
-    const sourcesTitle = sourcesPanel.createDiv({
-      cls: 'fl-capability-browser-section-title'
-    });
-    sourcesTitle.textContent = i18n.t('library.section.sources');
-
-    const sourcesContainer = sourcesPanel.createDiv({
-      cls: 'fl-capability-browser-sources-list'
-    });
-
-    const sources: Array<{
-      id: 'note' | 'notes' | 'snips' | 'tasks';
-      label: string;
-      icon: string;
-    }> = [
-      { id: 'note', label: i18n.t('focus.sources.note'), icon: 'file-text' },
-      { id: 'notes', label: i18n.t('focus.sources.notes'), icon: 'pencil' },
-      { id: 'snips', label: i18n.t('focus.sources.snips'), icon: 'scissors' },
-      { id: 'tasks', label: i18n.t('focus.sources.tasks'), icon: 'check-square' }
-    ];
-
-    for (const source of sources) {
-      const sourceEl = sourcesContainer.createDiv({
-        cls: 'fl-capability-browser-source'
-      });
-
-      sourceEl.setAttribute('data-source-id', source.id);
-
-      if (this.selectedSourceIds.includes(source.id)) {
-        sourceEl.addClass('is-selected');
-      }
-
-      sourceEl.createSpan({
-        cls: 'fl-capability-browser-source-icon'
-      });
-
-      sourceEl.querySelector('.fl-capability-browser-source-icon')?.setAttribute(
-        'data-icon',
-        source.icon
-      );
-
-      sourceEl.createSpan({
-        cls: 'fl-capability-browser-source-label',
-        text: source.label
-      });
-
-      sourceEl.onclick = () => {
-        const index = this.selectedSourceIds.indexOf(source.id);
-
-        if (index >= 0) {
-          // Nunca dejamos la selección completamente vacía.
-          if (this.selectedSourceIds.length === 1) {
-            return;
-          }
-
-          this.selectedSourceIds.splice(index, 1);
-          sourceEl.removeClass('is-selected');
-        } else {
-          this.selectedSourceIds.push(source.id);
-          sourceEl.addClass('is-selected');
-        }
-
-        this.updateSelectButton();
-      };
-    }
 
     // ========================================================
     // LEFT PANEL: DOMINIOS
@@ -223,7 +144,7 @@ export class CapabilityBrowser extends Modal {
       }
 
       this.onSelect({
-        sourceIds: [...this.selectedSourceIds],
+        sourceIds: ['note'],
         groupId: this.selectedGroupId,
         capabilityId: this.selectedCapabilityId
       });
@@ -327,7 +248,7 @@ export class CapabilityBrowser extends Modal {
       selectBtn.removeClass('is-disabled');
       selectBtn.onclick = () => {
         this.onSelect({
-          sourceIds: [...this.selectedSourceIds],
+          sourceIds: ['note'],
           groupId: this.selectedGroupId,
           capabilityId: this.selectedCapabilityId
         });

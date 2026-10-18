@@ -92,9 +92,9 @@ test('FocusPane: «Agregar widget…» es el primer elemento y abre la bibliotec
   assert.ok(addIndex < groupContextIndex);
   assert.ok(addIndex < instancesIndex);
 
-  // Abre la biblioteca existente en la pestaña widgets.
+  // Abre la biblioteca de widgets (sin pestaña ni capacidades).
   assert.ok(source.includes('new LibraryBrowser('));
-  assert.ok(source.includes("'widgets'"));
+  assert.ok(!source.includes("'widgets'"), 'sin initialTab (biblioteca es solo widgets)');
 
   // La creación de instancias NO ocurre en el menú.
   assert.ok(!source.includes('createInstance('));
@@ -125,15 +125,14 @@ test('FocusPane: la categoría se resuelve desde la definición (typeId), no del
 // 4. BIBLIOTECA
 // ------------------------------------------------------------
 
-test('LibraryBrowser: initialTab y sincronización en onOpen', () => {
+test('LibraryBrowser: sin pestañas ni capacidades (administrador de widgets puro)', () => {
   const source = read('src/focus/LibraryBrowser.ts');
-  assert.ok(source.includes("initialTab: BrowserTab = 'assistant'"));
-  // onOpen sincroniza la pestaña inicial vía selectTab.
-  assert.ok(source.includes('this.selectTab(\n      this.selectedTab,'));
-  // La selección de la pestaña assistant vive SOLO dentro de
-  // selectTab (una ocurrencia); onOpen no la codifica a mano.
-  const selectedCount = (source.match(/assistantTab\.addClass\('is-selected'\);/g) || []).length;
-  assert.equal(selectedCount, 1);
+  // Ya no tiene pestañas ni lógica de capacidades.
+  assert.ok(!source.includes('initialTab'), 'sin initialTab');
+  assert.ok(!source.includes('BrowserTab'), 'sin BrowserTab');
+  assert.ok(!source.includes('selectTab'), 'sin selectTab');
+  assert.ok(!source.includes('CapabilityRegistry'), 'sin CapabilityRegistry');
+  assert.ok(source.includes('renderWidgetsContent'), 'tiene renderWidgetsContent');
 });
 
 // ------------------------------------------------------------

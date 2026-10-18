@@ -40,6 +40,10 @@ export class FocusWorkspace {
   private widgetController: WidgetController | null = null;
   private closeContainer: HTMLElement | null = null;
   private layoutObserver: ResizeObserver | null = null;
+  /** [diag] Última firma de alturas registrada (throttle del log). */
+  private diagLastHeights = '';
+  /** [diag] Contador de ejecuciones de render/updateNote. */
+  private diagRunCount = 0;
   private onBoard: (() => void) | null = null;
   private boardActive = false;
 
@@ -78,6 +82,9 @@ export class FocusWorkspace {
   // ============================================================
 
   async render(): Promise<void> {
+    const diagStart = performance.now();
+    const diagRun = ++this.diagRunCount;
+    console.warn(`[FolderLab][diag] FocusWorkspace.render#${diagRun}: inicio (nota=${this.app.workspace.getActiveFile()?.path ?? 'ninguna'})`);
     this.container.empty();
     this.container.addClass('focus-workspace');
 
@@ -86,6 +93,12 @@ export class FocusWorkspace {
     if (activeFile) {
       await this.widgetManager.loadForNote(activeFile);
     }
+
+    console.warn(
+      `[FolderLab][diag] loadForNote completado (render#${diagRun}): ` +
+      `${this.widgetManager.getInstances().length} instancias, ` +
+      `${(performance.now() - diagStart).toFixed(1)} ms`
+    );
 
 
     // 1. Área principal
@@ -231,6 +244,11 @@ export class FocusWorkspace {
     });
 
     this.layoutObserver.observe(this.mainArea);
+
+    console.warn(
+      `[FolderLab][diag] FocusWorkspace.render#${diagRun}: fin ` +
+      `(${(performance.now() - diagStart).toFixed(1)} ms)`
+    );
   }
 
 
@@ -302,6 +320,22 @@ export class FocusWorkspace {
     const bottomHeight =
       availableHeight - topHeight;
 
+    // [diag] Alturas asignadas a los paneles (solo cuando cambian
+    // o cuando el espacio disponible es 0, que es la firma del
+    // «panel vacío»).
+    const diagHeights =
+      `main=${Math.round(mainHeight)} splitter=${Math.round(splitterHeight)} ` +
+      `close=${Math.round(closeHeight)} disponible=${Math.round(availableHeight)} ` +
+      `top=${Math.round(topHeight)} bottom=${Math.round(bottomHeight)}`;
+
+    if (
+      availableHeight <= 0 ||
+      diagHeights !== this.diagLastHeights
+    ) {
+      this.diagLastHeights = diagHeights;
+      console.warn(`[FolderLab][diag] updatePaneHeights: ${diagHeights}`);
+    }
+
     // Alturas computadas del ratio (dinámico); el resto de la
     // presentación vive en la regla .fl-widget-container.
     top.style.height = `${topHeight}px`;
@@ -342,6 +376,22 @@ export class FocusWorkspace {
   }
 
   async updateNote(activeFile: TFile): Promise<void> {
+    const diagStart = performance.now();
+    const diagRun = ++this.diagRunCount;
+
+    /*
+     * [diag] `mismaNota` se captura ANTES de updateFocusContext:
+     * true significa una recarga redundante (la nota activa no
+     * cambió), que es el patrón post-render de FolderLabView.
+     */
+    const diagSameNote =
+      this.context?.activeFile === activeFile;
+
+    console.warn(
+      `[FolderLab][diag] FocusWorkspace.updateNote#${diagRun}: inicio ` +
+      `(nota=${activeFile.path}, mismaNota=${diagSameNote})`
+    );
+
     if (this.context) {
       updateFocusContext(this.context, activeFile);
     }
@@ -356,8 +406,17 @@ export class FocusWorkspace {
      * obsoleta y no debe tocar panes ni layout con datos ajenos.
      */
     if (this.context && this.context.activeFile !== activeFile) {
+      console.warn(
+        `[FolderLab][diag] updateNote#${diagRun}: obsoleto, se descarta ` +
+        `(${(performance.now() - diagStart).toFixed(1)} ms)`
+      );
       return;
     }
+
+    console.warn(
+      `[FolderLab][diag] FocusWorkspace.updateNote#${diagRun}: fin ` +
+      `(${(performance.now() - diagStart).toFixed(1)} ms)`
+    );
 
     const layout = this.widgetManager.getLayout();
 

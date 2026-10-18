@@ -79,7 +79,98 @@ buildUser(): string {
   let target = '';
 
   // ==========================================================
-  // DETERMINAR LA FUENTE DEL CONTEXTO
+  // MODO WIDGETS: instancias seleccionadas en el segundo menú
+  // ==========================================================
+  //
+  // Cuando el Asistente opera en modo «Widgets» (`contextMode`),
+  // el contexto se construye EXCLUSIVAMENTE a partir de las
+  // instancias elegidas. `additional.widgetInstances` contiene el
+  // contenido ya filtrado por ContextResolver (solo bloques
+  // activos de cada instancia).
+  //
+  // En este modo NO se usa el mecanismo heredado de
+  // additional.notes/tasks/snips ni contextType, INCLUSO cuando
+  // no hay instancias seleccionadas o ninguna aporta contenido
+  // elegible tras el filtrado. El prompt queda con contexto
+  // vacío de widgets (la selección de capacidades sigue
+  // determinando la operación, no el contenido contextual).
+  //
+  // La selección de capacidades (sources) sigue determinando la
+  // operación del Assistant, pero no sustituye ni filtra las
+  // instancias elegidas.
+
+  const contextMode: unknown =
+    this.context.additional?.contextMode;
+
+  if (contextMode === 'widget') {
+    const widgetInstances: unknown =
+      this.context.additional?.widgetInstances;
+
+    const sections: string[] = [];
+
+    if (Array.isArray(widgetInstances)) {
+      for (const entry of widgetInstances) {
+        if (
+          typeof entry !== 'object' ||
+          entry === null
+        ) {
+          continue;
+        }
+
+        const record = entry as {
+          name?: unknown;
+          items?: unknown;
+        };
+
+        const name =
+          typeof record.name === 'string' && record.name
+            ? record.name
+            : 'Instancia';
+
+        const items: unknown[] = Array.isArray(record.items)
+          ? record.items
+          : [];
+
+        const texts = items
+          .map((item) => {
+            if (
+              typeof item === 'object' &&
+              item !== null
+            ) {
+              const text = (item as { text?: unknown }).text;
+              return typeof text === 'string' ? text : '';
+            }
+            return '';
+          })
+          .filter((text: string) => !!text.trim());
+
+        if (texts.length === 0) continue;
+
+        sections.push(`[${name}]\n${texts.join('\n\n')}`);
+      }
+    }
+
+    if (sections.length > 0) {
+      content = sections.join('\n\n---\n\n');
+      target = 'Contexto de widgets seleccionados:';
+    }
+    // Sin contenido elegible → contexto vacío de widgets. NO se
+    // recurre al mecanismo heredado (notes/tasks/snips/note).
+
+    if (hasSelection) {
+      content = this.context.selection!;
+      target = 'Selección del usuario:';
+    }
+
+    if (content) {
+      user += `\n\n${target}\n${content}`;
+    }
+
+    return user;
+  }
+
+  // ==========================================================
+  // DETERMINAR LA FUENTE DEL CONTEXTO (modo heredado)
   // ==========================================================
 
   switch (this.context.contextType) {

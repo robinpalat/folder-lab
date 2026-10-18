@@ -13,7 +13,12 @@
 import { App } from 'obsidian';
 import type { NoteIdentityRegistry } from './NoteIdentityRegistry';
 import type { NoteLifecycle } from './NoteLifecycle';
+import type { NoteRepository } from './NoteRepository';
 import { runOrphanAudit, type OrphanAuditReport } from './orphanAudit';
+import {
+  LegacyContextMigration,
+  type MigrationReport
+} from './legacyContextMigration';
 
 export interface MaintenanceReport {
   recoveredJournal: boolean;
@@ -25,13 +30,16 @@ export interface MaintenanceReport {
   orphanCandidates: number;
   /** Informe completo de la auditoría (E4a); null sin Master. */
   orphanAudit: OrphanAuditReport | null;
+  /** Migración de `_note_context.json` legado a entidades. */
+  legacyContextMigration: MigrationReport | null;
 }
 
 export async function runStartupMaintenance(
   app: App,
   registry: NoteIdentityRegistry,
   lifecycle: NoteLifecycle | null,
-  getRootPath?: () => string | null
+  getRootPath?: () => string | null,
+  noteRepository?: NoteRepository
 ): Promise<MaintenanceReport> {
   const report: MaintenanceReport = {
     recoveredJournal: false,
@@ -39,7 +47,8 @@ export async function runStartupMaintenance(
     reconcilePendingExisting: 0,
     reconcileDuplicateIds: 0,
     orphanCandidates: 0,
-    orphanAudit: null
+    orphanAudit: null,
+    legacyContextMigration: null
   };
 
   if (lifecycle) {
@@ -65,6 +74,27 @@ export async function runStartupMaintenance(
     report.reconcileDuplicateIds = reconcile.duplicateIds.length;
   } catch (error) {
     console.error('[FolderLab] Reconciliación de identidad fallida:', error);
+  }
+
+  // Migración proactiva de `_note_context.json` legado (Etapa 1) →
+  // entidades `Folder Lab/context/<id>.json`. No elimina archivos.
+  if (noteRepository) {
+    try {
+      const contextStore = noteRepository.getEntitiesStore();
+      if (contextStore) {
+        const migration = new LegacyContextMigration(
+          app,
+          registry,
+          contextStore
+        );
+        report.legacyContextMigration = await migration.run();
+      }
+    } catch (error) {
+      console.error(
+        '[FolderLab] Migración de contexto legado fallida:',
+        error
+      );
+    }
   }
 
   // E4a: auditoría de huérfanos en modo solo lectura (cero escrituras;

@@ -139,7 +139,11 @@ export class NoteRepository {
 
   private async entityId(notePath: string): Promise<string | null> {
     if (!this.identity || !this.getRootPath?.()) return null;
-    return this.identity(notePath);
+    const id = await this.identity(notePath);
+    console.warn(
+      `[FolderLab][diagID] IDENTIDAD nota=${notePath} → id=${id ?? 'null'}`
+    );
+    return id;
   }
 
   private enqueue<T>(op: () => Promise<T>): Promise<T> {
@@ -307,18 +311,42 @@ export class NoteRepository {
    * Obtiene la configuración de una nota concreta.
    */
   loadNote(notePath: string): Promise<NoteContextData | null> {
+    const diagStart = performance.now();
+
+    console.warn(`[FolderLab][diag] loadNote: inicio (${notePath})`);
+
     return this.enqueue(async () => {
       const folderPath = this.getParentFolderPath(notePath);
 
       if (folderPath === null) {
+        console.warn(
+          `[FolderLab][diag] loadNote: sin carpeta padre (${notePath})`
+        );
         return null;
       }
 
       // 1) Archivo por entidad (verdad única, Etapa 3).
       const id = await this.entityId(notePath);
+
+      console.warn(
+        `[FolderLab][diag] loadNote: identidad=${id ?? 'ninguna'} ` +
+        `(${(performance.now() - diagStart).toFixed(1)} ms)`
+      );
+
       if (id && this.entities) {
         const envelope = await this.entities.read(id);
         if (envelope !== null) {
+          console.warn(
+            `[FolderLab][diag] loadNote: desde entidad ${id} ` +
+            `(${envelope.data.widgets?.length ?? 0} widgets, ` +
+            `${(performance.now() - diagStart).toFixed(1)} ms)`
+          );
+          console.warn(
+            `[FolderLab][diagID] RESTAURACION id=${id} ` +
+            `widgets=${envelope.data.widgets?.length ?? 0} ` +
+            `top=${envelope.data.layout?.top ? 'OK' : 'FALTA'} ` +
+            `bottom=${envelope.data.layout?.bottom ? 'OK' : 'FALTA'}`
+          );
           return envelope.data;
         }
 
@@ -327,6 +355,9 @@ export class NoteRepository {
         if (this.legacyOwnershipSafe) {
           const safe = await this.legacyOwnershipSafe(notePath);
           if (!safe) {
+            console.warn(
+              `[FolderLab][diag] loadNote: legado no propio, se descarta (${notePath})`
+            );
             return null;
           }
         }
@@ -338,6 +369,9 @@ export class NoteRepository {
       const entry = store[notePath];
 
       if (entry === undefined) {
+        console.warn(
+          `[FolderLab][diag] loadNote: sin datos (entidad ni legado) (${notePath})`
+        );
         return null;
       }
 
@@ -353,6 +387,12 @@ export class NoteRepository {
           );
         });
       }
+
+      console.warn(
+        `[FolderLab][diag] loadNote: desde legado ` +
+        `(${entry.widgets?.length ?? 0} widgets, ` +
+        `${(performance.now() - diagStart).toFixed(1)} ms)`
+      );
 
       return entry;
     });
@@ -438,5 +478,9 @@ export class NoteRepository {
     }
 
     return notePath.substring(0, separatorIndex);
+  }
+
+  getEntitiesStore(): EntityFileStore<NoteContextData> | null {
+    return this.entities;
   }
 }

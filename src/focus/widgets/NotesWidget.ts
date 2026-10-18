@@ -773,7 +773,11 @@ export class NotesWidget implements FocusWidget {
     if (this.sessionView === "capture") return;
 
     this.sessionView = "capture";
-    this.draftText = "";
+
+    /*
+     * NO se limpia draftText: el borrador en vivo se conserva
+     * al alternar entre la vista de sesión y la de captura.
+     */
 
     const capturePanel = this.container?.querySelector(
       ".fl-notes-capture-panel"
@@ -887,15 +891,13 @@ export class NotesWidget implements FocusWidget {
       }
     });
 
-    // El estado visual del editor es la fuente de verdad.
-    // Si no hay contenido actual, no debe existir un draft persistido.
-    if (
-      !this.draftText.trim() &&
-      this.draftStorageKey
-    ) {
-      void this.mirrorWrite("focus-notes-draft", null);
-      this.persistDraftPatch({ draft: "" });
-    }
+    /*
+     * Asignar la referencia para que load() y save() puedan
+     * operar sobre el editor real. Sin esta asignación, ambas
+     * funciones retornaban temprano (this.textarea era siempre
+     * null) y el borrador nunca se restauraba.
+     */
+    this.textarea = captureEditor;
 
     captureEditor.value = this.draftText;
 
@@ -1657,40 +1659,31 @@ export class NotesWidget implements FocusWidget {
   }
 
   async load(): Promise<void> {
-    if (!this.textarea || !this.currentFile) {
+    if (!this.currentFile) {
       return;
     }
 
+    /*
+     * Restaurar EXCLUSIVAMENTE el borrador en vivo desde
+     * `focus-notes-draft`. El editor y la colección de bloques
+     * guardados son entidades distintas: el editor no debe
+     * poblarse con el contenido de los bloques.
+     *
+     * `focus-notes` (fuente de notas / texto unido de bloques)
+     * NO se lee aquí: esa fuente pertenece al concepto de
+     * «notas», no al borrador del editor. Si no hay borrador,
+     * el editor queda vacío.
+     */
     try {
-      const saved = await this.mirrorRead("focus-notes");
-
-      if (saved) {
-        this.textarea.value = saved;
-      } else {
-        const notesFilePath =
-          this.currentFile.path.replace(
-            /\.md$/,
-            ".notes.md"
-          );
-
-        const abstractFile =
-          this.app.vault.getAbstractFileByPath(notesFilePath);
-        const file = abstractFile instanceof TFile ? abstractFile : null;
-
-        if (file) {
-          const content =
-            await this.app.vault.read(file);
-
-          this.textarea.value = content;
-
-          await this.mirrorWrite("focus-notes", content);
+      const savedDraft = await this.mirrorRead("focus-notes-draft");
+      if (savedDraft) {
+        this.draftText = savedDraft;
+        if (this.textarea) {
+          this.textarea.value = savedDraft;
         }
       }
     } catch (error) {
-      console.warn(
-        "Error cargando apuntes:",
-        error
-      );
+      console.warn("[NotesWidget] Error restaurando borrador:", error);
     }
   }
 
@@ -1702,7 +1695,13 @@ export class NotesWidget implements FocusWidget {
     try {
       const content = this.textarea.value;
 
-      await this.mirrorWrite("focus-notes", content);
+      /*
+       * El editor es el BORRADOR, no la fuente de notas.
+       * Se escribe a `focus-notes-draft` (espejo del borrador),
+       * nunca a `focus-notes` (que contiene el texto unido de
+       * los bloques guardados y se corrompería).
+       */
+      await this.mirrorWrite("focus-notes-draft", content || null);
     } catch (error) {
       console.warn(
         "Error guardando apuntes:",

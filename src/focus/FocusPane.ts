@@ -148,13 +148,42 @@ export class FocusPane {
     }
 
     if (this.widgetContainer) {
-      this.widget.render(
-        this.widgetContainer,
-        this.context
+      const diagMountStart = performance.now();
+
+      console.warn(
+        `[FolderLab][diag] montando widget (${instance.typeId}, ` +
+        `posición=${this.position})`
+      );
+
+      /*
+       * [diag] Un fallo en render() se registra con el tipo de
+       * widget y se RE-LANZA: no se oculta ni cambia el
+       * comportamiento (el catch superior sigue recibiendo el
+       * error), pero deja rastro visible en consola.
+       */
+      try {
+        this.widget.render(
+          this.widgetContainer,
+          this.context
+        );
+      } catch (error) {
+        console.error(
+          `[FolderLab][diag] widget.render falló (${instance.typeId}):`,
+          error
+        );
+        throw error;
+      }
+
+      console.warn(
+        `[FolderLab][diag] widget renderizado (${instance.typeId}, ` +
+        `${(performance.now() - diagMountStart).toFixed(1)} ms)`
       );
 
       if (this.widget.load) {
         this.widget.load().then(() => {
+          console.warn(
+            `[FolderLab][diag] widget load() completado (${instance.typeId})`
+          );
           this.installScrollFades();
         }).catch(err => {
           console.warn(
@@ -347,9 +376,7 @@ export class FocusPane {
           const browser = new LibraryBrowser(
             this.app,
             this.registry,
-            this.capabilityRegistry,
-            this.widgetManager,
-            'widgets'
+            this.widgetManager
           );
 
           browser.open();

@@ -70,15 +70,45 @@ export class NoteService {
   // ============================================================
   // NOTA GENERAL
   // ============================================================
+  // La Nota General es ÚNICA y pertenece exclusivamente a la carpeta
+  // master del libro. Se almacena directamente en la carpeta técnica
+  // visible `Folder Lab/`, no en subcarpetas ni en `.folder-lab/`.
+
+  private static readonly GENERAL_NOTE_FILE = '_nota_general.txt';
 
   /**
-   * Carga la Nota General de una carpeta
+   * Resuelve la ruta única de la Nota General (carpeta master).
    */
-  async loadGeneralNote(folderPath: string): Promise<string> {
+  private generalNoteFolderPath(): string {
+    return this.settings.bookRootPath || '';
+  }
+
+  /**
+   * Carga la Nota General única de la carpeta master.
+   * Compatibilidad de lectura: si no existe la centralizada,
+   * intenta leer desde la ubicación legada del master.
+   */
+  async loadGeneralNote(): Promise<string> {
+    const masterPath = this.generalNoteFolderPath();
+    if (!masterPath) return '';
+
     try {
-      // Usar HiddenFolderManager para leer _nota_general.txt
-      const hiddenManager = new HiddenFolderManager(this.app, INTERNAL_FOLDER);
-      const content = await hiddenManager.getFileContent(folderPath, '_nota_general.txt');
+      const visibleManager = new HiddenFolderManager(this.app, 'Folder Lab');
+      const content = await visibleManager.getFileContent(
+        masterPath,
+        NoteService.GENERAL_NOTE_FILE
+      );
+      if (content !== null) return content;
+    } catch {
+      // Fallback a ubicación legada
+    }
+
+    try {
+      const legacyManager = new HiddenFolderManager(this.app, INTERNAL_FOLDER);
+      const content = await legacyManager.getFileContent(
+        masterPath,
+        NoteService.GENERAL_NOTE_FILE
+      );
       return content || '';
     } catch {
       return '';
@@ -86,11 +116,21 @@ export class NoteService {
   }
 
   /**
-   * Guarda la Nota General de una carpeta
+   * Guarda la Nota General única en la carpeta master.
+   * Siempre escribe en la ubicación centralizada `Folder Lab/`.
    */
-  async saveGeneralNote(folderPath: string, content: string): Promise<void> {
-    const hiddenManager = new HiddenFolderManager(this.app, INTERNAL_FOLDER);
-    await hiddenManager.writeFile(folderPath, '_nota_general.txt', content);
+  async saveGeneralNote(content: string): Promise<void> {
+    const masterPath = this.generalNoteFolderPath();
+    if (!masterPath) {
+      throw new Error('[NoteService] Sin carpeta master configurada');
+    }
+
+    const visibleManager = new HiddenFolderManager(this.app, 'Folder Lab');
+    await visibleManager.writeFile(
+      masterPath,
+      NoteService.GENERAL_NOTE_FILE,
+      content
+    );
   }
 
   // ============================================================

@@ -572,7 +572,8 @@
       "closeExpandedEdit": "Cerrar edición del bloque",
       "expandedEditSaveFailed": "No se pudo guardar el bloque. Los cambios siguen en la vista de edición: vuelve a pulsar × para reintentar.",
       "newBlock": "Nuevo bloque",
-      "errorWithMessage": "Error: {message}"
+      "errorWithMessage": "Error: {message}",
+      "context": "Fuente"
     },
     "defs": {
       "snips": {
@@ -676,7 +677,8 @@
         "apply": "Aplicar",
         "deactivateResponse": "Desactivar respuesta",
         "activateResponse": "Activar respuesta",
-        "deleteResponse": "Eliminar respuesta"
+        "deleteResponse": "Eliminar respuesta",
+        "run": "Run"
       },
       "placeholder": {
         "result": "El resultado aparecerá aquí."
@@ -690,6 +692,26 @@
       "error": {
         "sourceLoadFailed": "No se pudo cargar la fuente \"{source}\".",
         "unknown": "Error desconocido"
+      },
+      "input": {
+        "board": "Board",
+        "widget": "Widgets",
+        "nota": "Nota"
+      },
+      "contextMenu": {
+        "header": "Seleccionar contexto del asistente",
+        "companionHeader": "Widget de contexto actual"
+      },
+      "instanceMenu": {
+        "header": "Seleccionar instancias",
+        "ok": "OK",
+        "empty": "Sin instancias disponibles"
+      },
+      "spec": {
+        "capabilities": "Capacidades",
+        "noCapability": "Ninguna capacidad seleccionada",
+        "sources": "Fuentes",
+        "noSources": "Sin fuentes configuradas"
       }
     },
     "notesWidget": {

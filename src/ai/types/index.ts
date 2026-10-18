@@ -60,6 +60,25 @@ export interface UserRequest {
   selection?: string;
   temperature?: number;
   maxTokens?: number;
+
+  /**
+   * Instancias de widgets seleccionadas en el segundo menú del
+   * selector de contexto (modo «Widgets»). Cuando está presente y
+   * no vacío, el contexto del Asistente se construye EXCLUSIVAMENTE
+   * a partir de estas instancias (por instancia individual, no por
+   * tipo). Independiente de `sources` (selección de capacidades).
+   */
+  widgetInstanceIds?: string[];
+
+  /**
+   * Modo de contexto elegido en el selector del Assistant.
+   * - 'board': fuente Board (extracción pendiente).
+   * - 'widget': fuente Widgets; el prompt usa EXCLUSIVAMENTE
+   *   `additional.widgetInstances`, aunque esté vacío. En este
+   *   modo NO se activa el contexto heredado (notes/tasks/snips/
+   *   note) por ausencia de instancias o de contenido elegible.
+   */
+  inputSource?: 'board' | 'widget';
 }
 
 export interface ExecutableContext {

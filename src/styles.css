@@ -1216,6 +1216,53 @@
   opacity: 0.7;
 }
 
+/* Etiqueta visible junto al icono (icon-action con label, p. ej. Run) */
+.fl-widget-control-icon .fl-control-icon-label {
+  margin-left: 4px;
+  font-size: var(--font-ui-small);
+  white-space: nowrap;
+}
+
+/* --- Selector de contexto del Asistente (Board / Widgets) ---
+   Borde fino que rodea icono + etiqueta + flecha como una sola
+   unidad interactiva; esquinas redondeadas, icono reducido y
+   alineado al eje del texto, sin crecer en altura. */
+.fl-widget-control-item[data-control-id="input"] {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 6px !important;
+  gap: 5px;
+  border: 1px solid var(--background-modifier-border-hover);
+  border-radius: 4px;
+  align-items: center;
+}
+
+.fl-widget-control-item[data-control-id="input"] .fl-control-icon {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.fl-widget-control-item[data-control-id="input"] .fl-control-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-widget-control-item[data-control-id="input"] .fl-control-label,
+.fl-widget-control-item[data-control-id="input"] .fl-control-value {
+  align-self: center;
+  /* Sin line-height: 1 — comprime la caja de línea y los
+     descendentes (p. ej. la G de «Widgets») se recortan con
+     overflow: hidden del contenedor. El line-height por defecto
+     reserva espacio para descendentes sin alterar la altura
+     fija del botón (28px + align-items: center). */
+}
+
+.fl-widget-control-item[data-control-id="input"] .fl-control-arrow {
+  align-self: center;
+  line-height: 1;
+}
+
 /* ------------------------------------------------------------
    CONTROLES DINÁMICOS
    ------------------------------------------------------------ */
@@ -1284,6 +1331,24 @@
 }
 
 .fl-widget-control-item[data-control-id="session"]
+.fl-control-session-value {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Selector de contexto del Asistente: mismo patrón que session.
+   «Contexto:» atenuado (fl-control-label → --text-muted) +
+   valor contrastado (fl-control-value → --text-normal). */
+.fl-widget-control-item[data-control-id="input"] .fl-control-prefix {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.fl-widget-control-item[data-control-id="input"]
 .fl-control-session-value {
   display: inline-block;
   min-width: 0;
@@ -1462,7 +1527,7 @@ body.focus-splitter-dragging {
   flex-shrink: 0;
   padding: 8px 16px;
   border-top: 1px solid var(--background-modifier-border);
-  background: var(--background-secondary);
+  background: transparent;
 }
 
 .fl-context-close-btn {
@@ -1471,7 +1536,7 @@ body.focus-splitter-dragging {
   flex: 1 1 0;
   min-width: 0;
   padding: 6px 14px;
-  background: var(--background-secondary);
+  background: transparent;
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
   color: var(--text-muted);
@@ -1487,12 +1552,26 @@ body.focus-splitter-dragging {
 
 .fl-context-close-btn:hover {
   background: var(--background-modifier-hover);
-  border-color: var(--background-modifier-border-hover);
+  border-color: var(--interactive-normal);
   color: var(--text-normal);
+}
+
+.fl-context-close-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+  border-color: var(--interactive-accent);
 }
 
 .fl-context-close-btn:active {
   transform: scale(0.98);
+}
+
+/* Acción OK del menú de instancias: centrada horizontalmente
+   respecto al ancho completo del menú. Se aplica vía la clase
+   que MemoryWidget añade al último .menu-item tras showAtPosition. */
+.menu .menu-item.fl-menu-action-centered {
+  text-align: center;
+  justify-content: center;
 }
 
 /* ================================================================
@@ -1652,7 +1731,7 @@ body.focus-splitter-dragging {
   width: 100%;
   box-sizing: border-box;
 
-  padding: 0;
+  padding: 4px 12px;
 
   overflow-y: auto;
 
@@ -2421,79 +2500,6 @@ body.focus-splitter-dragging {
 .fl-capability-browser-select.is-disabled {
   opacity: 0.3;
   cursor: default;
-}
-
-/* ============================================================
-   CAPABILITY BROWSER — FUENTES
-   ============================================================ */
-
-.fl-capability-browser-sources {
-  position: relative;
-  padding-right: 28px;
-}
-
-.fl-capability-browser-sources::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--background-modifier-border);
-}
-
-.fl-capability-browser-sources-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-}
-
-.fl-capability-browser-sources-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.fl-capability-browser-sources-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.fl-capability-browser-sources-list::-webkit-scrollbar-thumb {
-  background: var(--background-modifier-border);
-  border-radius: 0;
-}
-
-.fl-capability-browser-sources-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-.fl-capability-browser-source {
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: background 0.15s ease;
-
-  border-left: 2px solid transparent;
-  position: relative;
-
-  color: var(--text-muted);
-  font-size: 1rem;
-  line-height: 1.3;
-}
-
-.fl-capability-browser-source:hover {
-  background-color: var(--background-secondary);
-}
-
-.fl-capability-browser-source.is-selected {
-  color: var(--text-normal);
-  border-left-color: var(--text-normal);
-  background-color: var(--background-secondary);
-}
-
-.fl-capability-browser-source-label {
-  color: inherit;
-  font-size: 1rem;
-  font-weight: 500;
 }
 
 /* ================================================================
@@ -5333,6 +5339,56 @@ body.focus-splitter-dragging {
 .fl-resources-empty.is-hidden,
 .fl-widget-result-placeholder.is-hidden {
   display: none;
+}
+
+/* --- Ficha técnica pre-ejecución del Asistente ---
+   Misma atenuación que los placeholders de los demás widgets
+   (.fl-widget-result-placeholder): color faint, italic, sin
+   fondos ni bordes. Solo texto, sin iconos. */
+
+.fl-memory-spec-card {
+  padding: 4px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-faint) !important;
+  font-family: var(--font-interface) !important;
+  font-style: italic !important;
+  font-weight: 400 !important;
+  opacity: 0.9 !important;
+  user-select: none;
+}
+
+.fl-memory-spec-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fl-memory-spec-heading {
+  font-size: var(--font-ui-smaller);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.fl-memory-spec-value {
+  font-size: var(--font-ui-small);
+  color: var(--text-faint);
+  padding-left: 2px;
+}
+
+.fl-memory-spec-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fl-memory-spec-source-item {
+  font-size: var(--font-ui-small);
+  color: var(--text-faint);
+  padding-left: 2px;
 }
 
 /* --- Estadísticas del índice (Bloque 5, fase 6) --- */

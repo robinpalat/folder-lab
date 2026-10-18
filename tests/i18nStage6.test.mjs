@@ -275,17 +275,16 @@ test('navegadores usan resolutores compartidos (sin vía que ignore el idioma)',
   const library = readFileSync(join(root, 'src', 'focus', 'LibraryBrowser.ts'), 'utf8');
   const browser = readFileSync(join(root, 'src', 'ai', 'capabilities', 'browser.ts'), 'utf8');
 
-  for (const source of [library, browser]) {
-    assert.ok(source.includes('getDomainLabel('));
-    assert.ok(source.includes('getCapabilityLabel('));
-    assert.ok(source.includes('getCapabilityDescription('));
-    // Sin renderizado directo de labels heredados del registro.
-    assert.ok(!source.includes('textContent = group.label'));
-    assert.ok(!source.includes('textContent =\n      capability.label'));
-  }
+  // CapabilityBrowser resuelve dominios y capacidades.
+  assert.ok(browser.includes('getDomainLabel('));
+  assert.ok(browser.includes('getCapabilityLabel('));
+  assert.ok(browser.includes('getCapabilityDescription('));
+  // Sin renderizado directo de labels heredados del registro.
+  assert.ok(!browser.includes('textContent = group.label'));
+  assert.ok(!browser.includes('textContent =\n      capability.label'));
 
-  // LibraryBrowser además resuelve definiciones de widgets con el
-  // resolutor de la etapa 5 (no identity.label en bruto).
+  // LibraryBrowser (administrador de widgets) resuelve definiciones
+  // con el resolutor de la etapa 5 (no identity.label en bruto).
   assert.ok(library.includes('getWidgetDefinitionLabel(definition)'));
   assert.ok(!library.includes('text: definition.identity.label'));
 });

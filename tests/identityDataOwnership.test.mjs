@@ -178,20 +178,26 @@ test('A-mirror: lectura/escritura por familia (draft, blocks, results)', async (
   const { registry } = makeRegistry();
   const { mirror } = makeMirror(registry);
   await registry.getId('n.md');
-  for (const family of [
-    'focus-notes-draft',
-    'focus-notes-blocks',
-    'focus-memory-results'
-  ]) {
-    await mirror.write(family, 'n.md', `x-${family}`);
+  /*
+   * Valores válidos por familia (la validación central de LocalMirror
+   * descarta JSON corrupto o estructura incompatible):
+   * - draft: texto plano (cualquier string).
+   * - blocks: array de {text, active} (o legado string[]).
+   * - results: array de {id, content, active}.
+   */
+  const values = {
+    'focus-notes-draft': 'borrador de prueba',
+    'focus-notes-blocks': JSON.stringify([{ text: 'bloque', active: true }]),
+    'focus-memory-results': JSON.stringify([
+      { id: 'r-1', content: 'resultado', active: false }
+    ])
+  };
+  for (const family of Object.keys(values)) {
+    await mirror.write(family, 'n.md', values[family]);
   }
-  for (const family of [
-    'focus-notes-draft',
-    'focus-notes-blocks',
-    'focus-memory-results'
-  ]) {
+  for (const family of Object.keys(values)) {
     const r = await mirror.read(family, 'n.md');
-    assert.equal(r.value, `x-${family}`);
+    assert.equal(r.value, values[family]);
   }
 });
 
@@ -349,11 +355,15 @@ test('A-rename: el espejo por identidad NO requiere re-clavado', async () => {
   const { registry } = makeRegistry();
   const { mirror } = makeMirror(registry);
   await registry.getId('viejo.md');
-  await mirror.write('focus-memory-results', 'viejo.md', '[1]');
+  // Valor con forma válida de focus-memory-results.
+  const value = JSON.stringify([
+    { id: 'r-1', content: 'c', active: true }
+  ]);
+  await mirror.write('focus-memory-results', 'viejo.md', value);
   await registry.onRenamed('viejo.md', 'nuevo.md');
   // Misma identidad → misma clave de espejo.
   const r = await mirror.read('focus-memory-results', 'nuevo.md');
-  assert.equal(r.value, '[1]');
+  assert.equal(r.value, value);
 });
 
 // ------------------------------------------------------------

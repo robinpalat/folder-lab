@@ -37,6 +37,84 @@ export function mirrorKey(
   return `${family}-${vaultId}-id-${noteId}`;
 }
 
+// ============================================================
+// VALIDACIÓN DE ESPEJOS POR FAMILIA (Corrección del bloqueo)
+// ============================================================
+// Un espejo inválido (JSON corrupto o estructura incompatible) se
+// DESCARTA y se comporta como ausente: nunca debe bloquear la
+// interfaz ni impedir la carga normal de la nota.
+//
+// Verificación de dependencia estructural (obligatoria antes de
+// aplicar una regla común): NINGUNA familia referencia
+// identificadores de widgets ni layout de la entidad de contexto:
+// - focus-memory-results: [{id (id de RESULTADO memory-<ts>-<rand>),
+//   content, active}] — contenido de análisis de la NOTA.
+// - focus-notes-blocks:  [{text, active}] (o legado string[]) —
+//   fronteras de captura de la NOTA.
+// - focus-notes / focus-notes-draft: texto plano.
+// Por tanto NO se invalidan por cambios en el conjunto de widgets:
+// siguen siendo válidos cuando cambia la estructura del contexto.
+
+type MirrorValidator = (raw: string) => boolean;
+
+function isMemoryResultsValue(raw: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return false;
+    return parsed.every((value) => {
+      if (!value || typeof value !== 'object') return false;
+      const candidate = value as {
+        id?: unknown;
+        content?: unknown;
+        active?: unknown;
+      };
+      return (
+        typeof candidate.id === 'string' &&
+        typeof candidate.content === 'string' &&
+        typeof candidate.active === 'boolean'
+      );
+    });
+  } catch {
+    return false;
+  }
+}
+
+function isBlocksValue(raw: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return false;
+    if (parsed.length === 0) return true;
+    const asObjects = parsed.every(
+      (value) =>
+        !!value &&
+        typeof value === 'object' &&
+        typeof (value as { text?: unknown }).text === 'string' &&
+        typeof (value as { active?: unknown }).active === 'boolean'
+    );
+    if (asObjects) return true;
+    // Formato legado string[].
+    return parsed.every((value) => typeof value === 'string');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validadores por familia. Familias SIN entrada (texto plano como
+ * focus-notes/focus-notes-draft) se consideran siempre válidas:
+ * no se invalida nada sin evidencia de incompatibilidad.
+ */
+const MIRROR_VALIDATORS: Record<string, MirrorValidator> = {
+  'focus-memory-results': isMemoryResultsValue,
+  'focus-notes-blocks': isBlocksValue
+};
+
+function isValidMirrorValue(family: string, raw: string): boolean {
+  const validator = MIRROR_VALIDATORS[family];
+  if (!validator) return true;
+  return validator(raw);
+}
+
 /** Clave histórica por ruta (formato 8D, solo lectura/adopción). */
 export function legacyMirrorKey(
   family: string,
@@ -55,6 +133,10 @@ export class LocalMirror {
    * 2. Legado por ruta SOLO si la propiedad es segura (sin
    *    pendientes); se COPIA al espejo del id (legado intacto).
    * 3. Con pendientes → null (sin herencia).
+   *
+   * Validación por familia: un valor inválido (JSON corrupto o
+   * estructura incompatible) se DESCARTA (clave limpiada) y se
+   * comporta como ausente — nunca propaga errores ni bloquea.
    */
   async read(
     family: string,
@@ -65,8 +147,17 @@ export class LocalMirror {
     const id = await this.deps.getNoteId(notePath);
     if (!id) return { value: null, adopted: false };
 
-    const own = storage.getItem(mirrorKey(family, this.deps.vaultId, id));
-    if (own !== null) return { value: own, adopted: false };
+    const ownKey = mirrorKey(family, this.deps.vaultId, id);
+    const own = storage.getItem(ownKey);
+    if (own !== null) {
+      if (!isValidMirrorValue(family, own)) {
+        // Inválido o no verificable: descartar (clave limpiada)
+        // y servir el comportamiento normal sin espejo.
+        storage.setItem(ownKey, '');
+        return { value: null, adopted: false };
+      }
+      return { value: own, adopted: false };
+    }
 
     const legacy = storage.getItem(
       legacyMirrorKey(family, this.deps.vaultId, notePath)
@@ -78,7 +169,12 @@ export class LocalMirror {
       return { value: null, adopted: false };
     }
 
-    storage.setItem(mirrorKey(family, this.deps.vaultId, id), legacy);
+    if (!isValidMirrorValue(family, legacy)) {
+      // Legado inválido: no se adopta ni se copia.
+      return { value: null, adopted: false };
+    }
+
+    storage.setItem(ownKey, legacy);
     return { value: legacy, adopted: true };
   }
 

@@ -31,13 +31,21 @@ export class PluginDataStore {
 
   /** Lectura directa del estado actual (objeto plano validado). */
   async read(): Promise<Record<string, unknown>> {
+    const diagStart = performance.now();
+
     try {
       const raw: unknown = await this.plugin.loadData();
       return isPlainObject(raw) ? raw : {};
     } catch (error) {
+      // [diag] Solo se registra el MENSAJE del error (nunca el
+      // contenido de la configuración ni secretos). Un fallo de
+      // parse con mensaje "Unexpected end of JSON input" indica
+      // lectura de un data.json truncado/vacío (escritura
+      // concurrente no atómica).
       console.error(
-        '[FolderLab] Error leyendo data.json del plugin:',
-        error
+        `[FolderLab][diag] Error leyendo data.json del plugin ` +
+        `(${(performance.now() - diagStart).toFixed(1)} ms):`,
+        error instanceof Error ? error.message : error
       );
       throw error;
     }
@@ -51,10 +59,24 @@ export class PluginDataStore {
     mutator: (data: Record<string, unknown>) => void | Promise<void>
   ): Promise<void> {
     const run = async (): Promise<void> => {
+      // [diag] Escritura de data.json: registrar inicio/fin para
+      // correlacionar con lecturas rasgadas concurrentes. Nunca
+      // se registra el contenido (puede contener la API key).
+      const diagStart = performance.now();
+
+      console.warn(
+        '[FolderLab][diag] transact: escritura de data.json iniciada'
+      );
+
       const raw: unknown = await this.plugin.loadData();
       const data: Record<string, unknown> = isPlainObject(raw) ? raw : {};
       await mutator(data);
       await this.plugin.saveData(data);
+
+      console.warn(
+        `[FolderLab][diag] transact: data.json escrito ` +
+        `(${(performance.now() - diagStart).toFixed(1)} ms)`
+      );
     };
 
     const result = this.tail.then(run);

@@ -633,6 +633,14 @@ private static renderSourceSelector(
 
     setIcon(iconSpan, control.icon);
 
+    // Etiqueta visible opcional (p. ej. «Run» junto al icono).
+    if (control.label) {
+      btn.createSpan({
+        cls: 'fl-control-label fl-control-icon-label',
+        text: control.label
+      });
+    }
+
     if (control.tooltip) {
       btn.setAttribute('title', control.tooltip);
     }

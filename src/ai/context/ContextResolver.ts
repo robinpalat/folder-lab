@@ -379,6 +379,35 @@ export class ContextResolver {
     context.additional!.semanticSources =
       semanticSources;
 
+    // 6. Instancias de widgets seleccionadas (selector de contexto).
+    //
+    // Cuando el Asistente opera en modo «Widgets», el contexto se
+    // construye EXCLUSIVAMENTE a partir de las instancias elegidas
+    // en el segundo menú (por instancia individual, no por tipo).
+    // Se añaden a `additional.widgetInstances` respetando las reglas
+    // de contenido activo de cada widget (storage.get devuelve los
+    // items persistidos; el filtrado aguas abajo es responsabilidad
+    // de cada consumidor).
+    //
+    // `additional.contextMode` propaga el modo elegido para que
+    // PromptBuilder sepa que NO debe caer al contexto heredado
+    // aunque widgetInstances esté vacío (sin instancias o sin
+    // contenido elegible tras el filtrado).
+    if (request.inputSource === 'widget') {
+      context.additional!.contextMode = 'widget';
+    }
+
+    if (
+      request.widgetInstanceIds &&
+      request.widgetInstanceIds.length > 0
+    ) {
+      context.additional!.widgetInstances =
+        await this.resolveWidgetInstances(
+          request.widgetInstanceIds,
+          notePath
+        );
+    }
+
     return context;
   }
 
@@ -453,5 +482,154 @@ export class ContextResolver {
    */
   private async resolveNotes(notePath: string): Promise<string> {
     return this.notesController.getActiveSource(notePath);
+  }
+
+  /**
+   * Resuelve instancias de widgets SELECCIONADAS individualmente
+   * (segundo menú del selector de contexto).
+   *
+   * Filtra cada instancia según su modelo de activación real:
+   * - `definition.state.field` es el campo que indica si un bloque
+   *   está activo (`active` para snips/collections/restrictions/
+   *   issues; `completed` para tasks).
+   * - `state.activeWhen` (si existe) define el valor exacto que
+   *   cuenta como activo; sin él se usa truthiness (convención
+   *   `initial: true`).
+   * - Widgets SIN `state` no tienen criterio claro de activación:
+   *   se excluyen (nunca se envían todos sus datos indiscriminadamente).
+   *
+   * Notes (typeId 'notes') tiene tratamiento especial: se incluye
+   * el texto actual del editor (draft) y solo los bloques guardados
+   * con `active: true` (DraftStore).
+   *
+   * El resultado es el ÚNICO punto de filtrado: PromptBuilder
+   * consume el contenido ya elegible sin volver a filtrar.
+   */
+  async resolveWidgetInstances(
+    instanceIds: string[],
+    notePath: string
+  ): Promise<ResolvedWidgetSource[]> {
+    if (!notePath || instanceIds.length === 0) {
+      return [];
+    }
+
+    const allInstances = this.widgetManager.getInstances();
+    const resolved: ResolvedWidgetSource[] = [];
+
+    for (const instanceId of instanceIds) {
+      const instance = allInstances.find(
+        (i) => i.instanceId === instanceId
+      );
+      if (!instance) continue;
+
+      const definition = this.widgetManager.getDefinition(
+        instance.typeId
+      );
+
+      // Notes: texto del editor + bloques activos de DraftStore.
+      if (instance.typeId === 'notes') {
+        const noteItems = await this.resolveNotesInstance(
+          instance.instanceId,
+          notePath
+        );
+        if (noteItems.length > 0) {
+          resolved.push({
+            instanceId: instance.instanceId,
+            name: instance.name,
+            semantic: definition?.semantic,
+            items: noteItems
+          });
+        }
+        continue;
+      }
+
+      // Otros widgets: filtrar por state.field de la definición.
+      const stateField = definition?.state?.field;
+      if (!stateField || !definition?.state) {
+        // Sin criterio claro de activación → no incluir.
+        continue;
+      }
+
+      const data = await this.widgetController.storage.get(
+        instance.typeId,
+        notePath,
+        instance.instanceId
+      );
+
+      const rawItems: unknown = data?.items;
+      const allItems: WidgetRecord[] = Array.isArray(rawItems)
+        ? (rawItems as WidgetRecord[])
+        : [];
+
+      const activeWhen = definition.state.activeWhen?.value;
+      const items = allItems.filter((item) => {
+        const value: unknown = item[stateField];
+        if (activeWhen !== undefined) {
+          return value === activeWhen;
+        }
+        return !!value;
+      });
+
+      // Solo incluir la instancia si aporta contenido elegible.
+      if (items.length > 0) {
+        resolved.push({
+          instanceId: instance.instanceId,
+          name: instance.name,
+          semantic: definition?.semantic,
+          items
+        });
+      }
+    }
+
+    return resolved;
+  }
+
+  /**
+   * Resuelve el contenido elegible de una instancia Notes:
+   * el texto actual del editor (draft) y solo los bloques
+   * guardados con `active: true`.
+   *
+   * Se devuelve como items con `text` para que PromptBuilder
+   * use el mismo formato que el resto de instancias.
+   */
+  private async resolveNotesInstance(
+    instanceId: string,
+    notePath: string
+  ): Promise<WidgetRecord[]> {
+    const items: WidgetRecord[] = [];
+
+    // 1. Texto actual del editor (draft).
+    const draft = await this.notesController.getActiveSource(notePath);
+    if (draft && draft.trim()) {
+      items.push({ text: draft.trim(), __source: 'editor' });
+    }
+
+    // 2. Bloques guardados con active: true (DraftStore).
+    const plugin = this.plugin;
+    const draftStore = plugin?.draftStore;
+    if (draftStore) {
+      try {
+        const file = await draftStore.read(notePath);
+        if (file && Array.isArray(file.blocks)) {
+          for (const block of file.blocks) {
+            if (
+              block &&
+              typeof block === 'object' &&
+              typeof (block as { text?: unknown }).text === 'string' &&
+              (block as { active?: unknown }).active === true
+            ) {
+              const text = (block as { text: string }).text.trim();
+              if (text) {
+                items.push({ text, __source: 'block' });
+              }
+            }
+          }
+        }
+      } catch {
+        // DraftStore ilegible: se omite (el draft ya se incluyó).
+      }
+    }
+
+    return items;
   }
 }

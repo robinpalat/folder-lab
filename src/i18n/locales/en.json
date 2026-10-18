@@ -572,7 +572,8 @@
       "closeExpandedEdit": "Close block editing",
       "expandedEditSaveFailed": "Could not save the block. Your changes remain in the editing view: press × again to retry.",
       "newBlock": "New block",
-      "errorWithMessage": "Error: {message}"
+      "errorWithMessage": "Error: {message}",
+      "context": "Source"
     },
     "defs": {
       "snips": {
@@ -676,7 +677,8 @@
         "apply": "Apply",
         "deactivateResponse": "Deactivate response",
         "activateResponse": "Activate response",
-        "deleteResponse": "Delete response"
+        "deleteResponse": "Delete response",
+        "run": "Run"
       },
       "placeholder": {
         "result": "The result will appear here."
@@ -690,6 +692,26 @@
       "error": {
         "sourceLoadFailed": "Could not load the source \"{source}\".",
         "unknown": "Unknown error"
+      },
+      "input": {
+        "board": "Board",
+        "widget": "Widgets",
+        "nota": "Note"
+      },
+      "contextMenu": {
+        "header": "Select the assistant context",
+        "companionHeader": "Current context widget"
+      },
+      "instanceMenu": {
+        "header": "Select instances",
+        "ok": "OK",
+        "empty": "No instances available"
+      },
+      "spec": {
+        "capabilities": "Capabilities",
+        "noCapability": "No capability selected",
+        "sources": "Sources",
+        "noSources": "No sources configured"
       }
     },
     "notesWidget": {

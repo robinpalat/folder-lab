@@ -443,26 +443,11 @@ getMasterName(): string {
   // ============================================================
 
   async loadGeneralNote(): Promise<string> {
-    const currentPath = this.getCurrentPath();
-    if (!currentPath) {
-      console.warn('No hay carpeta seleccionada para cargar Nota General');
-      return '';
-    }
-
-    const content = await this.noteService.loadGeneralNote(currentPath);
-
-    return content;
+    return await this.noteService.loadGeneralNote();
   }
 
   async saveGeneralNote(content: string): Promise<void> {
-    const currentPath = this.getCurrentPath();
-    if (!currentPath) {
-      console.warn('⚠️ No hay carpeta seleccionada para guardar Nota General');
-      return;
-    }
-
-    await this.noteService.saveGeneralNote(currentPath, content);
-
+    await this.noteService.saveGeneralNote(content);
   }
 
   // ============================================================

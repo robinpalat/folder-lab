@@ -83,15 +83,42 @@ export class EntityFileStore<T> {
    * forma incorrecta → PROPAGA (protección anti-pisado).
    */
   async read(id: string): Promise<EntityEnvelope<T> | null> {
+    const diagStart = performance.now();
     const path = this.pathFor(id);
+    console.warn(
+      `[FolderLab][diagID] RUTA id=${id} → ${path ?? 'null'}`
+    );
     if (!path) return null;
     const adapter = this.app.vault.adapter;
-    if (!(await adapter.exists(path))) return null;
+
+    console.warn(
+      `[FolderLab][diag] EntityFileStore.read: existe? (${path})`
+    );
+
+    if (!(await adapter.exists(path))) {
+      console.warn(
+        `[FolderLab][diag] EntityFileStore.read: no existe (${path})`
+      );
+      console.warn(
+        `[FolderLab][diagID] RESULTADO id=${id} → NO-EXISTE`
+      );
+      return null;
+    }
+
     const raw = await adapter.read(path);
+
+    console.warn(
+      `[FolderLab][diag] EntityFileStore.read: leído ` +
+      `(${raw.length} bytes, ${(performance.now() - diagStart).toFixed(1)} ms)`
+    );
+
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
+      console.warn(
+        `[FolderLab][diagID] RESULTADO id=${id} → JSON-INVALIDO`
+      );
       throw new Error(
         `[EntityFileStore] JSON inválido en "${path}"`
       );
@@ -101,6 +128,9 @@ export class EntityFileStore<T> {
       typeof parsed !== 'object' ||
       typeof (parsed as EntityEnvelope<T>).notePath !== 'string'
     ) {
+      console.warn(
+        `[FolderLab][diagID] RESULTADO id=${id} → SOBRE-MALFORMADO`
+      );
       throw new Error(
         `[EntityFileStore] Sobre con forma incorrecta en "${path}"`
       );
@@ -109,6 +139,9 @@ export class EntityFileStore<T> {
     this.options.validate(
       envelope.data,
       `"${envelope.notePath}" (${path})`
+    );
+    console.warn(
+      `[FolderLab][diagID] RESULTADO id=${id} → OK`
     );
     return envelope;
   }
