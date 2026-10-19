@@ -8,7 +8,8 @@ import {
   BoardArchNode,
   BoardFragmentOverride,
   BoardGroup,
-  BoardViewMode
+  BoardViewMode,
+  FormaRectangle
 } from '../storage/BoardRepository';
 
 import { WidgetManager } from './WidgetManager';
@@ -21,9 +22,9 @@ import {
 } from './FocusWidgetsUtils';
 
 import {
-  BoardArchitectureView,
-  BoardArchitectureHost
-} from './BoardArchitectureView';
+  BoardFormaView,
+  BoardFormaHost
+} from './forma/BoardFormaView';
 
 import {
   BoardDocumentView,
@@ -55,13 +56,17 @@ const VIEW_MODES: Array<{
   label: string;
   icon: string;
 }> = [
-  { id: 'explore', get label() { return i18n.t('board.modes.explore'); }, icon: 'compass' },
-  { id: 'architecture', get label() { return i18n.t('board.modes.architecture'); }, icon: 'list-tree' },
-  { id: 'document', get label() { return i18n.t('board.modes.document'); }, icon: 'file-text' }
+  /*
+   * Nombres conceptuales INVARIANTES en italiano: forman parte
+   * de la identidad de Folder Lab y no se traducen.
+   */
+  { id: 'explore', label: 'Ricerca', icon: 'compass' },
+  { id: 'architecture', label: 'Forma', icon: 'list-tree' },
+  { id: 'document', label: 'Finitura', icon: 'file-text' }
 ];
 
 export class Board
-  implements BoardArchitectureHost, BoardDocumentHost {
+  implements BoardFormaHost, BoardDocumentHost {
 
   private readonly deps: BoardDependencies;
 
@@ -85,7 +90,11 @@ export class Board
   private architecture: BoardArchNode[] = [];
   private fragmentOverrides: BoardFragmentOverride[] = [];
 
-  private architectureView = new BoardArchitectureView();
+  /** Estado de la pestaña Forma (rectángulos + vista activa). */
+  private formaRectangles: FormaRectangle[] = [];
+  private formaView: 'structure' | 'text' = 'structure';
+
+  private formaViewInstance = new BoardFormaView();
   private documentView = new BoardDocumentView();
 
   private saveTimer: number | null = null;
@@ -101,7 +110,10 @@ export class Board
   private saveInFlight: Promise<void> | null = null;
   /** Generación del snapshot que contiene el guardado en vuelo. */
   private saveInFlightGeneration = 0;
+  private noteTitle: HTMLElement | null = null;
   private contextHeader: HTMLElement | null = null;
+  /** Modo de visualización del panel de contexto. */
+  private contextViewMode: 'info' | 'visual' = 'visual';
   private contextUnsubscribe: (() => void) | null = null;
   private instancesUnsubscribe: (() => void) | null = null;
 
@@ -151,6 +163,8 @@ export class Board
     this.viewMode = data?.viewMode ?? 'explore';
     this.architecture = data?.architecture?.nodes ?? [];
     this.fragmentOverrides = data?.fragmentOverrides ?? [];
+    this.formaRectangles = data?.forma?.rectangles ?? [];
+    this.formaView = data?.forma?.view ?? 'structure';
   }
 
   render(container: HTMLElement): void {
@@ -160,21 +174,30 @@ export class Board
     this.container.addClass('fl-board');
 
     /*
-     * Cabecera general (solo en Explorar): identificación
-     * «Contexto | nota activa» + indicadores, ANTES de la franja
-     * de navegación. La navegación queda fuera de la cabecera.
+     * Nombre de la nota actualmente abierta: siempre visible,
+     * se actualiza al cambiar la nota activa (BoardView re-crea
+     * el Board por nota).
+     */
+    this.noteTitle = this.container.createDiv({
+      cls: 'fl-board-note-title',
+      text: this.activeNoteName()
+    });
+
+    /*
+     * Franja de pestañas debajo del nombre de la nota.
+     * La barra se construye UNA sola vez. Cambiar de modo NO la
+     * reconstruye: solo actualiza sus clases y reconstruye el
+     * área de contenido.
+     */
+    this.renderModeBar();
+
+    /*
+     * Panel de contexto: EXCLUSIVO de la pestaña Explore.
+     * Se coloca inmediatamente debajo de la franja de pestañas.
      */
     if (this.viewMode === 'explore') {
       this.renderContextHeader();
     }
-
-    /*
-     * La barra se construye UNA sola vez. Cambiar de modo NO la
-     * reconstruye: solo actualiza sus clases y reconstruye el área
-     * de contenido. Así el botón que procesa el click nunca se
-     * elimina del DOM durante el despacho del evento.
-     */
-    this.renderModeBar();
 
     this.contentHost = this.container.createDiv({
       cls: 'fl-board-mode-content'
@@ -217,6 +240,7 @@ export class Board
     this.container = null;
     this.contentHost = null;
     this.modeButtons.clear();
+    this.noteTitle = null;
     this.contextHeader = null;
     this.surface = null;
     this.blockLayer = null;
@@ -236,16 +260,21 @@ export class Board
     });
 
     for (const mode of VIEW_MODES) {
-      const button = bar.createEl('button', {
+      /*
+       * <span role="button"> en vez de <button>: elimina la
+       * herencia de estilos nativos de Obsidian (fondos, bordes,
+       * sombras). Accesibilidad conservada con role/tabindex
+       * y soporte de teclado.
+       */
+      const button = bar.createSpan({
         cls: 'fl-board-mode-button',
         attr: {
-          type: 'button',
+          role: 'button',
+          tabindex: '0',
           'aria-label': mode.label
-        }
+        },
+        text: mode.label
       });
-
-      setIcon(button, mode.icon);
-      button.createSpan({ text: mode.label });
 
       button.toggleClass(
         'is-active',
@@ -254,6 +283,12 @@ export class Board
 
       button.addEventListener('click', () => {
         this.setMode(mode.id);
+      });
+      button.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.setMode(mode.id);
+        }
       });
 
       this.modeButtons.set(mode.id, button);
@@ -272,6 +307,27 @@ export class Board
       button.toggleClass('is-active', modeId === mode);
     }
 
+    /*
+     * Panel de contexto: exclusivo de Explore. Al cambiar a
+     * Architecture o Document se oculta; al volver a Explore se
+     * recrea. Se inserta ANTES de contentHost para conservar la
+     * posición superior (createDiv añade al final del contenedor).
+     */
+    if (mode === 'explore') {
+      if (!this.contextHeader) {
+        const header = this.container!.createDiv({
+          cls: 'fl-board-context-header'
+        });
+        // Insertar antes del área de contenido.
+        this.contentHost?.before(header);
+        this.contextHeader = header;
+        void this.refreshContextIndicators();
+      }
+    } else {
+      this.contextHeader?.remove();
+      this.contextHeader = null;
+    }
+
     this.renderModeContent();
     this.scheduleSave();
   }
@@ -282,11 +338,11 @@ export class Board
     if (!host) return;
 
     host.empty();
-    host.removeClass('fl-board-architecture');
+    host.removeClass('fl-board-forma');
     host.removeClass('fl-board-document');
 
     if (this.viewMode === 'architecture') {
-      this.architectureView.render(host, this);
+      this.formaViewInstance.render(host, this);
       return;
     }
 
@@ -376,6 +432,13 @@ export class Board
           ...node,
           blockIds: [...node.blockIds]
         }))
+      },
+      forma: {
+        rectangles: this.formaRectangles.map(r => ({
+          ...r,
+          layout: { ...r.layout }
+        })),
+        view: this.formaView
       },
       fragmentOverrides: this.fragmentOverrides.map(override => ({
         ...override
@@ -709,10 +772,12 @@ export class Board
       return;
     }
 
-    const [restrictions, candidates, tasks] = await Promise.all([
+    const [restrictions, candidates, tasks, issues, objectives] = await Promise.all([
       this.readContextItems('restrictions'),
       this.readContextItems('candidates'),
-      this.readContextItems('tasks')
+      this.readContextItems('tasks'),
+      this.readContextItems('issues'),
+      this.readContextItems('objectives')
     ]);
 
     // El modo pudo cambiar durante las lecturas asíncronas.
@@ -729,7 +794,9 @@ export class Board
     const instanceNames = {
       restrictions: this.contextInstanceNames('restrictions'),
       candidates: this.contextInstanceNames('candidates'),
-      tasks: this.contextInstanceNames('tasks')
+      tasks: this.contextInstanceNames('tasks'),
+      issues: this.contextInstanceNames('issues'),
+      objectives: this.contextInstanceNames('objectives')
     };
 
     // Restricciones: activas = campo de estado real (active === true)
@@ -751,33 +818,62 @@ export class Board
       item => item?.completed === true
     ).length;
 
+    // Issues y Objectives: activos = active === true (mismo modelo
+    // que restrictions).
+    const activeIssues = issues.filter(
+      item => item?.active === true
+    ).length;
+    const activeObjectives = objectives.filter(
+      item => item?.active === true
+    ).length;
+
     const header = this.contextHeader;
     header.empty();
 
-    // ---- Franja 1: Contexto | nota activa ----
-    const titleRow = header.createDiv({
-      cls: 'fl-board-context-title-row'
+    /*
+     * Contenedor principal del panel: etiqueta a la izquierda,
+     * grupos de widgets a la derecha, en la MISMA fila. La
+     * etiqueta tiene ancho fijo (flex 0 0 auto) y los grupos se
+     * distribuyen en el restante del ancho disponible.
+     */
+    const panel = header.createDiv({
+      cls: 'fl-ctx-panel'
     });
 
-    titleRow.createSpan({
-      cls: 'fl-ctx-title',
+    /*
+     * data-ctx-label: texto de la etiqueta. Permite al CSS crear
+     * un pseudo-elemento ::after de ancho idéntico en la tercera
+     * columna del grid (modo visual), centrando los grupos en el
+     * ancho TOTAL del Board y no solo en el espacio restante
+     * tras la etiqueta.
+     */
+    panel.setAttribute('data-ctx-label', i18n.t('board.context.title'));
+
+    /*
+     * Etiqueta «Contexto» como switch: <span role="button">
+     * para evitar la herencia de estilos de <button> de Obsidian.
+     * Su contenedor propio garantiza posición fija en ambos modos.
+     */
+    const labelEl = panel.createSpan({
+      cls: 'fl-ctx-panel-label',
+      attr: { role: 'button', tabindex: '0' },
       text: i18n.t('board.context.title')
     });
-
-    titleRow.createSpan({
-      cls: 'fl-ctx-title-sep',
-      text: '|'
+    labelEl.toggleClass('is-visual', this.contextViewMode === 'visual');
+    const toggleCtx = (): void => {
+      this.contextViewMode =
+        this.contextViewMode === 'info' ? 'visual' : 'info';
+      void this.refreshContextIndicators();
+    };
+    labelEl.onclick = toggleCtx;
+    labelEl.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleCtx();
+      }
     });
 
-    const noteName = this.activeNoteName();
-
-    titleRow.createSpan({
-      cls: 'fl-ctx-note-name',
-      text: noteName
-    });
-
-    // ---- Franja 2: indicadores ----
-    const groups = header.createDiv({
+    const groups = panel.createDiv({
       cls: 'fl-board-context-groups'
     });
 
@@ -788,69 +884,126 @@ export class Board
       });
     };
 
-    const renderGroup = (
-      label: string,
-      typeId: string,
-      countsLine: string
-    ): void => {
-      const group = groups.createDiv({
-        cls: 'fl-board-context-group'
-      });
+    /*
+     * Datos por tipo: nombre, instancias, total de activos.
+     * Se reutilizan los conteos ya calculados (sin sistema paralelo).
+     */
+    const typeData: Array<{
+      typeId: string;
+      label: string;
+      activeCount: number;
+      countsLine: string;
+    }> = [
+      {
+        typeId: 'restrictions',
+        label: i18n.t('board.context.group.restrictions'),
+        activeCount: activeRestrictions,
+        countsLine: this.plural(activeRestrictions, 'board.context.counts.activeFeminine')
+      },
+      {
+        typeId: 'candidates',
+        label: i18n.t('board.context.group.candidates'),
+        activeCount: activeCandidates,
+        countsLine: this.plural(activeCandidates, 'board.context.counts.activeMasculine')
+      },
+      {
+        typeId: 'tasks',
+        label: i18n.t('board.context.group.tasks'),
+        activeCount: pendingTasks,
+        countsLine:
+          `${this.plural(pendingTasks, 'board.context.counts.pending')} · ` +
+          `${this.plural(completedTasks, 'board.context.counts.completed')}`
+      },
+      {
+        typeId: 'issues',
+        label: i18n.t('board.context.group.issues'),
+        activeCount: activeIssues,
+        countsLine: this.plural(activeIssues, 'board.context.counts.activeMasculine')
+      },
+      {
+        typeId: 'objectives',
+        label: i18n.t('board.context.group.objectives'),
+        activeCount: activeObjectives,
+        countsLine: this.plural(activeObjectives, 'board.context.counts.activeMasculine')
+      }
+    ];
 
-      const labelRow = group.createDiv({
-        cls: 'fl-ctx-group-label'
-      });
+    // ---- MODO INFORMATIVO (actual) ----
+    if (this.contextViewMode === 'info') {
+      const renderGroup = (
+        label: string,
+        typeId: string,
+        countsLine: string
+      ): void => {
+        const group = groups.createDiv({
+          cls: 'fl-board-context-group'
+        });
 
-      /*
-       * Icono REAL del widget (definition.identity.icon) con su
-       * color semántico — mismo mecanismo que las tarjetas
-       * (applyWidgetIdentity).
-       */
-      const iconSpan = labelRow.createSpan({
-        cls: 'fl-ctx-icon'
-      });
+        const labelRow = group.createDiv({
+          cls: 'fl-ctx-group-label'
+        });
 
-      applyWidgetIdentity(iconSpan, this.contextIdentity(typeId));
+        const iconSpan = labelRow.createSpan({
+          cls: 'fl-ctx-icon'
+        });
 
-      labelRow.createSpan({ text: label });
+        applyWidgetIdentity(iconSpan, this.contextIdentity(typeId));
+        labelRow.createSpan({ text: label });
 
-      const names = instanceNames[typeId as keyof typeof instanceNames];
+        const names = instanceNames[typeId as keyof typeof instanceNames];
 
-      group.createDiv({
-        cls: 'fl-ctx-instances',
-        text: names.length > 0 ? names.join(' · ') : i18n.t('board.context.noLists')
-      });
+        group.createDiv({
+          cls: 'fl-ctx-instances',
+          text: names.length > 0 ? names.join(' · ') : i18n.t('board.context.noLists')
+        });
 
-      group.createDiv({
-        cls: 'fl-ctx-counts',
-        text: countsLine
-      });
+        group.createDiv({
+          cls: 'fl-ctx-counts',
+          text: countsLine
+        });
 
-      group.toggleClass('is-empty', names.length === 0);
-    };
+        group.toggleClass('is-empty', names.length === 0);
+      };
 
-    renderGroup(
-      i18n.t('board.context.group.restrictions'),
-      'restrictions',
-      this.plural(activeRestrictions, 'board.context.counts.activeFeminine')
-    );
+      for (let i = 0; i < typeData.length; i++) {
+        if (i > 0) addSeparator();
+        renderGroup(typeData[i].label, typeData[i].typeId, typeData[i].countsLine);
+      }
 
-    addSeparator();
+      return;
+    }
 
-    renderGroup(
-      i18n.t('board.context.group.candidates'),
-      'candidates',
-      this.plural(activeCandidates, 'board.context.counts.activeMasculine')
-    );
+    // ---- MODO VISUAL: solo círculos, sin texto ----
+    /*
+     * Los puntos se renderizan como una secuencia plana
+     * directamente en el contenedor de grupos. Entre grupos
+     * consecutivos con activos se inserta un spacer del
+     * diámetro de un punto (7px). Los grupos vacíos no
+     * reservan espacio ni generan spacers. El salto de fila
+     * lo resuelve CSS flex-wrap según el ancho disponible.
+     */
+    const nonEmpty = typeData.filter(d => d.activeCount > 0);
 
-    addSeparator();
+    for (let i = 0; i < nonEmpty.length; i++) {
+      if (i > 0) {
+        // Spacer entre grupos: un hueco equivalente a un punto.
+        groups.createSpan({
+          cls: 'fl-ctx-dot-spacer',
+          attr: { 'aria-hidden': 'true' }
+        });
+      }
 
-    renderGroup(
-      i18n.t('board.context.group.tasks'),
-      'tasks',
-      `${this.plural(pendingTasks, 'board.context.counts.pending')} · ` +
-        `${this.plural(completedTasks, 'board.context.counts.completed')}`
-    );
+      const data = nonEmpty[i];
+      const color = this.contextIdentity(data.typeId).color
+        ?? 'var(--text-muted)';
+
+      for (let j = 0; j < data.activeCount; j++) {
+        const dot = groups.createSpan({
+          cls: 'fl-ctx-dot'
+        });
+        dot.style.backgroundColor = color;
+      }
+    }
   }
 
   /**
@@ -2479,7 +2632,7 @@ export class Board
   }
 
   // ============================================================
-  // INSTANCIA 2: ARQUITECTURA (BoardArchitectureHost)
+  // INSTANCIA 2: FORMA (BoardFormaHost)
   // ============================================================
 
   getBlocks(): BoardBlock[] {
@@ -2494,154 +2647,57 @@ export class Board
     return this.fragmentOverrides;
   }
 
-  addArchNode(afterIndex: number | null, level: number): void {
-    const node: BoardArchNode = {
-      id: `board-arch-${crypto.randomUUID()}`,
-      level: Math.max(0, Math.min(3, level)),
-      title: '',
-      blockIds: []
-    };
+  // ---- Forma host methods ----
 
-    if (
-      afterIndex === null ||
-      afterIndex < 0 ||
-      afterIndex >= this.architecture.length
-    ) {
-      this.architecture.push(node);
-    } else {
-      this.architecture.splice(afterIndex + 1, 0, node);
-    }
-
-    this.scheduleSave();
-    this.rerender();
+  getFormaRectangles(): FormaRectangle[] {
+    return this.formaRectangles;
   }
 
-  updateArchNode(
+  getFormaView(): 'structure' | 'text' {
+    return this.formaView;
+  }
+
+  setFormaView(view: 'structure' | 'text'): void {
+    this.formaView = view;
+    this.scheduleSave();
+  }
+
+  addFormaRectangle(rect: FormaRectangle): void {
+    this.formaRectangles.push(rect);
+    this.scheduleSave();
+  }
+
+  updateFormaRectangle(
     id: string,
-    patch: Partial<Pick<BoardArchNode, 'title' | 'level'>>
+    patch: Partial<Pick<FormaRectangle, 'title' | 'description' | 'content' | 'type'>>
   ): void {
-    const node = this.architecture.find(entry => entry.id === id);
+    const rect = this.formaRectangles.find(r => r.id === id);
+    if (!rect) return;
 
-    if (!node) {
-      return;
-    }
-
-    if (patch.title !== undefined) {
-      node.title = patch.title;
-    }
-
-    if (patch.level !== undefined) {
-      node.level = Math.max(0, Math.min(3, patch.level));
-    }
+    if (patch.title !== undefined) rect.title = patch.title;
+    if (patch.description !== undefined) rect.description = patch.description;
+    if (patch.content !== undefined) rect.content = patch.content;
+    if (patch.type !== undefined) rect.type = patch.type;
 
     this.scheduleSave();
-    this.rerender();
   }
 
-  moveArchNode(id: string, direction: -1 | 1): void {
-    const index = this.architecture.findIndex(
-      entry => entry.id === id
-    );
+  updateFormaLayout(id: string, layout: FormaRectangle['layout']): void {
+    const rect = this.formaRectangles.find(r => r.id === id);
+    if (!rect) return;
 
-    if (index === -1) {
-      return;
-    }
-
-    const target = index + direction;
-
-    if (target < 0 || target >= this.architecture.length) {
-      return;
-    }
-
-    const [node] = this.architecture.splice(index, 1);
-    this.architecture.splice(target, 0, node);
-
+    rect.layout = { ...layout };
     this.scheduleSave();
-    this.rerender();
   }
 
-  removeArchNode(id: string): void {
-    const index = this.architecture.findIndex(
-      entry => entry.id === id
-    );
-
-    if (index === -1) {
-      return;
-    }
-
-    /*
-     * Eliminar un elemento estructural NO elimina sus bloques:
-     * vuelven a la bandeja de material sin asignar.
-     */
-    this.architecture.splice(index, 1);
-
+  removeFormaRectangle(id: string): void {
+    this.formaRectangles = this.formaRectangles.filter(r => r.id !== id);
     this.scheduleSave();
-    this.rerender();
   }
 
-  assignBlockToNode(nodeId: string, blockId: string): void {
-    const node = this.architecture.find(entry => entry.id === nodeId);
-    const block = this.blocks.find(entry => entry.id === blockId);
-
-    if (!node || !block) {
-      return;
-    }
-
-    const alreadyAssigned = this.architecture.some(entry =>
-      entry.blockIds.includes(blockId)
-    );
-
-    if (alreadyAssigned) {
-      return;
-    }
-
-    node.blockIds.push(blockId);
-
+  applyFormaStructure(rects: FormaRectangle[]): void {
+    this.formaRectangles = rects;
     this.scheduleSave();
-    this.rerender();
-  }
-
-  unassignBlockFromNode(nodeId: string, blockId: string): void {
-    const node = this.architecture.find(entry => entry.id === nodeId);
-
-    if (!node) {
-      return;
-    }
-
-    node.blockIds = node.blockIds.filter(id => id !== blockId);
-
-    this.scheduleSave();
-    this.rerender();
-  }
-
-  moveAssignedBlock(
-    nodeId: string,
-    blockId: string,
-    direction: -1 | 1
-  ): void {
-    const node = this.architecture.find(entry => entry.id === nodeId);
-
-    if (!node) {
-      return;
-    }
-
-    const index = node.blockIds.indexOf(blockId);
-
-    if (index === -1) {
-      return;
-    }
-
-    const target = index + direction;
-
-    if (target < 0 || target >= node.blockIds.length) {
-      return;
-    }
-
-    const [id] = node.blockIds.splice(index, 1);
-    node.blockIds.splice(target, 0, id);
-
-    this.scheduleSave();
-    this.rerender();
   }
 
   requestBoardRender(): void {
@@ -2652,21 +2708,21 @@ export class Board
   // INSTANCIA 3: DOCUMENTO (BoardDocumentHost)
   // ============================================================
 
-  getDisplayedText(block: BoardBlock): string {
+  getDisplayedFormaText(rect: FormaRectangle): string {
     const override = this.fragmentOverrides.find(
-      entry => entry.blockId === block.id
+      entry => entry.blockId === rect.id
     );
 
     if (override?.useOverride) {
       return override.overrideText;
     }
 
-    return block.text;
+    return rect.content;
   }
 
-  setFragmentOverride(blockId: string, text: string): void {
+  setFragmentOverride(rectId: string, text: string): void {
     const existing = this.fragmentOverrides.find(
-      entry => entry.blockId === blockId
+      entry => entry.blockId === rectId
     );
 
     if (existing) {
@@ -2674,8 +2730,8 @@ export class Board
       existing.useOverride = true;
     } else {
       this.fragmentOverrides.push({
-        id: `block:${blockId}`,
-        blockId,
+        id: `block:${rectId}`,
+        blockId: rectId,
         overrideText: text,
         useOverride: true
       });
@@ -2684,17 +2740,17 @@ export class Board
     this.scheduleSave();
   }
 
-  clearFragmentOverride(blockId: string): void {
+  clearFragmentOverride(rectId: string): void {
     this.fragmentOverrides = this.fragmentOverrides.filter(
-      entry => entry.blockId !== blockId
+      entry => entry.blockId !== rectId
     );
 
     this.scheduleSave();
   }
 
-  toggleFragmentOverride(blockId: string): void {
+  toggleFragmentOverride(rectId: string): void {
     const override = this.fragmentOverrides.find(
-      entry => entry.blockId === blockId
+      entry => entry.blockId === rectId
     );
 
     if (!override) {
@@ -2707,21 +2763,21 @@ export class Board
     this.rerender();
   }
 
-  openPolishModal(blockId: string): void {
-    const block = this.blocks.find(entry => entry.id === blockId);
+  openPolishModal(rectId: string): void {
+    const rect = this.formaRectangles.find(entry => entry.id === rectId);
 
-    if (!block) {
+    if (!rect) {
       return;
     }
 
     const override = this.fragmentOverrides.find(
-      entry => entry.blockId === blockId
+      entry => entry.blockId === rectId
     );
 
     const modal = new BoardPolishModal(
       this.deps.app,
-      block.text,
-      this.getDisplayedText(block),
+      rect.content,
+      this.getDisplayedFormaText(rect),
       !!override,
       (result) => {
         const text = result.text.trim();
@@ -2730,18 +2786,16 @@ export class Board
           return;
         }
 
-        if (text === block.text.trim()) {
-          // El texto personal coincide con el original:
-          // no hace falta mantener una versión alternativa.
-          this.clearFragmentOverride(block.id);
+        if (text === rect.content.trim()) {
+          this.clearFragmentOverride(rect.id);
         } else {
-          this.setFragmentOverride(block.id, text);
+          this.setFragmentOverride(rect.id, text);
         }
 
         this.rerender();
       },
       () => {
-        this.clearFragmentOverride(block.id);
+        this.clearFragmentOverride(rect.id);
         this.rerender();
       }
     );

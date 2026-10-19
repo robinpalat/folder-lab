@@ -933,6 +933,33 @@
 }
 
 /* ------------------------------------------------------------
+   CONTROLES DINÁMICOS A LA IZQUIERDA
+   Controles con zone:'left': van junto al selector de widget,
+   antes del espacio flexible que separa de la zona derecha.
+   ------------------------------------------------------------ */
+
+.fl-widget-toolbar-left-dynamic {
+  flex: 0 0 auto !important;
+  min-width: 0;
+  display: flex !important;
+  align-items: center;
+  margin-left: 6px;
+  gap: 12px;
+}
+
+.fl-widget-toolbar-left-dynamic .fl-widget-dynamic-controls {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  gap: 12px;
+}
+
+/* ------------------------------------------------------------
    FUENTE
    ------------------------------------------------------------ */
 
@@ -1177,7 +1204,7 @@
   margin: 0 !important;
   padding: 0 !important;
   overflow: visible !important;
-  gap: 15px;
+  gap: 13px;
 }
 
 /* ------------------------------------------------------------
@@ -1537,7 +1564,7 @@ body.focus-splitter-dragging {
   min-width: 0;
   padding: 6px 14px;
   background: transparent;
-  border: 1px solid var(--background-modifier-border);
+  border: none;
   border-radius: 4px;
   color: var(--text-muted);
   font-size: var(--font-ui-small);
@@ -1551,8 +1578,8 @@ body.focus-splitter-dragging {
 }
 
 .fl-context-close-btn:hover {
-  background: var(--background-modifier-hover);
-  border-color: var(--interactive-normal);
+  background: transparent;
+  border-color: transparent;
   color: var(--text-normal);
 }
 
@@ -3325,6 +3352,536 @@ body.focus-splitter-dragging {
 
 .fl-board-context-group.is-empty .fl-ctx-instances {
   font-style: italic;
+}
+
+/* ============================================================
+   BOARD — TÍTULO DE NOTA Y PANEL DE CONTEXTO (nuevo diseño)
+   ============================================================ */
+
+/*
+ * Nombre de la nota: siempre visible arriba, antes de la barra
+ * de pestañas. Flex 0 0 auto para no crecer; ancho completo
+ * con ellipsis si el nombre es largo.
+ */
+.fl-board-note-title {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 10px 14px 8px;
+  color: var(--text-normal);
+  font-size: calc(var(--font-ui-small) + 1px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+}
+
+/*
+ * Panel de contexto: etiqueta «Contexto» a la izquierda,
+ * grupos de widgets a la derecha, en la MISMA fila. Ocupa
+ * el 100 % del ancho del header.
+ */
+.fl-ctx-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 28px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/*
+ * Etiqueta «Contexto» como switch. Span con role=button: sin
+ * herencia de estilos de <button> de Obsidian. flex 0 0 auto
+ * para ancho fijo; line-height explícito para altura constante.
+ */
+.fl-ctx-panel-label {
+  flex: 0 0 auto;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  align-self: flex-start;
+}
+
+.fl-ctx-panel-label:hover {
+  color: var(--text-muted);
+}
+
+.fl-ctx-panel-label:focus-visible {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.fl-ctx-panel-label.is-visual {
+  color: var(--text-muted);
+}
+
+/*
+ * MODO VISUAL — centrado elástico de los puntos.
+ *
+ * El panel pasa a grid de 3 columnas:
+ *   [etiqueta] [puntos centrados] [spacer invisible]
+ *
+ * El spacer ::after usa content: attr(data-ctx-label) con
+ * visibility:hidden para replicar exactamente el ancho de la
+ * etiqueta. Así la columna central queda centrada respecto al
+ * ancho TOTAL de la barra, no solo al espacio restante tras
+ * la etiqueta. No se usan márgenes fijos ni posiciones
+ * absolutas: el centrado es simétrico por construcción.
+ */
+.fl-ctx-panel:has(.fl-ctx-panel-label.is-visual) {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0 28px;
+}
+
+.fl-ctx-panel:has(.fl-ctx-panel-label.is-visual) .fl-ctx-panel-label {
+  grid-column: 1;
+  justify-self: start;
+}
+
+/*
+ * Contenedor de puntos en modo visual: centrado horizontalmente
+ * dentro de la columna central. flex-wrap permite que los puntos
+ * pasen a nueva línea cuando no caben. justify-content: center
+ * mantiene cada fila centrada.
+ */
+.fl-ctx-panel:has(.fl-ctx-panel-label.is-visual) .fl-board-context-groups {
+  grid-column: 2;
+  flex: none;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+/*
+ * Spacer invisible en la tercera columna: replica el ancho de
+ * la etiqueta para que la columna central quede centrada.
+ */
+.fl-ctx-panel:has(.fl-ctx-panel-label.is-visual)::after {
+  content: attr(data-ctx-label);
+  grid-column: 3;
+  visibility: hidden;
+  pointer-events: none;
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/*
+ * Spacer entre grupos de puntos: ancho igual al diámetro de un
+ * punto (7px). Con los gaps de 3px a cada lado, el espacio
+ * total entre grupos es 3 + 7 + 3 = 13px, equivalente a un
+ * punto ausente más la separación normal.
+ */
+.fl-ctx-dot-spacer {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+}
+
+/*
+ * Contenedor de grupos: base para modo informativo. En modo
+ * visual se sobreescribe con reglas de grid centrado más abajo.
+ */
+.fl-board-context-groups {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 20px;
+}
+
+.fl-ctx-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   BOARD — FORMA (composición documental)
+   ============================================================ */
+
+.fl-board-forma {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+  min-height: 100%;
+}
+
+/* ---- Toolbar ---- */
+
+.fl-forma-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.fl-forma-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fl-forma-toolbar-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-forma-toolbar-btn:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+
+.fl-forma-toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+/* ---- Cuadrícula ---- */
+
+.fl-forma-grid {
+  display: grid;
+  min-height: 200px;
+  align-content: start;
+}
+
+/* ---- Rectángulo ---- */
+
+.fl-forma-rect {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 2px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  box-sizing: border-box;
+  overflow: hidden;
+  min-height: 0;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fl-forma-rect:hover {
+  border-color: var(--interactive-accent);
+}
+
+.fl-forma-rect.is-editing {
+  border-color: var(--interactive-accent);
+}
+
+.fl-forma-rect.is-dragging {
+  opacity: 0.85;
+  border-color: var(--interactive-accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.fl-forma-rect-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  cursor: grab;
+}
+
+.fl-forma-rect-header[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.fl-forma-rect-drag {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  background:
+    radial-gradient(circle, var(--text-faint) 1.5px, transparent 1.5px) 0 0 / 6px 6px;
+  opacity: 0.5;
+}
+
+/* Estado Visible: título y descripción como texto plano */
+
+.fl-forma-rect-title-text {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.fl-forma-rect-title-text.is-empty {
+  color: var(--text-faint);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.fl-forma-rect-desc-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-style: italic;
+  line-height: 1.4;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Estado Edición: campos editables */
+
+.fl-forma-rect-title-input {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  padding: 1px 0;
+}
+
+.fl-forma-rect-title-input:hover {
+  border-bottom-color: var(--background-modifier-border);
+}
+
+.fl-forma-rect-title-input:focus {
+  border-bottom-color: var(--interactive-accent);
+  outline: none;
+}
+
+.fl-forma-rect-desc-input {
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-style: italic;
+  resize: none;
+  padding: 0;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.fl-forma-rect-desc-input:focus {
+  outline: none;
+  color: var(--text-normal);
+}
+
+/* Controles del rectángulo */
+
+.fl-forma-rect-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.fl-forma-rect:hover .fl-forma-rect-controls,
+.fl-forma-rect.is-editing .fl-forma-rect-controls {
+  opacity: 1;
+}
+
+.fl-forma-rect-ctrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent !important;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fl-forma-rect-ctrl svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fl-forma-rect-ctrl:hover {
+  color: var(--text-accent);
+  background: var(--background-modifier-hover);
+}
+
+.fl-forma-rect-done {
+  color: var(--interactive-accent);
+}
+
+/* Placeholder de imagen */
+
+.fl-forma-rect-image-placeholder {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
+  min-height: 40px;
+}
+
+.fl-forma-rect-image-placeholder svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ---- Vista de texto (Forma) ---- */
+
+.fl-forma-text-doc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 4px;
+  max-width: 720px;
+}
+
+.fl-forma-text-rect {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 12px 12px;
+  border: 2px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary);
+  box-sizing: border-box;
+  min-height: 40px;
+  transition: border-color 0.15s ease;
+}
+
+.fl-forma-text-rect:hover {
+  border-color: var(--interactive-accent);
+}
+
+.fl-forma-text-rect-label {
+  position: absolute;
+  top: -9px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  padding: 0 6px;
+  background: var(--background-primary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fl-forma-text-rect-label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-forma-text-rect-content {
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  min-height: 1em;
+}
+
+.fl-forma-text-rect-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  color: var(--text-faint);
+  min-height: 48px;
+}
+
+.fl-forma-text-rect-image svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* ---- Estados vacíos de Forma ---- */
+
+.fl-forma-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.fl-forma-empty-title {
+  font-size: var(--font-ui-large);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.fl-forma-empty-hint {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  max-width: 360px;
+}
+
+.fl-forma-empty-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.fl-forma-empty-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+
+.fl-forma-empty-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-forma-empty-action:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+  background: var(--background-modifier-hover);
 }
 
 .fl-board-surface {
@@ -5271,6 +5828,32 @@ body.focus-splitter-dragging {
   display: none;
 }
 
+/* Botón de retorno a la vista de captura desde resultados. */
+.fl-memory-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.fl-memory-back-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-memory-back-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
 .fl-memory-response-area {
   flex: 1 1 0;
   min-height: 0;
@@ -5319,6 +5902,130 @@ body.focus-splitter-dragging {
 
 .fl-memory-results .fl-widget-empty-text {
   padding: 12px;
+}
+
+/* --- Modo Browser: barra de búsqueda --- */
+
+.fl-memory-browser-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.fl-memory-browser-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+}
+
+.fl-memory-browser-search-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.fl-memory-browser-clear {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fl-memory-browser-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fl-memory-browser-clear:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+/* --- Metadatos del resultado: dominio y capacidad --- */
+
+.fl-memory-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.fl-memory-item-domain {
+  font-weight: 600;
+}
+
+.fl-memory-item-domain::after {
+  content: '·';
+  margin-left: 6px;
+  color: var(--text-faint);
+}
+
+/* --- Etiquetas del resultado --- */
+
+.fl-memory-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.fl-memory-item-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.fl-memory-item-tag:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-accent);
+}
+
+.fl-memory-item-add-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 4px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.fl-memory-item-tags:hover .fl-memory-item-add-tag {
+  opacity: 1;
+}
+
+.fl-memory-item-add-tag svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fl-memory-item-add-tag:hover {
+  color: var(--text-normal);
 }
 
 /* --- LibraryBrowser: visibilidad de pestañas --- */
