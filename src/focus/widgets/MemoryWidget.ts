@@ -615,7 +615,7 @@ this.contextResolver = new ContextResolver(
     if (!this.container) return;
 
     const anchor = this.container.querySelector(
-      '.fl-memory-prep-src-btn'
+      '.fl-memory-prep-src-select'
     );
 
     if (!anchor?.instanceOf(HTMLElement)) return;
@@ -744,7 +744,7 @@ this.contextResolver = new ContextResolver(
     this.pruneSelectedInstances();
 
     const anchor = this.container.querySelector(
-      '.fl-memory-prep-src-btn'
+      '.fl-memory-prep-src-select'
     );
 
     if (!anchor?.instanceOf(HTMLElement)) return;
@@ -1079,21 +1079,34 @@ this.contextResolver = new ContextResolver(
         cls: 'fl-memory-prep-module'
       });
 
-      // Selector de capacidades: icono que abre el modal.
-      const capBtn = prepModule.createEl('button', {
-        cls: 'fl-memory-prep-cap-btn',
+      // ---- Bloque 1: Capacidad ----
+      const capBlock = prepModule.createDiv({
+        cls: 'fl-memory-prep-block'
+      });
+
+      capBlock.createDiv({
+        cls: 'fl-memory-prep-block-label',
+        text: i18n.t('widgets.memory.spec.capabilities')
+      });
+
+      const capBtn = capBlock.createEl('button', {
+        cls: 'fl-memory-prep-select',
         attr: {
           type: 'button',
           'aria-label': i18n.t('widgets.memory.capability.placeholder')
         }
       });
-      setIcon(capBtn, 'sliders-horizontal');
       capBtn.createSpan({
-        cls: 'fl-memory-prep-cap-label',
+        cls: 'fl-memory-prep-select-value',
         text: this.selectedCapability
           ? this.getCapabilityLabel()
           : i18n.t('widgets.memory.capability.placeholder')
       });
+      const capChevron = capBtn.createSpan({
+        cls: 'fl-memory-prep-select-chevron',
+        attr: { 'aria-hidden': 'true' }
+      });
+      setIcon(capChevron, 'chevron-down');
       capBtn.addEventListener('click', () => {
         const modal = new CapabilityBrowser(
           this.app,
@@ -1119,28 +1132,33 @@ this.contextResolver = new ContextResolver(
         modal.open();
       });
 
-      // Selector de fuente de contexto.
+      // ---- Bloque 2: Fuente de contexto ----
+      const srcBlock = prepModule.createDiv({
+        cls: 'fl-memory-prep-block'
+      });
+
+      srcBlock.createDiv({
+        cls: 'fl-memory-prep-block-label',
+        text: i18n.t('widgets.common.context')
+      });
+
       const inputDisplay = this.getInputDisplay();
-      const srcBtn = prepModule.createEl('button', {
-        cls: 'fl-memory-prep-src-btn',
+      const srcBtn = srcBlock.createEl('button', {
+        cls: 'fl-memory-prep-select fl-memory-prep-src-select',
         attr: {
           type: 'button',
           'aria-label': `${i18n.t('widgets.common.context')}: ${inputDisplay.label}`
         }
       });
-      if (inputDisplay.icon) {
-        const srcIcon = srcBtn.createSpan({ cls: 'fl-memory-prep-src-icon' });
-        setIcon(srcIcon, inputDisplay.icon);
-      }
       srcBtn.createSpan({
-        cls: 'fl-memory-prep-src-label',
+        cls: 'fl-memory-prep-select-value',
         text: inputDisplay.label
       });
-      const srcArrow = srcBtn.createSpan({
-        cls: 'fl-memory-prep-src-arrow',
+      const srcChevron = srcBtn.createSpan({
+        cls: 'fl-memory-prep-select-chevron',
         attr: { 'aria-hidden': 'true' }
       });
-      setIcon(srcArrow, 'chevron-down');
+      setIcon(srcChevron, 'chevron-down');
       srcBtn.addEventListener('click', () => {
         this.showInputMenu();
       });

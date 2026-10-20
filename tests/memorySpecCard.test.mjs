@@ -205,7 +205,7 @@ test('el módulo de preparación muestra la capacidad seleccionada', () => {
 
   const prep = widget.container._findByClass(widget.container, 'fl-memory-prep-module');
   assert.ok(prep, 'módulo presente');
-  const capLabel = prep._findByClass(prep, 'fl-memory-prep-cap-label');
+  const capLabel = prep._findByClass(prep, 'fl-memory-prep-select-value');
   assert.ok(capLabel, 'etiqueta de capacidad presente');
   assert.ok(capLabel.textContent.includes('Tesis'), 'nombre de la capacidad visible');
 });

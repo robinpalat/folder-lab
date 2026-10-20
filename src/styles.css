@@ -5843,96 +5843,84 @@ body.focus-splitter-dragging {
 
 /* --- Módulo de preparación del Asistente --- */
 
+/*
+ * Rectángulo vertical centrado en el área de trabajo.
+ * Ancho limitado para que parezca un panel compacto,
+ * no una barra. Los controles se apilan verticalmente.
+ */
 .fl-memory-prep-module {
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 0 0 8px;
-  padding: 8px 12px;
+  flex-direction: column;
+  gap: 20px;
+  width: 280px;
+  max-width: calc(100% - 32px);
+  margin: 24px auto;
+  padding: 24px 20px;
   background: var(--background-secondary);
   border-radius: var(--radius-m);
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.fl-memory-prep-cap-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 4px;
-  border: none;
-  border-radius: var(--radius-s);
-  background: transparent;
+/* Bloque individual: etiqueta + selector apilados. */
+.fl-memory-prep-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Etiqueta descriptiva discreta sobre el control. */
+.fl-memory-prep-block-label {
+  font-size: var(--font-ui-smaller);
+  font-weight: 500;
   color: var(--text-muted);
+  user-select: none;
+}
+
+/* Selector: control de formulario con chevron a la derecha. */
+.fl-memory-prep-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-primary);
+  color: var(--text-normal);
   font-size: var(--font-ui-smaller);
   cursor: pointer;
-  min-width: 0;
-  max-width: 220px;
+  box-sizing: border-box;
+  text-align: left;
 }
 
-.fl-memory-prep-cap-btn svg {
+.fl-memory-prep-select:hover {
+  border-color: var(--interactive-normal);
+}
+
+.fl-memory-prep-select:focus-visible {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+
+.fl-memory-prep-select-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-memory-prep-select-chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  opacity: 0.5;
+  margin-left: 6px;
+}
+
+.fl-memory-prep-select-chevron svg {
   width: 13px;
   height: 13px;
-  flex: 0 0 auto;
-  opacity: 0.7;
-}
-
-.fl-memory-prep-cap-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fl-memory-prep-cap-btn:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
-}
-
-.fl-memory-prep-src-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px;
-  border: none;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
-  cursor: pointer;
-  min-width: 0;
-  max-width: 180px;
-}
-
-.fl-memory-prep-src-icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-}
-
-.fl-memory-prep-src-icon svg {
-  width: 12px;
-  height: 12px;
-  opacity: 0.7;
-}
-
-.fl-memory-prep-src-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fl-memory-prep-src-arrow {
-  display: inline-flex;
-  flex: 0 0 auto;
-  opacity: 0.4;
-}
-
-.fl-memory-prep-src-arrow svg {
-  width: 11px;
-  height: 11px;
-}
-
-.fl-memory-prep-src-btn:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
 }
 
 /* Botón de retorno a la vista de captura desde resultados. */

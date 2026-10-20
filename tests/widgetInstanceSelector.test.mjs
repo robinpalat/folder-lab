@@ -120,7 +120,7 @@ class FakeEl {
   setAttr() {} remove() {} addClassAll() {} scrollTo() {} scrollHeight = 0;
   querySelector(sel) {
     // Devolver un ancla válida para el picker de input.
-    if (String(sel).includes('fl-memory-prep-src-btn')) {
+    if (String(sel).includes('fl-memory-prep-src-select')) {
       const anchor = new FakeEl();
       anchor.getBoundingClientRect = () => ({ left: 0, bottom: 20, top: 0, right: 100 });
       anchor.instanceOf = (t) => t === globalThis.HTMLElement || this instanceof t;
