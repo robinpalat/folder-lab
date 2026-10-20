@@ -444,7 +444,9 @@
       "group": {
         "restrictions": "Restricciones",
         "candidates": "Candidatos",
-        "tasks": "Tareas"
+        "tasks": "Tareas",
+        "issues": "Issues",
+        "objectives": "Objectives"
       },
       "counts": {
         "activeFeminine": {
@@ -540,6 +542,36 @@
         "section": "Añadir sección",
         "subsection": "Añadir subsección",
         "item": "Añadir apartado"
+      }
+    },
+    "forma": {
+      "toolbar": {
+        "add": "Añadir",
+        "templates": "Plantillas",
+        "viewStructure": "Ver estructura",
+        "viewText": "Ver texto"
+      },
+      "templates": {
+        "structureHeading": "Plantillas de estructura",
+        "contentHeading": "Plantillas de contenido"
+      },
+      "rect": {
+        "titlePlaceholder": "Título del rectángulo",
+        "descriptionPlaceholder": "Descripción de su función o contenido",
+        "delete": "Eliminar rectángulo",
+        "makeImage": "Convertir en imagen",
+        "makeText": "Convertir en texto",
+        "edit": "Editar rectángulo",
+        "done": "Terminar de editar",
+        "untitled": "Sin título"
+      },
+      "empty": {
+        "title": "La composición está vacía",
+        "hint": "Añade un rectángulo o aplica una plantilla para comenzar a componer el documento."
+      },
+      "text": {
+        "emptyTitle": "No hay contenido que mostrar",
+        "emptyHint": "Crea rectángulos con contenido en la vista de estructura."
       }
     },
     "document": {
@@ -668,7 +700,9 @@
       "empty": {
         "apiKeyRequired": "Configura tu API Key en Ajustes → Folder Lab",
         "noteRequired": "Abre una nota para usar el Asistente",
-        "noSavedResponses": "No hay respuestas guardadas."
+        "noSavedResponses": "No hay respuestas guardadas.",
+        "noSearchResults": "No se encontraron resultados.",
+        "noSelectionResults": "No hay ningún elemento en esta selección."
       },
       "capability": {
         "placeholder": "Seleccionar"
@@ -678,7 +712,22 @@
         "deactivateResponse": "Desactivar respuesta",
         "activateResponse": "Activar respuesta",
         "deleteResponse": "Eliminar respuesta",
-        "run": "Run"
+        "run": "Run",
+        "save": "Guardar",
+        "clear": "Limpiar",
+        "browser": "Browser",
+        "back": "Volver",
+        "closeBrowser": "Cerrar Browser"
+      },
+      "browser": {
+        "searchPlaceholder": "Buscar fragmentos...",
+        "clearFilters": "Limpiar búsqueda y filtros",
+        "filterDomain": "Filtrar por dominio",
+        "filterCapability": "Filtrar por capacidad",
+        "filterTag": "Filtrar por etiqueta",
+        "noTags": "Sin etiquetas",
+        "addTag": "Añadir etiqueta",
+        "tagPlaceholder": "Nombre de la etiqueta"
       },
       "placeholder": {
         "result": "El resultado aparecerá aquí."

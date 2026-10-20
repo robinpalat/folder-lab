@@ -152,9 +152,7 @@ export class MemoryWidget implements FocusWidget {
   private browserMode: boolean = false;
   private browserSearch: string = '';
   private browserSearchVisible: boolean = false;
-  private browserFilterDomain: string | null = null;
   private browserFilterCapability: string | null = null;
-  private browserFilterTag: string | null = null;
 
   private resultDragCleanups = new Map<string, () => void>();
 
@@ -417,22 +415,15 @@ this.contextResolver = new ContextResolver(
     }
 
     // ----------------------------------------------------------
-    // MODO BROWSER: toolbar propio con cuatro controles.
+    // MODO BROWSER: toolbar propio con tres controles.
     //   Izquierda: selector de widgets (ya añadido arriba)
-    //   Derecha:   lupa | filtro | cerrar
+    //   Derecha:   lupa | cerrar
     // ----------------------------------------------------------
     if (this.browserMode) {
-      // Lupa: alterna la visibilidad de la barra de búsqueda.
+      // Lupa: alterna la visibilidad del panel de búsqueda/árbol.
       controls.iconAction({
         id: 'toggle-search',
         icon: 'search',
-        zone: 'right'
-      });
-
-      // Filtros: abre el menú de filtros por metadatos.
-      controls.iconAction({
-        id: 'browser-filters',
-        icon: 'filter',
         zone: 'right'
       });
 
@@ -1040,13 +1031,8 @@ this.contextResolver = new ContextResolver(
             return;
           }
 
-          if (controlId === 'browser-filters') {
-            this.showBrowserFilters();
-            return;
-          }
-
           if (controlId === 'toggle-search') {
-            // Alterna la visibilidad de la barra de búsqueda.
+            // Alterna la visibilidad del panel de búsqueda/árbol.
             this.browserSearchVisible = !this.browserSearchVisible;
             this.rerenderWidget();
             return;
@@ -1173,11 +1159,17 @@ this.contextResolver = new ContextResolver(
     const filtered = this.getFilteredResults();
 
     if (filtered.length === 0) {
+      let emptyMsg: string;
+      if (this.results.length === 0) {
+        emptyMsg = i18n.t('widgets.memory.empty.noSavedResponses');
+      } else if (this.browserFilterCapability) {
+        emptyMsg = i18n.t('widgets.memory.empty.noSelectionResults');
+      } else {
+        emptyMsg = i18n.t('widgets.memory.empty.noSearchResults');
+      }
       this.resultContainer.createDiv({
         cls: 'fl-widget-empty-text',
-        text: this.results.length === 0
-          ? i18n.t('widgets.memory.empty.noSavedResponses')
-          : i18n.t('widgets.memory.empty.noSearchResults')
+        text: emptyMsg
       });
       return;
     }
@@ -1194,24 +1186,10 @@ this.contextResolver = new ContextResolver(
   private getFilteredResults(): MemoryResult[] {
     let filtered = this.results;
 
-    // Filtro por dominio.
-    if (this.browserFilterDomain) {
-      filtered = filtered.filter(
-        r => r.domainId === this.browserFilterDomain
-      );
-    }
-
-    // Filtro por capacidad.
+    // Filtro por capacidad (único filtro de metadatos).
     if (this.browserFilterCapability) {
       filtered = filtered.filter(
         r => r.capabilityId === this.browserFilterCapability
-      );
-    }
-
-    // Filtro por etiqueta.
-    if (this.browserFilterTag) {
-      filtered = filtered.filter(
-        r => r.tags?.includes(this.browserFilterTag!) ?? false
       );
     }
 
@@ -1231,10 +1209,15 @@ this.contextResolver = new ContextResolver(
   }
 
   /**
-   * Barra de búsqueda del modo Browser.
+   * Panel unificado de búsqueda y navegación del modo Browser.
+   * Contiene el campo de búsqueda y el árbol de capacidades.
    */
   private renderBrowserSearchBar(container: HTMLElement): void {
-    const searchBar = container.createDiv({
+    const panel = container.createDiv({
+      cls: 'fl-memory-browser-panel'
+    });
+
+    const searchBar = panel.createDiv({
       cls: 'fl-memory-browser-search'
     });
 
@@ -1253,12 +1236,7 @@ this.contextResolver = new ContextResolver(
     });
 
     // Indicador de filtros activos.
-    const activeFilters =
-      (this.browserFilterDomain ? 1 : 0) +
-      (this.browserFilterCapability ? 1 : 0) +
-      (this.browserFilterTag ? 1 : 0);
-
-    if (activeFilters > 0 || this.browserSearch) {
+    if (this.browserFilterCapability || this.browserSearch) {
       const clearBtn = searchBar.createEl('button', {
         cls: 'fl-memory-browser-clear',
         attr: { type: 'button', 'aria-label': i18n.t('widgets.memory.browser.clearFilters') }
@@ -1266,110 +1244,78 @@ this.contextResolver = new ContextResolver(
       setIcon(clearBtn, 'x');
       clearBtn.addEventListener('click', () => {
         this.browserSearch = '';
-        this.browserFilterDomain = null;
         this.browserFilterCapability = null;
-        this.browserFilterTag = null;
         this.rerenderWidget();
       });
     }
+
+    // ---- Árbol de capacidades ----
+    this.renderBrowserCapabilityTree(panel);
   }
 
   /**
-   * Menú de filtros del modo Browser: dominio, capacidad y etiquetas.
+   * Árbol navegable de capacidades del modo Browser.
+   * Deriva dominios y capacidades del registry del Asistente.
+   * Seleccionar una capacidad filtra los fragmentos por
+   * capabilityId. Las capacidades se muestran aunque no tengan
+   * fragmentos asociados.
    */
-  private showBrowserFilters(): void {
-    void import('obsidian').then(({ Menu }) => {
-      const menu = new Menu();
+  private renderBrowserCapabilityTree(container: HTMLElement): void {
+    const tree = container.createDiv({
+      cls: 'fl-memory-browser-tree'
+    });
 
-      // Filtro por dominio.
-      menu.addItem(item => {
-        item.setTitle(i18n.t('widgets.memory.browser.filterDomain'))
-          .setDisabled(true);
+    const groups = this.registry.getGroups();
+
+    for (const group of groups) {
+      const groupLabel = getDomainLabel(group.id, group.label);
+      const capabilities = this.registry.getByGroup(group.id);
+
+      const groupEl = tree.createDiv({ cls: 'fl-browser-tree-group' });
+
+      groupEl.createDiv({
+        cls: 'fl-browser-tree-group-label',
+        text: groupLabel
       });
 
-      const groups = this.registry.getGroups();
-      for (const group of groups) {
-        const label = getDomainLabel(group.id, group.label);
-        menu.addItem(item => {
-          item.setTitle(label)
-            .setIcon(this.browserFilterDomain === group.id ? 'check' : 'circle')
-            .onClick(() => {
-              this.browserFilterDomain =
-                this.browserFilterDomain === group.id ? null : group.id;
-              // Al cambiar dominio, limpiar filtro de capacidad.
-              this.browserFilterCapability = null;
-              this.rerenderWidget();
-            });
-        });
-      }
-
-      menu.addSeparator();
-
-      // Filtro por capacidad (del dominio filtrado o todos).
-      menu.addItem(item => {
-        item.setTitle(i18n.t('widgets.memory.browser.filterCapability'))
-          .setDisabled(true);
-      });
-
-      const capabilities = this.browserFilterDomain
-        ? this.registry.getByGroup(this.browserFilterDomain)
-        : this.registry.getAll();
+      const capList = groupEl.createDiv({ cls: 'fl-browser-tree-caps' });
 
       for (const cap of capabilities) {
-        const label = getCapabilityLabel(cap.id, cap.label);
-        menu.addItem(item => {
-          item.setTitle(label)
-            .setIcon(this.browserFilterCapability === cap.id ? 'check' : 'circle')
-            .onClick(() => {
-              this.browserFilterCapability =
-                this.browserFilterCapability === cap.id ? null : cap.id;
-              this.rerenderWidget();
-            });
+        const capLabel = getCapabilityLabel(cap.id, cap.label);
+        const isSelected = this.browserFilterCapability === cap.id;
+
+        const capEl = capList.createDiv({
+          cls: `fl-browser-tree-cap${isSelected ? ' is-selected' : ''}`,
+          attr: { role: 'button', tabindex: '0' }
         });
-      }
 
-      menu.addSeparator();
+        capEl.createSpan({ cls: 'fl-browser-tree-cap-label', text: capLabel });
 
-      // Filtro por etiquetas.
-      menu.addItem(item => {
-        item.setTitle(i18n.t('widgets.memory.browser.filterTag'))
-          .setDisabled(true);
-      });
-
-      const allTags = new Set<string>();
-      for (const r of this.results) {
-        for (const t of r.tags ?? []) {
-          allTags.add(t);
-        }
-      }
-
-      if (allTags.size === 0) {
-        menu.addItem(item => {
-          item.setTitle(i18n.t('widgets.memory.browser.noTags'))
-            .setDisabled(true);
-        });
-      } else {
-        for (const tag of allTags) {
-          menu.addItem(item => {
-            item.setTitle(tag)
-              .setIcon(this.browserFilterTag === tag ? 'check' : 'circle')
-              .onClick(() => {
-                this.browserFilterTag =
-                  this.browserFilterTag === tag ? null : tag;
-                this.rerenderWidget();
-              });
+        // Contador de fragmentos para esta capacidad.
+        const count = this.results.filter(
+          r => r.capabilityId === cap.id
+        ).length;
+        if (count > 0) {
+          capEl.createSpan({
+            cls: 'fl-browser-tree-cap-count',
+            text: String(count)
           });
         }
-      }
 
-      const btn = this.container?.querySelector(
-        '[data-control-id="browser-filters"]'
-      );
-      if (btn instanceof HTMLElement) {
-        const rect = btn.getBoundingClientRect();
-        menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+        const selectCap = (): void => {
+          this.browserFilterCapability = isSelected ? null : cap.id;
+          this.rerenderWidget();
+        };
+
+        capEl.addEventListener('click', selectCap);
+        capEl.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectCap();
+          }
+        });
       }
-    });
+    }
   }
 
   /**

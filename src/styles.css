@@ -3169,7 +3169,7 @@ body.focus-splitter-dragging {
   flex: 0 0 auto;
   display: flex;
   align-items: stretch;
-  gap: 2px;
+  gap: 32px;
   padding: 0 10px;
   border-bottom: 1px solid var(--background-modifier-border);
   background: var(--background-primary);
@@ -3186,7 +3186,7 @@ body.focus-splitter-dragging {
   border-radius: 0;
   background: transparent !important;
   color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
+  font-size: var(--font-ui-small);
   font-weight: 500;
   cursor: pointer;
 }
@@ -3400,7 +3400,7 @@ body.focus-splitter-dragging {
  */
 .fl-ctx-panel-label {
   flex: 0 0 auto;
-  color: var(--text-normal);
+  color: var(--text-faint);
   font-size: var(--font-ui-small);
   font-weight: 700;
   line-height: 1.4;
@@ -3411,7 +3411,7 @@ body.focus-splitter-dragging {
 }
 
 .fl-ctx-panel-label:hover {
-  color: var(--text-muted);
+  color: var(--text-normal);
 }
 
 .fl-ctx-panel-label:focus-visible {
@@ -3420,7 +3420,11 @@ body.focus-splitter-dragging {
 }
 
 .fl-ctx-panel-label.is-visual {
-  color: var(--text-muted);
+  color: var(--text-faint);
+}
+
+.fl-ctx-panel-label.is-visual:hover {
+  color: var(--text-normal);
 }
 
 /*
@@ -3439,8 +3443,16 @@ body.focus-splitter-dragging {
 .fl-ctx-panel:has(.fl-ctx-panel-label.is-visual) {
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: start;
+  align-items: center;
   gap: 0 28px;
+}
+
+/*
+ * Barra minimizada: padding vertical reducido en modo visual
+ * para que la etiqueta y los puntos queden en la misma línea.
+ */
+.fl-board-context-header:has(.fl-ctx-panel-label.is-visual) {
+  padding: 4px 14px;
 }
 
 .fl-ctx-panel:has(.fl-ctx-panel-label.is-visual) .fl-ctx-panel-label {
@@ -4322,7 +4334,8 @@ body.focus-splitter-dragging {
 .fl-board-group-box {
   position: absolute;
   z-index: 0;
-  border: 1px dashed var(--text-muted);
+  border: 2px dashed var(--background-modifier-border);
+  border-radius: var(--radius-m);
   pointer-events: none;
   box-sizing: border-box;
 }
@@ -5951,6 +5964,85 @@ body.focus-splitter-dragging {
 .fl-memory-browser-clear:hover {
   color: var(--text-normal);
   background: var(--background-modifier-hover);
+}
+
+/* --- Panel unificado de búsqueda y árbol de capacidades --- */
+
+.fl-memory-browser-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: var(--background-secondary);
+}
+
+.fl-memory-browser-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.fl-browser-tree-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fl-browser-tree-group-label {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  user-select: none;
+}
+
+.fl-browser-tree-caps {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fl-browser-tree-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 8px 3px 16px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-normal);
+  user-select: none;
+}
+
+.fl-browser-tree-cap:hover {
+  background: var(--background-modifier-hover);
+}
+
+.fl-browser-tree-cap.is-selected {
+  background: var(--background-modifier-hover);
+  color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.fl-browser-tree-cap-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-browser-tree-cap-count {
+  flex: 0 0 auto;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- Metadatos del resultado: dominio y capacidad --- */

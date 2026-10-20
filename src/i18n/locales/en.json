@@ -444,7 +444,9 @@
       "group": {
         "restrictions": "Restrictions",
         "candidates": "Candidates",
-        "tasks": "Tasks"
+        "tasks": "Tasks",
+        "issues": "Issues",
+        "objectives": "Objectives"
       },
       "counts": {
         "activeFeminine": {
@@ -540,6 +542,36 @@
         "section": "Add section",
         "subsection": "Add subsection",
         "item": "Add item"
+      }
+    },
+    "forma": {
+      "toolbar": {
+        "add": "Add",
+        "templates": "Templates",
+        "viewStructure": "View structure",
+        "viewText": "View text"
+      },
+      "templates": {
+        "structureHeading": "Structure templates",
+        "contentHeading": "Content templates"
+      },
+      "rect": {
+        "titlePlaceholder": "Rectangle title",
+        "descriptionPlaceholder": "Description of its function or content",
+        "delete": "Delete rectangle",
+        "makeImage": "Convert to image",
+        "makeText": "Convert to text",
+        "edit": "Edit rectangle",
+        "done": "Done editing",
+        "untitled": "Untitled"
+      },
+      "empty": {
+        "title": "The composition is empty",
+        "hint": "Add a rectangle or apply a template to start composing the document."
+      },
+      "text": {
+        "emptyTitle": "No content to display",
+        "emptyHint": "Create rectangles with content in the structure view."
       }
     },
     "document": {
@@ -668,7 +700,9 @@
       "empty": {
         "apiKeyRequired": "Configure your API key in Settings → Folder Lab",
         "noteRequired": "Open a note to use the Assistant",
-        "noSavedResponses": "No saved responses."
+        "noSavedResponses": "No saved responses.",
+        "noSearchResults": "No results found.",
+        "noSelectionResults": "No items in this selection."
       },
       "capability": {
         "placeholder": "Select"
@@ -678,7 +712,22 @@
         "deactivateResponse": "Deactivate response",
         "activateResponse": "Activate response",
         "deleteResponse": "Delete response",
-        "run": "Run"
+        "run": "Run",
+        "save": "Save",
+        "clear": "Clear",
+        "browser": "Browser",
+        "back": "Back",
+        "closeBrowser": "Close Browser"
+      },
+      "browser": {
+        "searchPlaceholder": "Search fragments...",
+        "clearFilters": "Clear search and filters",
+        "filterDomain": "Filter by domain",
+        "filterCapability": "Filter by capability",
+        "filterTag": "Filter by tag",
+        "noTags": "No tags",
+        "addTag": "Add tag",
+        "tagPlaceholder": "Tag name"
       },
       "placeholder": {
         "result": "The result will appear here."
