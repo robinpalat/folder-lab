@@ -1618,6 +1618,20 @@ body.focus-splitter-dragging {
   overflow: hidden;
 }
 
+/*
+ * El contenedor del MemoryWidget debe ser un flex-column que
+ * llene el frame. Sin estas propiedades, el content wrapper
+ * (flex: 1 1 0) no se expande porque el padre no es flex, y
+ * el capture panel no llena el espacio disponible — provocando
+ * que el módulo de preparación no se centre correctamente.
+ */
+.fl-widget-memory {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .fl-widget-memory .fl-widget-controls,
 .fl-widget-notes .fl-widget-controls,
 .fl-widget-resources .fl-widget-controls,
