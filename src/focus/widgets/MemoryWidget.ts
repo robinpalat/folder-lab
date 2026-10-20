@@ -430,6 +430,12 @@ this.contextResolver = new ContextResolver(
     if (this.hasResponse) {
       // ---- Estado resultado ----
       controls.iconAction({
+        id: 'browse-results',
+        icon: 'search',
+        zone: 'right'
+      });
+
+      controls.iconAction({
         id: 'clear-response',
         icon: 'trash-2',
         label: i18n.t('widgets.memory.action.clear'),
@@ -464,7 +470,14 @@ this.contextResolver = new ContextResolver(
       zone: 'left'
     });
 
-    // 3. Run: extremo derecho, icono play + etiqueta.
+    // 3. Browser: lupa de acceso al modo Browser.
+    controls.iconAction({
+      id: 'browse-results',
+      icon: 'search',
+      zone: 'right'
+    });
+
+    // 4. Run: extremo derecho, icono play + etiqueta.
     controls.iconAction({
       id: 'execute',
       icon: 'play',
