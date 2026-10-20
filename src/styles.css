@@ -1628,6 +1628,18 @@ body.focus-splitter-dragging {
   gap: 4px;
 }
 
+/*
+ * Anula el padding asimétrico del content wrapper para el
+ * MemoryWidget, de modo que el capture panel ocupe el espacio
+ * completo entre el toolbar y el límite opuesto. Así el módulo
+ * de preparación se centra de forma consistente en las dos
+ * posiciones (top y bottom).
+ */
+.fl-widget-memory .fl-widget-content,
+.fl-widget-memory .fl-widget-content-expanded {
+  padding: 0;
+}
+
 /* Drag & Drop — Focus widgets */
 .fl-dnd-drop-active {
   outline: 1px dashed var(--interactive-accent);
