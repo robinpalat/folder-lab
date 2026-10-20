@@ -1089,17 +1089,17 @@ this.contextResolver = new ContextResolver(
           'aria-label': i18n.t('widgets.memory.capability.placeholder')
         }
       });
+      const capIcon = capBtn.createSpan({
+        cls: 'fl-memory-prep-select-icon',
+        attr: { 'aria-hidden': 'true' }
+      });
+      setIcon(capIcon, 'library');
       capBtn.createSpan({
         cls: 'fl-memory-prep-select-value',
         text: this.selectedCapability
           ? this.getCapabilityLabel()
           : i18n.t('widgets.memory.capability.placeholder')
       });
-      const capChevron = capBtn.createSpan({
-        cls: 'fl-memory-prep-select-chevron',
-        attr: { 'aria-hidden': 'true' }
-      });
-      setIcon(capChevron, 'chevron-down');
       capBtn.addEventListener('click', () => {
         const modal = new CapabilityBrowser(
           this.app,
@@ -1306,20 +1306,24 @@ this.contextResolver = new ContextResolver(
       value: this.browserSearch
     });
 
-    searchInput.addEventListener('input', () => {
-      this.browserSearch = searchInput.value;
-      this.renderResults();
-    });
-
-    // Icono de limpiar: borra SOLO el texto de búsqueda.
+    // Icono de limpiar: solo visible cuando hay texto.
     const clearBtn = inputWrap.createEl('button', {
       cls: 'fl-browser-search-clear',
       attr: { type: 'button', 'aria-label': i18n.t('widgets.memory.browser.clearSearch') }
     });
-    setIcon(clearBtn, 'x');
+    setIcon(clearBtn, 'broom');
+    clearBtn.toggleClass('is-visible', this.browserSearch.length > 0);
+
+    searchInput.addEventListener('input', () => {
+      this.browserSearch = searchInput.value;
+      clearBtn.toggleClass('is-visible', this.browserSearch.length > 0);
+      this.renderResults();
+    });
+
     clearBtn.addEventListener('click', () => {
       this.browserSearch = '';
       searchInput.value = '';
+      clearBtn.toggleClass('is-visible', false);
       this.renderResults();
     });
 
@@ -1338,11 +1342,11 @@ this.contextResolver = new ContextResolver(
       this.rerenderWidget();
     });
 
-    // Etiqueta «Cerrar»: texto cliqueable, no botón.
+    // Etiqueta «Close»: texto cliqueable, no botón.
     const closeEl = searchBar.createSpan({
       cls: 'fl-browser-close-label',
       attr: { role: 'button', tabindex: '0' },
-      text: i18n.t('widgets.memory.action.closeBrowser')
+      text: 'Close'
     });
     const closeAction = (): void => {
       this.browserMode = false;

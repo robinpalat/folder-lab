@@ -5465,6 +5465,12 @@ body.focus-splitter-dragging {
   display: none !important;
 }
 
+/* Ocultar la barra del Browser cuando un fragmento está en edición. */
+.fl-widget-frame.fl-expandable-editor-active
+.fl-memory-browser-panel {
+  display: none !important;
+}
+
 /* × de cierre dentro del toolbar, al extremo derecho. */
 .fl-expandable-editor-toolbar-close {
   display: flex;
@@ -5971,16 +5977,16 @@ body.focus-splitter-dragging {
   white-space: nowrap;
 }
 
-.fl-memory-prep-select-chevron {
+.fl-memory-prep-select-icon {
   flex: 0 0 auto;
   display: inline-flex;
-  opacity: 0.5;
-  margin-left: 6px;
+  opacity: 0.6;
+  margin-right: 6px;
 }
 
-.fl-memory-prep-select-chevron svg {
-  width: 13px;
-  height: 13px;
+.fl-memory-prep-select-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Botón de retorno a la vista de captura desde resultados. */
@@ -6081,8 +6087,9 @@ body.focus-splitter-dragging {
   flex: 1 1 auto;
   min-width: 0;
   padding: 4px 28px 4px 8px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
   background: transparent;
   color: var(--text-normal);
   font-size: var(--font-ui-smaller);
@@ -6091,7 +6098,11 @@ body.focus-splitter-dragging {
 
 .fl-memory-browser-search-input:focus {
   outline: none;
-  border-color: var(--interactive-accent);
+  border-bottom-color: var(--interactive-accent);
+}
+
+.fl-memory-browser-search-input::placeholder {
+  color: var(--text-faint);
 }
 
 /* Icono de limpiar integrado dentro del campo. */
@@ -6109,18 +6120,25 @@ body.focus-splitter-dragging {
   border: 0;
   border-radius: var(--radius-s);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-faint);
   cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.fl-browser-search-clear.is-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .fl-browser-search-clear svg {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
 }
 
 .fl-browser-search-clear:hover {
   color: var(--text-normal);
-  background: var(--background-modifier-hover);
 }
 
 /* Control de filtro: área clicable amplia, icono pequeño. */
@@ -6135,7 +6153,7 @@ body.focus-splitter-dragging {
   border: 0;
   border-radius: var(--radius-s);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-faint);
   cursor: pointer;
 }
 
@@ -6146,7 +6164,6 @@ body.focus-splitter-dragging {
 
 .fl-browser-filter-btn:hover {
   color: var(--text-normal);
-  background: var(--background-modifier-hover);
 }
 
 /* Etiqueta «Cerrar»: texto cliqueable, no botón. */
@@ -6177,11 +6194,7 @@ body.focus-splitter-dragging {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-bottom: 8px;
-  padding: 8px;
-  border: 1px solid var(--background-modifier-border);
-  border-radius: var(--radius-s);
-  background: var(--background-secondary);
+  padding: 4px 8px 0;
 }
 
 .fl-memory-browser-tree {
