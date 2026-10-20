@@ -721,6 +721,7 @@
       },
       "browser": {
         "searchPlaceholder": "Search fragments...",
+        "clearSearch": "Clear search",
         "clearFilters": "Clear search and filters",
         "filterDomain": "Filter by domain",
         "filterCapability": "Filter by capability",

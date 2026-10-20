@@ -151,7 +151,7 @@ export class MemoryWidget implements FocusWidget {
   // ---- Estado del modo Browser ----
   private browserMode: boolean = false;
   private browserSearch: string = '';
-  private browserSearchVisible: boolean = false;
+  private browserTreeVisible: boolean = false;
   private browserFilterCapability: string | null = null;
 
   private resultDragCleanups = new Map<string, () => void>();
@@ -415,25 +415,11 @@ this.contextResolver = new ContextResolver(
     }
 
     // ----------------------------------------------------------
-    // MODO BROWSER: toolbar propio con tres controles.
-    //   Izquierda: selector de widgets (ya añadido arriba)
-    //   Derecha:   lupa | cerrar
+    // MODO BROWSER: solo el selector de widgets en el toolbar.
+    // La barra de búsqueda, el filtro y cerrar van en el
+    // contenido (ver renderContent).
     // ----------------------------------------------------------
     if (this.browserMode) {
-      // Lupa: alterna la visibilidad del panel de búsqueda/árbol.
-      controls.iconAction({
-        id: 'toggle-search',
-        icon: 'search',
-        zone: 'right'
-      });
-
-      // Cerrar Browser: vuelve al modo Asistente.
-      controls.action({
-        id: 'close-browser',
-        label: i18n.t('widgets.memory.action.closeBrowser'),
-        zone: 'right'
-      });
-
       return controls;
     }
 
@@ -443,13 +429,6 @@ this.contextResolver = new ContextResolver(
 
     if (this.hasResponse) {
       // ---- Estado resultado ----
-      controls.iconAction({
-        id: 'browse-results',
-        icon: 'search',
-        label: i18n.t('widgets.memory.action.browser'),
-        zone: 'right'
-      });
-
       controls.iconAction({
         id: 'clear-response',
         icon: 'trash-2',
@@ -485,14 +464,7 @@ this.contextResolver = new ContextResolver(
       zone: 'left'
     });
 
-    // 3. Browser: a la derecha, abre los resultados guardados.
-    controls.action({
-      id: 'browse-results',
-      label: i18n.t('widgets.memory.action.browser'),
-      zone: 'right'
-    });
-
-    // 4. Run: extremo derecho, icono play + etiqueta.
+    // 3. Run: extremo derecho, icono play + etiqueta.
     controls.iconAction({
       id: 'execute',
       icon: 'play',
@@ -1015,8 +987,7 @@ this.contextResolver = new ContextResolver(
           }
 
           if (controlId === 'browse-results') {
-            // Abrir el modo Browser: sustituye el toolbar del
-            // Asistente por el toolbar propio de Browser.
+            // Abrir el modo Browser.
             this.browserMode = true;
             this.sessionView = 'today';
             this.rerenderWidget();
@@ -1027,13 +998,6 @@ this.contextResolver = new ContextResolver(
             // Cerrar Browser: restaura la vista de captura.
             this.browserMode = false;
             this.sessionView = 'capture';
-            this.rerenderWidget();
-            return;
-          }
-
-          if (controlId === 'toggle-search') {
-            // Alterna la visibilidad del panel de búsqueda/árbol.
-            this.browserSearchVisible = !this.browserSearchVisible;
             this.rerenderWidget();
             return;
           }
@@ -1111,14 +1075,11 @@ this.contextResolver = new ContextResolver(
     );
 
     /*
-     * Barra de búsqueda: solo en modo Browser y solo si está
-     * visible (toggle lupa). Se coloca en el extremo OPUESTO
-     * al toolbar: si el toolbar está arriba, la búsqueda va
-     * abajo; si está abajo, va arriba. Se crea ANTES del
-     * resultContainer cuando va arriba para que el orden DOM
-     * sea correcto.
+     * Barra de búsqueda permanente en modo Browser. Se coloca
+     * en el extremo OPUESTO al toolbar: si el toolbar está
+     * arriba, la búsqueda va abajo; si está abajo, va arriba.
      */
-    const showSearch = this.browserMode && this.browserSearchVisible;
+    const showSearch = this.browserMode;
     const searchAbove = showSearch && this.position === 'bottom';
 
     if (searchAbove) {
@@ -1209,8 +1170,9 @@ this.contextResolver = new ContextResolver(
   }
 
   /**
-   * Panel unificado de búsqueda y navegación del modo Browser.
-   * Contiene el campo de búsqueda y el árbol de capacidades.
+   * Barra de búsqueda permanente del modo Browser.
+   * Una sola línea: campo de búsqueda + limpiar + filtro + cerrar.
+   * El árbol de capacidades se muestra/oculta con el filtro.
    */
   private renderBrowserSearchBar(container: HTMLElement): void {
     const panel = container.createDiv({
@@ -1221,7 +1183,12 @@ this.contextResolver = new ContextResolver(
       cls: 'fl-memory-browser-search'
     });
 
-    const searchInput = searchBar.createEl('input', {
+    // Envoltorio del campo: input + icono de limpiar integrado.
+    const inputWrap = searchBar.createDiv({
+      cls: 'fl-browser-search-wrap'
+    });
+
+    const searchInput = inputWrap.createEl('input', {
       cls: 'fl-memory-browser-search-input',
       attr: {
         type: 'text',
@@ -1235,22 +1202,56 @@ this.contextResolver = new ContextResolver(
       this.renderResults();
     });
 
-    // Indicador de filtros activos.
-    if (this.browserFilterCapability || this.browserSearch) {
-      const clearBtn = searchBar.createEl('button', {
-        cls: 'fl-memory-browser-clear',
-        attr: { type: 'button', 'aria-label': i18n.t('widgets.memory.browser.clearFilters') }
-      });
-      setIcon(clearBtn, 'x');
-      clearBtn.addEventListener('click', () => {
-        this.browserSearch = '';
-        this.browserFilterCapability = null;
-        this.rerenderWidget();
-      });
-    }
+    // Icono de limpiar: borra SOLO el texto de búsqueda.
+    const clearBtn = inputWrap.createEl('button', {
+      cls: 'fl-browser-search-clear',
+      attr: { type: 'button', 'aria-label': i18n.t('widgets.memory.browser.clearSearch') }
+    });
+    setIcon(clearBtn, 'x');
+    clearBtn.addEventListener('click', () => {
+      this.browserSearch = '';
+      searchInput.value = '';
+      this.renderResults();
+    });
 
-    // ---- Árbol de capacidades ----
-    this.renderBrowserCapabilityTree(panel);
+    // Control de filtro: alterna el árbol de capacidades.
+    const filterBtn = searchBar.createEl('button', {
+      cls: 'fl-browser-filter-btn',
+      attr: {
+        type: 'button',
+        'aria-label': i18n.t('widgets.memory.browser.filterCapability'),
+        title: i18n.t('widgets.memory.browser.filterCapability')
+      }
+    });
+    setIcon(filterBtn, 'filter');
+    filterBtn.addEventListener('click', () => {
+      this.browserTreeVisible = !this.browserTreeVisible;
+      this.rerenderWidget();
+    });
+
+    // Etiqueta «Cerrar»: texto cliqueable, no botón.
+    const closeEl = searchBar.createSpan({
+      cls: 'fl-browser-close-label',
+      attr: { role: 'button', tabindex: '0' },
+      text: i18n.t('widgets.memory.action.closeBrowser')
+    });
+    const closeAction = (): void => {
+      this.browserMode = false;
+      this.sessionView = 'capture';
+      this.rerenderWidget();
+    };
+    closeEl.addEventListener('click', closeAction);
+    closeEl.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        closeAction();
+      }
+    });
+
+    // Árbol de capacidades (visible/oculto según filtro).
+    if (this.browserTreeVisible) {
+      this.renderBrowserCapabilityTree(panel);
+    }
   }
 
   /**
