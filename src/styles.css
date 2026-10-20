@@ -6195,6 +6195,8 @@ body.focus-splitter-dragging {
   flex-direction: column;
   gap: 8px;
   padding: 4px 8px 0;
+  border-top: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
 }
 
 .fl-memory-browser-tree {

@@ -257,15 +257,13 @@ this.contextResolver = new ContextResolver(
 
     /*
      * En modo Browser, la barra de búsqueda se renderiza
-     * INMEDIATAMENTE ENCIMA del toolbar, como línea adicional.
-     * El orden DOM depende de la posición del toolbar.
+     * inmediatamente adyacente al toolbar, según su posición.
      */
-    if (this.browserMode && this.position === 'top') {
-      this.renderBrowserSearchBar(this.container);
-    }
-
     if (this.position === 'top') {
       this.renderControls();
+      if (this.browserMode) {
+        this.renderBrowserSearchBar(this.container);
+      }
       this.renderContent();
     } else {
       this.renderContent();
@@ -312,15 +310,13 @@ this.contextResolver = new ContextResolver(
 
     /*
      * En modo Browser, la barra de búsqueda se renderiza
-     * INMEDIATAMENTE ENCIMA del toolbar. El orden DOM depende
-     * de la posición del toolbar.
+     * inmediatamente adyacente al toolbar, según su posición.
      */
-    if (this.browserMode && this.position === 'top') {
-      this.renderBrowserSearchBar(this.container);
-    }
-
     if (this.position === 'top') {
       this.renderControls();
+      if (this.browserMode) {
+        this.renderBrowserSearchBar(this.container);
+      }
       this.renderContent();
     } else {
       this.renderContent();
