@@ -6010,7 +6010,7 @@ body.focus-splitter-dragging {
 }
 
 .fl-memory-response-area {
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-height: 0;
   width: 100%;
   box-sizing: border-box;
