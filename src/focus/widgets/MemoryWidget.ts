@@ -1,4 +1,4 @@
-import { App, Component, MarkdownRenderer, Notice, TFile, Menu } from 'obsidian';
+import { App, Component, MarkdownRenderer, Notice, TFile, Menu, setIcon } from 'obsidian';
 
 /**
  * App + registro de plugins de escritorio (no incluido en el tipo
@@ -46,7 +46,14 @@ import {
 interface MemoryResult {
   id: string;
   content: string;
-  active: boolean;
+  /** Timestamp de creación. Ausente en datos antiguos. */
+  createdAt?: number;
+  /** ID estable de la capacidad que produjo el resultado. */
+  capabilityId?: string;
+  /** ID estable del dominio de la capacidad. */
+  domainId?: string;
+  /** Etiquetas opcionales asignadas por el usuario. */
+  tags?: string[];
 }
 
 export class MemoryWidget implements FocusWidget {
@@ -138,6 +145,16 @@ export class MemoryWidget implements FocusWidget {
 
   private responseArea: HTMLElement | null = null;
   private currentResponse: string = '';
+  /** Indica si hay una respuesta visible en el área de texto. */
+  private hasResponse: boolean = false;
+
+  // ---- Estado del modo Browser ----
+  private browserMode: boolean = false;
+  private browserSearch: string = '';
+  private browserSearchVisible: boolean = false;
+  private browserFilterDomain: string | null = null;
+  private browserFilterCapability: string | null = null;
+  private browserFilterTag: string | null = null;
 
   private resultDragCleanups = new Map<string, () => void>();
 
@@ -257,6 +274,7 @@ this.contextResolver = new ContextResolver(
 
     this.sessionView = 'capture';
     this.currentResponse = '';
+    this.hasResponse = false;
 
     /*
      * Sin resolveResultsMirror() explícito: render() (abajo) ya
@@ -269,6 +287,26 @@ this.contextResolver = new ContextResolver(
     }
   }
 
+
+  /**
+   * Re-renderiza el widget completo (toolbar + contenido) sin
+   * resetear results ni re-resolver el espejo. Se usa para
+   * alternar entre vistas (capture ↔ today) manteniendo el
+   * estado de resultados en memoria.
+   */
+  private rerenderWidget(): void {
+    if (!this.container) return;
+
+    this.container.empty();
+
+    if (this.position === 'top') {
+      this.renderControls();
+      this.renderContent();
+    } else {
+      this.renderContent();
+      this.renderControls(true);
+    }
+  }
 
   destroy(): void {
 
@@ -290,6 +328,7 @@ this.contextResolver = new ContextResolver(
     this.resultContainer = null;
     this.responseArea = null;
     this.currentResponse = '';
+    this.hasResponse = false;
     this.results = [];
   }
   // ============================================================
@@ -378,37 +417,96 @@ this.contextResolver = new ContextResolver(
     }
 
     // ----------------------------------------------------------
-    // TOOLBAR (derecha, izquierda → derecha):
-    //   1. Selector de input (Board/Widgets)
-    //   2. Configuración (biblioteca de capacidades, solo icono)
-    //   3. Run (ejecuta la capacidad seleccionada)
+    // MODO BROWSER: toolbar propio con cuatro controles.
+    //   Izquierda: selector de widgets (ya añadido arriba)
+    //   Derecha:   lupa | filtro | cerrar
+    // ----------------------------------------------------------
+    if (this.browserMode) {
+      // Lupa: alterna la visibilidad de la barra de búsqueda.
+      controls.iconAction({
+        id: 'toggle-search',
+        icon: 'search',
+        zone: 'right'
+      });
+
+      // Filtros: abre el menú de filtros por metadatos.
+      controls.iconAction({
+        id: 'browser-filters',
+        icon: 'filter',
+        zone: 'right'
+      });
+
+      // Cerrar Browser: vuelve al modo Asistente.
+      controls.action({
+        id: 'close-browser',
+        label: i18n.t('widgets.memory.action.closeBrowser'),
+        zone: 'right'
+      });
+
+      return controls;
+    }
+
+    // ----------------------------------------------------------
+    // TOOLBAR DEL ASISTENTE — dos estados según haya respuesta.
     // ----------------------------------------------------------
 
-    // 1. Selector de input: icono + etiqueta + flecha desplegable.
-    //    Patrón labelParts del selector de sesiones de Notes:
-    //    «Contexto:» atenuado + valor contrastado.
+    if (this.hasResponse) {
+      // ---- Estado resultado ----
+      controls.iconAction({
+        id: 'browse-results',
+        icon: 'search',
+        label: i18n.t('widgets.memory.action.browser'),
+        zone: 'right'
+      });
+
+      controls.iconAction({
+        id: 'clear-response',
+        icon: 'trash-2',
+        label: i18n.t('widgets.memory.action.clear'),
+        zone: 'right'
+      });
+
+      controls.iconAction({
+        id: 'save-response',
+        icon: 'save',
+        label: i18n.t('widgets.memory.action.save'),
+        zone: 'right'
+      });
+
+      return controls;
+    }
+
+    // ---- Estado inicial ----
+
+    // 1. Capacidades: solo icono, sin etiqueta de texto.
+    controls.iconAction({
+      id: 'open-capabilities',
+      icon: 'sliders-horizontal',
+      zone: 'left'
+    });
+
+    // 2. Fuente de contexto: solo el valor, sin prefijo «Fuente:».
     const inputDisplay = this.getInputDisplay();
     controls.picker({
       id: 'input',
       label: inputDisplay.label,
       icon: inputDisplay.icon,
-      labelParts: {
-        prefix: `${i18n.t('widgets.common.context')}:`,
-        value: inputDisplay.label
-      }
+      zone: 'left'
     });
 
-    // 2. Configuración: entre el selector y Run.
-    controls.iconAction({
-      id: 'open-capabilities',
-      icon: 'sliders-horizontal'
+    // 3. Browser: a la derecha, abre los resultados guardados.
+    controls.action({
+      id: 'browse-results',
+      label: i18n.t('widgets.memory.action.browser'),
+      zone: 'right'
     });
 
-    // 3. Run: icono + etiqueta; último control.
+    // 4. Run: extremo derecho, icono play + etiqueta.
     controls.iconAction({
       id: 'execute',
       icon: 'play',
-      label: i18n.t('widgets.memory.action.run')
+      label: i18n.t('widgets.memory.action.run'),
+      zone: 'right'
     });
 
     return controls;
@@ -860,6 +958,13 @@ this.contextResolver = new ContextResolver(
       return;
     }
 
+    // Eliminar toolbar anterior para evitar duplicados al
+    // alternar entre estados inicial y resultado.
+    const oldToolbar = this.container.querySelector('.fl-widget-controls');
+    if (oldToolbar) {
+      oldToolbar.remove();
+    }
+
     const controls = this.buildControls(includeAssistantControls);
 
     WidgetControlsRenderer.render(
@@ -915,6 +1020,48 @@ this.contextResolver = new ContextResolver(
 
           if (controlId === 'execute') {
             void this.execute();
+            return;
+          }
+
+          if (controlId === 'browse-results') {
+            // Abrir el modo Browser: sustituye el toolbar del
+            // Asistente por el toolbar propio de Browser.
+            this.browserMode = true;
+            this.sessionView = 'today';
+            this.rerenderWidget();
+            return;
+          }
+
+          if (controlId === 'close-browser') {
+            // Cerrar Browser: restaura la vista de captura.
+            this.browserMode = false;
+            this.sessionView = 'capture';
+            this.rerenderWidget();
+            return;
+          }
+
+          if (controlId === 'browser-filters') {
+            this.showBrowserFilters();
+            return;
+          }
+
+          if (controlId === 'toggle-search') {
+            // Alterna la visibilidad de la barra de búsqueda.
+            this.browserSearchVisible = !this.browserSearchVisible;
+            this.rerenderWidget();
+            return;
+          }
+
+          if (controlId === 'clear-response') {
+            this.clearResponse();
+            return;
+          }
+
+          if (controlId === 'save-response') {
+            // La respuesta ya se archivó automáticamente al
+            // generarse. Se re-confirma el guardado.
+            this.saveResults();
+            return;
           }
         }
       }
@@ -966,7 +1113,7 @@ this.contextResolver = new ContextResolver(
       this.renderResponsePlaceholder();
     }
     // ============================================================
-    // PANEL TODAY
+    // PANEL TODAY / BROWSER
     // ============================================================
 
     const todayPanel = contentWrapper.createDiv({
@@ -977,12 +1124,31 @@ this.contextResolver = new ContextResolver(
       this.sessionView !== 'today'
     );
 
+    /*
+     * Barra de búsqueda: solo en modo Browser y solo si está
+     * visible (toggle lupa). Se coloca en el extremo OPUESTO
+     * al toolbar: si el toolbar está arriba, la búsqueda va
+     * abajo; si está abajo, va arriba. Se crea ANTES del
+     * resultContainer cuando va arriba para que el orden DOM
+     * sea correcto.
+     */
+    const showSearch = this.browserMode && this.browserSearchVisible;
+    const searchAbove = showSearch && this.position === 'bottom';
+
+    if (searchAbove) {
+      this.renderBrowserSearchBar(todayPanel);
+    }
+
     this.resultContainer = todayPanel.createDiv({
       cls: 'fl-memory-results'
     });
 
     if (this.sessionView === 'today') {
       this.renderResults();
+
+      if (showSearch && !searchAbove) {
+        this.renderBrowserSearchBar(todayPanel);
+      }
     }
 
 
@@ -997,19 +1163,213 @@ this.contextResolver = new ContextResolver(
     }
     this.resultDragCleanups.clear();
 
-    this.resultContainer.empty();
+    // No vaciar todo el contenedor: preservar la barra de búsqueda
+    // del modo Browser. Solo limpiar los resultados anteriores.
+    const oldItems = this.resultContainer.querySelectorAll(
+      '.fl-focus-list-item, .fl-widget-empty-text'
+    );
+    Array.from(oldItems).forEach(el => el.remove());
 
-    if (this.results.length === 0) {
+    const filtered = this.getFilteredResults();
+
+    if (filtered.length === 0) {
       this.resultContainer.createDiv({
         cls: 'fl-widget-empty-text',
-        text: i18n.t('widgets.memory.empty.noSavedResponses')
+        text: this.results.length === 0
+          ? i18n.t('widgets.memory.empty.noSavedResponses')
+          : i18n.t('widgets.memory.empty.noSearchResults')
       });
       return;
     }
 
-    for (const result of [...this.results].reverse()) {
+    for (const result of [...filtered].reverse()) {
       void this.renderResultItem(result);
     }
+  }
+
+  /**
+   * Filtra los resultados según la búsqueda textual y los filtros
+   * activos del modo Browser. Sin filtros activos, devuelve todos.
+   */
+  private getFilteredResults(): MemoryResult[] {
+    let filtered = this.results;
+
+    // Filtro por dominio.
+    if (this.browserFilterDomain) {
+      filtered = filtered.filter(
+        r => r.domainId === this.browserFilterDomain
+      );
+    }
+
+    // Filtro por capacidad.
+    if (this.browserFilterCapability) {
+      filtered = filtered.filter(
+        r => r.capabilityId === this.browserFilterCapability
+      );
+    }
+
+    // Filtro por etiqueta.
+    if (this.browserFilterTag) {
+      filtered = filtered.filter(
+        r => r.tags?.includes(this.browserFilterTag!) ?? false
+      );
+    }
+
+    // Búsqueda textual sobre contenido y etiquetas.
+    const query = this.browserSearch.trim().toLowerCase();
+    if (query) {
+      filtered = filtered.filter(r => {
+        const inContent = r.content.toLowerCase().includes(query);
+        const inTags = r.tags?.some(
+          t => t.toLowerCase().includes(query)
+        ) ?? false;
+        return inContent || inTags;
+      });
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Barra de búsqueda del modo Browser.
+   */
+  private renderBrowserSearchBar(container: HTMLElement): void {
+    const searchBar = container.createDiv({
+      cls: 'fl-memory-browser-search'
+    });
+
+    const searchInput = searchBar.createEl('input', {
+      cls: 'fl-memory-browser-search-input',
+      attr: {
+        type: 'text',
+        placeholder: i18n.t('widgets.memory.browser.searchPlaceholder')
+      },
+      value: this.browserSearch
+    });
+
+    searchInput.addEventListener('input', () => {
+      this.browserSearch = searchInput.value;
+      this.renderResults();
+    });
+
+    // Indicador de filtros activos.
+    const activeFilters =
+      (this.browserFilterDomain ? 1 : 0) +
+      (this.browserFilterCapability ? 1 : 0) +
+      (this.browserFilterTag ? 1 : 0);
+
+    if (activeFilters > 0 || this.browserSearch) {
+      const clearBtn = searchBar.createEl('button', {
+        cls: 'fl-memory-browser-clear',
+        attr: { type: 'button', 'aria-label': i18n.t('widgets.memory.browser.clearFilters') }
+      });
+      setIcon(clearBtn, 'x');
+      clearBtn.addEventListener('click', () => {
+        this.browserSearch = '';
+        this.browserFilterDomain = null;
+        this.browserFilterCapability = null;
+        this.browserFilterTag = null;
+        this.rerenderWidget();
+      });
+    }
+  }
+
+  /**
+   * Menú de filtros del modo Browser: dominio, capacidad y etiquetas.
+   */
+  private showBrowserFilters(): void {
+    void import('obsidian').then(({ Menu }) => {
+      const menu = new Menu();
+
+      // Filtro por dominio.
+      menu.addItem(item => {
+        item.setTitle(i18n.t('widgets.memory.browser.filterDomain'))
+          .setDisabled(true);
+      });
+
+      const groups = this.registry.getGroups();
+      for (const group of groups) {
+        const label = getDomainLabel(group.id, group.label);
+        menu.addItem(item => {
+          item.setTitle(label)
+            .setIcon(this.browserFilterDomain === group.id ? 'check' : 'circle')
+            .onClick(() => {
+              this.browserFilterDomain =
+                this.browserFilterDomain === group.id ? null : group.id;
+              // Al cambiar dominio, limpiar filtro de capacidad.
+              this.browserFilterCapability = null;
+              this.rerenderWidget();
+            });
+        });
+      }
+
+      menu.addSeparator();
+
+      // Filtro por capacidad (del dominio filtrado o todos).
+      menu.addItem(item => {
+        item.setTitle(i18n.t('widgets.memory.browser.filterCapability'))
+          .setDisabled(true);
+      });
+
+      const capabilities = this.browserFilterDomain
+        ? this.registry.getByGroup(this.browserFilterDomain)
+        : this.registry.getAll();
+
+      for (const cap of capabilities) {
+        const label = getCapabilityLabel(cap.id, cap.label);
+        menu.addItem(item => {
+          item.setTitle(label)
+            .setIcon(this.browserFilterCapability === cap.id ? 'check' : 'circle')
+            .onClick(() => {
+              this.browserFilterCapability =
+                this.browserFilterCapability === cap.id ? null : cap.id;
+              this.rerenderWidget();
+            });
+        });
+      }
+
+      menu.addSeparator();
+
+      // Filtro por etiquetas.
+      menu.addItem(item => {
+        item.setTitle(i18n.t('widgets.memory.browser.filterTag'))
+          .setDisabled(true);
+      });
+
+      const allTags = new Set<string>();
+      for (const r of this.results) {
+        for (const t of r.tags ?? []) {
+          allTags.add(t);
+        }
+      }
+
+      if (allTags.size === 0) {
+        menu.addItem(item => {
+          item.setTitle(i18n.t('widgets.memory.browser.noTags'))
+            .setDisabled(true);
+        });
+      } else {
+        for (const tag of allTags) {
+          menu.addItem(item => {
+            item.setTitle(tag)
+              .setIcon(this.browserFilterTag === tag ? 'check' : 'circle')
+              .onClick(() => {
+                this.browserFilterTag =
+                  this.browserFilterTag === tag ? null : tag;
+                this.rerenderWidget();
+              });
+          });
+        }
+      }
+
+      const btn = this.container?.querySelector(
+        '[data-control-id="browser-filters"]'
+      );
+      if (btn instanceof HTMLElement) {
+        const rect = btn.getBoundingClientRect();
+        menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+      }
+    });
   }
 
   /**
@@ -1018,11 +1378,12 @@ this.contextResolver = new ContextResolver(
    * configuración efectiva (capacidad + fuentes de contexto)
    * que se utilizará en la próxima ejecución.
    *
+   * Formato en UNA sola línea:
+   *   Capacidades: Dominio - Capacidad · Fuentes: Fuente1, Fuente2
+   *
    * Reutiliza el estado y los mecanismos de resolución
-   * existentes (selectedCapability, getEffectiveWidgetInstanceIds,
-   * getCompanionInstance, isBoardModeActive, currentFile) para
-   * garantizar que lo que muestra coincide con lo que recibe el
-   * modelo. No se añade al prompt.
+   * existentes para garantizar que lo que muestra coincide
+   * con lo que recibe el modelo. No se añade al prompt.
    */
   private renderResponsePlaceholder(): void {
     if (!this.responseArea) return;
@@ -1032,66 +1393,53 @@ this.contextResolver = new ContextResolver(
     });
 
     // ── CAPACIDADES ──
-    const capSection = card.createDiv({
-      cls: 'fl-memory-spec-section'
-    });
-
-    capSection.createDiv({
-      cls: 'fl-memory-spec-heading',
-      text: i18n.t('widgets.memory.spec.capabilities')
-    });
-
     const capValue = this.selectedCapability
       ? this.getSpecCapabilityLabel()
       : i18n.t('widgets.memory.spec.noCapability');
 
-    capSection.createDiv({
-      cls: 'fl-memory-spec-value',
-      text: capValue
-    });
-
     // ── FUENTES DE CONTEXTO ──
-    const srcSection = card.createDiv({
-      cls: 'fl-memory-spec-section'
-    });
-
-    srcSection.createDiv({
-      cls: 'fl-memory-spec-heading',
-      text: i18n.t('widgets.memory.spec.sources')
-    });
-
     const sources = this.resolveEffectiveContextSources();
-    const srcList = srcSection.createDiv({
-      cls: 'fl-memory-spec-sources'
+    const srcValue = sources.length === 0
+      ? i18n.t('widgets.memory.spec.noSources')
+      : sources.map(s => s.label).join(', ');
+
+    // ── LÍNEA ÚNICA ──
+    const capLabel = i18n.t('widgets.memory.spec.capabilities');
+    const srcLabel = i18n.t('widgets.memory.spec.sources');
+
+    const line = card.createDiv({
+      cls: 'fl-memory-spec-line'
     });
 
-    if (sources.length === 0) {
-      srcList.createDiv({
-        cls: 'fl-memory-spec-source-item',
-        text: i18n.t('widgets.memory.spec.noSources')
-      });
-    } else {
-      for (const src of sources) {
-        srcList.createDiv({
-          cls: 'fl-memory-spec-source-item',
-          text: src.label
-        });
-      }
-    }
+    line.createSpan({
+      cls: 'fl-memory-spec-part',
+      text: `${capLabel}: ${capValue}`
+    });
+
+    line.createSpan({
+      cls: 'fl-memory-spec-sep',
+      text: '·',
+      attr: { 'aria-hidden': 'true' }
+    });
+
+    line.createSpan({
+      cls: 'fl-memory-spec-part',
+      text: `${srcLabel}: ${srcValue}`
+    });
   }
 
   /**
    * Etiqueta canónica en inglés para la ficha técnica,
    * independiente del locale. Usa `getCapabilityLabel` de
    * capabilityTexts con la resolución i18n en inglés para la
-   * capacidad y su dominio, formateando «Dominio → Capacidad».
+   * capacidad y su dominio, formateando «Dominio - Capacidad».
    */
   private getSpecCapabilityLabel(): string {
     if (!this.selectedCapability) return '';
 
     // Mapa mental: etiqueta fija en inglés.
     if (this.selectedCapability === 'transform-mindmap') {
-      return 'Transform → Mind Map';
+      return 'Transform - Mind Map';
     }
 
     try {
@@ -1110,7 +1458,7 @@ this.contextResolver = new ContextResolver(
           ? getDomainLabel(group.id, group.label)
           : '';
         return domainEn
-          ? `${domainEn} → ${enLabel}`
+          ? `${domainEn} - ${enLabel}`
           : enLabel;
       }
     } catch (e) {
@@ -1175,27 +1523,6 @@ this.contextResolver = new ContextResolver(
     const listItem = new FocusListItem(
       this.resultContainer,
       {
-        state: result.active ? 'active' : 'inactive',
-
-        primaryAction: {
-          id: 'toggle',
-          label: result.active
-            ? i18n.t('widgets.memory.action.deactivateResponse')
-            : i18n.t('widgets.memory.action.activateResponse'),
-
-          onClick: () => {
-            result.active = !result.active;
-
-            listItem.setState(
-              result.active ? 'active' : 'inactive'
-            );
-
-            // L3b: saveResults es síncrono (localStorage) y ya
-            // gestiona sus errores internamente.
-            this.saveResults();
-          }
-        },
-
         deleteAction: {
           id: 'delete',
           label: i18n.t('widgets.memory.action.deleteResponse'),
@@ -1213,8 +1540,6 @@ this.contextResolver = new ContextResolver(
             this.results.splice(index, 1);
             this.resultElements.delete(result.id);
 
-            // L3b: saveResults es síncrono; se llama sin await
-            // (el await sobre void era la advertencia original).
             this.saveResults();
 
             listItem.destroy();
@@ -1227,6 +1552,36 @@ this.contextResolver = new ContextResolver(
 
     content.addClass('fl-memory-item-content');
 
+    // ----------------------------------------------------------
+    // METADATOS: capacidad y dominio (IDs estables → labels i18n)
+    // ----------------------------------------------------------
+
+    if (result.capabilityId || result.domainId) {
+      const meta = content.createDiv({ cls: 'fl-memory-item-meta' });
+
+      if (result.domainId) {
+        const group = this.registry
+          .getGroups()
+          .find(g => g.id === result.domainId);
+        const domainLabel = group
+          ? getDomainLabel(group.id, group.label)
+          : result.domainId;
+        meta.createSpan({ cls: 'fl-memory-item-domain', text: domainLabel });
+      }
+
+      if (result.capabilityId) {
+        const capLabel = getCapabilityLabel(
+          result.capabilityId,
+          result.capabilityId
+        );
+        meta.createSpan({ cls: 'fl-memory-item-capability', text: capLabel });
+      }
+    }
+
+    // ----------------------------------------------------------
+    // CONTENIDO EXPANDIBLE Y EDITABLE
+    // ----------------------------------------------------------
+
     const expandable = createExpandableText(
       content,
       result.content,
@@ -1235,33 +1590,30 @@ this.contextResolver = new ContextResolver(
         previewLines: 3,
         collapsedLabel: i18n.t('widgets.common.expand'),
         expandedLabel: i18n.t('widgets.common.collapse'),
-        editable: false,
-        // Vista ampliada a pantalla completa del widget en modo
-        // lectura: el resultado IA no es editable; el × cierra.
+        editable: true,
         expandedEditing: true,
+        saveExpandedEdit: async (newText: string) => {
+          result.content = newText;
+          this.saveResults();
+        },
         rootClass: 'fl-memory-expandable',
         contentClass: 'fl-memory-expandable-content',
         actionClass: 'fl-memory-expandable-action',
         onExpandedChange: (expanded) => {
-        listItem.setExpanded(expanded);
-    }
+          listItem.setExpanded(expanded);
+        }
       }
     );
 
-    this.resultElements.set(
-      result.id,
-      content
-    );
+    this.resultElements.set(result.id, content);
 
-    expandable.content.setAttr(
-      'contenteditable',
-      'false'
-    );
+    await this.renderMarkdown(result.content, expandable.content);
 
-    await this.renderMarkdown(
-      result.content,
-      expandable.content
-    );
+    // ----------------------------------------------------------
+    // ETIQUETAS
+    // ----------------------------------------------------------
+
+    this.renderResultTags(content, result);
 
     // ----------------------------------------------------------
     // DRAG HACIA EL BOARD (markdown crudo del resultado)
@@ -1297,6 +1649,69 @@ this.contextResolver = new ContextResolver(
       result.id,
       cleanupDrag
     );
+  }
+
+  /**
+   * Renderiza las etiquetas de un resultado con opciones para
+   * añadir y eliminar. Se persisten en el propio resultado.
+   */
+  private renderResultTags(
+    container: HTMLElement,
+    result: MemoryResult
+  ): void {
+    const tagsRow = container.createDiv({ cls: 'fl-memory-item-tags' });
+
+    // Etiquetas existentes.
+    for (const tag of result.tags ?? []) {
+      const tagEl = tagsRow.createSpan({
+        cls: 'fl-memory-item-tag',
+        attr: { role: 'button', tabindex: '0' },
+        text: tag
+      });
+      tagEl.addEventListener('click', () => {
+        // Eliminar etiqueta al hacer clic.
+        result.tags = (result.tags ?? []).filter(t => t !== tag);
+        this.saveResults();
+        this.rerenderWidget();
+      });
+    }
+
+    // Botón añadir etiqueta.
+    const addTagBtn = tagsRow.createEl('button', {
+      cls: 'fl-memory-item-add-tag',
+      attr: { type: 'button', 'aria-label': i18n.t('widgets.memory.browser.addTag') }
+    });
+    setIcon(addTagBtn, 'plus');
+    addTagBtn.addEventListener('click', () => {
+      void import('obsidian').then(({ Modal }) => {
+        const onSaveTag = (tag: string): void => {
+          result.tags = [...(result.tags ?? []), tag];
+          this.saveResults();
+          this.rerenderWidget();
+        };
+        const appRef = this.app;
+
+        class TagModal extends Modal {
+          onOpen(): void {
+            const { contentEl } = this;
+            contentEl.createEl('h3', {
+              text: i18n.t('widgets.memory.browser.addTag')
+            });
+            const input = contentEl.createEl('input', {
+              attr: { type: 'text', placeholder: i18n.t('widgets.memory.browser.tagPlaceholder') }
+            });
+            input.addEventListener('keydown', (e: KeyboardEvent) => {
+              if (e.key === 'Enter' && input.value.trim()) {
+                onSaveTag(input.value.trim());
+                this.close();
+              }
+            });
+            input.focus();
+          }
+        }
+        new TagModal(appRef).open();
+      });
+    });
   }
 
   // ============================================================
@@ -1495,7 +1910,9 @@ this.contextResolver = new ContextResolver(
               .toString(36)
               .slice(2, 8)}`,
           content: result.content,
-          active: false
+          createdAt: Date.now(),
+          capabilityId: this.selectedCapability,
+          domainId: this.selectedDomain
         };
 
         this.results.push(newResult);
@@ -1511,6 +1928,14 @@ this.contextResolver = new ContextResolver(
             this.responseArea
           );
         }
+
+        // --------------------------------------------------------
+        // Cambiar toolbar al estado resultado y re-renderizar
+        // solo los controles (sin reconstruir el contenido).
+        // --------------------------------------------------------
+
+        this.hasResponse = true;
+        this.renderControls();
 
         return;
       }
@@ -1547,6 +1972,25 @@ this.contextResolver = new ContextResolver(
 
       new Notice(i18n.t('widgets.common.errorWithMessage', { message }));
     }
+  }
+
+  /**
+   * Borra la respuesta visible del área de texto y devuelve el
+   * toolbar al estado inicial, restaurando los controles de
+   * capacidades, fuente de contexto, Browser y Run.
+   */
+  private clearResponse(): void {
+    this.currentResponse = '';
+    this.hasResponse = false;
+
+    // Restaurar el placeholder en el área de respuesta.
+    if (this.responseArea) {
+      this.responseArea.empty();
+      this.renderResponsePlaceholder();
+    }
+
+    // Re-renderizar solo los controles (toolbar).
+    this.renderControls();
   }
 
   /**
@@ -1613,13 +2057,44 @@ this.contextResolver = new ContextResolver(
         const candidate = value as {
           id?: unknown;
           content?: unknown;
-          active?: unknown;
+          createdAt?: unknown;
+          capabilityId?: unknown;
+          domainId?: unknown;
+          tags?: unknown;
         };
-        return (
-          typeof candidate.id === 'string' &&
-          typeof candidate.content === 'string' &&
-          typeof candidate.active === 'boolean'
-        );
+        // Formato base: id y content siempre requeridos.
+        if (
+          typeof candidate.id !== 'string' ||
+          typeof candidate.content !== 'string'
+        ) {
+          return false;
+        }
+        // Campos opcionales: si están presentes, deben tener tipo correcto.
+        if (
+          candidate.createdAt !== undefined &&
+          typeof candidate.createdAt !== 'number'
+        ) {
+          return false;
+        }
+        if (
+          candidate.capabilityId !== undefined &&
+          typeof candidate.capabilityId !== 'string'
+        ) {
+          return false;
+        }
+        if (
+          candidate.domainId !== undefined &&
+          typeof candidate.domainId !== 'string'
+        ) {
+          return false;
+        }
+        if (
+          candidate.tags !== undefined &&
+          !Array.isArray(candidate.tags)
+        ) {
+          return false;
+        }
+        return true;
       });
     } catch (error) {
       console.warn(
