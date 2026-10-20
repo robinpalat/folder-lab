@@ -255,6 +255,14 @@ this.contextResolver = new ContextResolver(
       return;
     }
 
+    /*
+     * En modo Browser, la barra de búsqueda se renderiza
+     * INMEDIATAMENTE ENCIMA del toolbar, como línea adicional.
+     */
+    if (this.browserMode) {
+      this.renderBrowserSearchBar(this.container);
+    }
+
     if (this.position === 'top') {
       this.renderControls();
       this.renderContent();
@@ -263,6 +271,7 @@ this.contextResolver = new ContextResolver(
       this.renderControls(true);
     }
   }
+
   update(context: FocusContext): void {
     const newFile = context.activeFile;
 
@@ -296,6 +305,14 @@ this.contextResolver = new ContextResolver(
     if (!this.container) return;
 
     this.container.empty();
+
+    /*
+     * En modo Browser, la barra de búsqueda se renderiza
+     * INMEDIATAMENTE ENCIMA del toolbar.
+     */
+    if (this.browserMode) {
+      this.renderBrowserSearchBar(this.container);
+    }
 
     if (this.position === 'top') {
       this.renderControls();
@@ -425,20 +442,15 @@ this.contextResolver = new ContextResolver(
 
     // ----------------------------------------------------------
     // TOOLBAR DEL ASISTENTE — dos estados según haya respuesta.
+    // El selector de capacidades y la fuente de contexto viven
+    // en el módulo de preparación del área de trabajo.
     // ----------------------------------------------------------
 
     if (this.hasResponse) {
-      // ---- Estado resultado ----
+      // ---- Estado respuesta ----
       controls.iconAction({
         id: 'browse-results',
         icon: 'search',
-        zone: 'right'
-      });
-
-      controls.iconAction({
-        id: 'clear-response',
-        icon: 'trash-2',
-        label: i18n.t('widgets.memory.action.clear'),
         zone: 'right'
       });
 
@@ -449,35 +461,26 @@ this.contextResolver = new ContextResolver(
         zone: 'right'
       });
 
+      controls.iconAction({
+        id: 'clear-response',
+        icon: 'trash-2',
+        label: i18n.t('widgets.memory.action.clear'),
+        zone: 'right'
+      });
+
       return controls;
     }
 
-    // ---- Estado inicial ----
+    // ---- Estado preparación ----
 
-    // 1. Capacidades: solo icono, sin etiqueta de texto.
-    controls.iconAction({
-      id: 'open-capabilities',
-      icon: 'sliders-horizontal',
-      zone: 'left'
-    });
-
-    // 2. Fuente de contexto: solo el valor, sin prefijo «Fuente:».
-    const inputDisplay = this.getInputDisplay();
-    controls.picker({
-      id: 'input',
-      label: inputDisplay.label,
-      icon: inputDisplay.icon,
-      zone: 'left'
-    });
-
-    // 3. Browser: lupa de acceso al modo Browser.
+    // 1. Browser: lupa de acceso al modo Browser.
     controls.iconAction({
       id: 'browse-results',
       icon: 'search',
       zone: 'right'
     });
 
-    // 4. Run: extremo derecho, icono play + etiqueta.
+    // 2. Run: extremo derecho, icono play + etiqueta.
     controls.iconAction({
       id: 'execute',
       icon: 'play',
@@ -1058,6 +1061,84 @@ this.contextResolver = new ContextResolver(
     );
 
     // ------------------------------------------------------------
+    // MÓDULO DE PREPARACIÓN (solo sin respuesta)
+    // Contiene el selector de capacidades y la fuente de contexto.
+    // Se oculta cuando hay respuesta (hasResponse).
+    // ------------------------------------------------------------
+
+    if (!this.hasResponse) {
+      const prepModule = capturePanel.createDiv({
+        cls: 'fl-memory-prep-module'
+      });
+
+      // Selector de capacidades: icono que abre el modal.
+      const capBtn = prepModule.createEl('button', {
+        cls: 'fl-memory-prep-cap-btn',
+        attr: {
+          type: 'button',
+          'aria-label': i18n.t('widgets.memory.capability.placeholder')
+        }
+      });
+      setIcon(capBtn, 'sliders-horizontal');
+      capBtn.createSpan({
+        cls: 'fl-memory-prep-cap-label',
+        text: this.selectedCapability
+          ? this.getCapabilityLabel()
+          : i18n.t('widgets.memory.capability.placeholder')
+      });
+      capBtn.addEventListener('click', () => {
+        const modal = new CapabilityBrowser(
+          this.app,
+          {
+            registry: this.registry,
+            selectedGroup: this.selectedDomain,
+            selectedCapability: this.selectedCapability,
+            onSelect: ({
+              sourceIds,
+              groupId,
+              capabilityId
+            }) => {
+              this.selectedSources = sourceIds;
+              this.selectedDomain = groupId;
+              this.selectedCapability = capabilityId;
+              this.saveState();
+              if (this.container && this.lastContext) {
+                this.render(this.container, this.lastContext);
+              }
+            }
+          }
+        );
+        modal.open();
+      });
+
+      // Selector de fuente de contexto.
+      const inputDisplay = this.getInputDisplay();
+      const srcBtn = prepModule.createEl('button', {
+        cls: 'fl-memory-prep-src-btn',
+        attr: {
+          type: 'button',
+          'aria-label': `${i18n.t('widgets.common.context')}: ${inputDisplay.label}`
+        }
+      });
+      if (inputDisplay.icon) {
+        const srcIcon = srcBtn.createSpan({ cls: 'fl-memory-prep-src-icon' });
+        setIcon(srcIcon, inputDisplay.icon);
+      }
+      srcBtn.createSpan({
+        cls: 'fl-memory-prep-src-label',
+        text: inputDisplay.label
+      });
+      const srcArrow = srcBtn.createSpan({
+        cls: 'fl-memory-prep-src-arrow',
+        attr: { 'aria-hidden': 'true' }
+      });
+      setIcon(srcArrow, 'chevron-down');
+      srcBtn.addEventListener('click', () => {
+        this.showInputMenu();
+      });
+    }
+
+    // ------------------------------------------------------------
     // RESPUESTA ACTUAL
     // ------------------------------------------------------------
 
@@ -1087,31 +1168,13 @@ this.contextResolver = new ContextResolver(
       this.sessionView !== 'today'
     );
 
-    /*
-     * Barra de búsqueda permanente en modo Browser. Se coloca
-     * en el extremo OPUESTO al toolbar: si el toolbar está
-     * arriba, la búsqueda va abajo; si está abajo, va arriba.
-     */
-    const showSearch = this.browserMode;
-    const searchAbove = showSearch && this.position === 'bottom';
-
-    if (searchAbove) {
-      this.renderBrowserSearchBar(todayPanel);
-    }
-
     this.resultContainer = todayPanel.createDiv({
       cls: 'fl-memory-results'
     });
 
     if (this.sessionView === 'today') {
       this.renderResults();
-
-      if (showSearch && !searchAbove) {
-        this.renderBrowserSearchBar(todayPanel);
-      }
     }
-
-
   }
 
 
@@ -1943,14 +2006,9 @@ this.contextResolver = new ContextResolver(
     this.currentResponse = '';
     this.hasResponse = false;
 
-    // Restaurar el placeholder en el área de respuesta.
-    if (this.responseArea) {
-      this.responseArea.empty();
-      this.renderResponsePlaceholder();
-    }
-
-    // Re-renderizar solo los controles (toolbar).
-    this.renderControls();
+    // Re-renderizar toolbar + contenido para restaurar
+    // el módulo de preparación y el placeholder.
+    this.rerenderWidget();
   }
 
   /**

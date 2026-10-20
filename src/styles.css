@@ -5841,6 +5841,98 @@ body.focus-splitter-dragging {
   display: none;
 }
 
+/* --- Módulo de preparación del Asistente --- */
+
+.fl-memory-prep-module {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  background: var(--background-secondary);
+  border-radius: var(--radius-m);
+  flex-shrink: 0;
+}
+
+.fl-memory-prep-cap-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  min-width: 0;
+  max-width: 200px;
+}
+
+.fl-memory-prep-cap-btn svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.fl-memory-prep-cap-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-memory-prep-cap-btn:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-normal);
+}
+
+.fl-memory-prep-src-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+  min-width: 0;
+  max-width: 160px;
+}
+
+.fl-memory-prep-src-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.fl-memory-prep-src-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fl-memory-prep-src-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-memory-prep-src-arrow {
+  display: inline-flex;
+  flex: 0 0 auto;
+  opacity: 0.5;
+}
+
+.fl-memory-prep-src-arrow svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fl-memory-prep-src-btn:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-normal);
+}
+
 /* Botón de retorno a la vista de captura desde resultados. */
 .fl-memory-back-btn {
   display: inline-flex;
