@@ -5822,6 +5822,8 @@ body.focus-splitter-dragging {
   width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -5854,12 +5856,44 @@ body.focus-splitter-dragging {
   gap: 20px;
   width: 280px;
   max-width: calc(100% - 32px);
-  margin: 24px auto;
   padding: 24px 20px;
   background: var(--background-secondary);
   border-radius: var(--radius-m);
   flex-shrink: 0;
   box-sizing: border-box;
+}
+
+/* Separación discreta antes del botón Run. */
+.fl-memory-prep-sep {
+  width: 100%;
+  height: 1px;
+  background: var(--background-modifier-border);
+  margin: 4px 0;
+}
+
+/* Botón Run alineado a la derecha dentro del módulo. */
+.fl-memory-prep-run {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.fl-memory-prep-run svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fl-memory-prep-run:hover {
+  color: var(--text-normal);
+  border-color: var(--interactive-normal);
 }
 
 /* Bloque individual: etiqueta + selector apilados. */

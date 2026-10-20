@@ -480,19 +480,12 @@ this.contextResolver = new ContextResolver(
     }
 
     // ---- Estado preparación ----
+    // Solo la lupa de Browser. Run vive en el módulo de
+    // preparación del área de trabajo.
 
-    // 1. Browser: lupa de acceso al modo Browser.
     controls.iconAction({
       id: 'browse-results',
       icon: 'search',
-      zone: 'right'
-    });
-
-    // 2. Run: extremo derecho, icono play + etiqueta.
-    controls.iconAction({
-      id: 'execute',
-      icon: 'play',
-      label: i18n.t('widgets.memory.action.run'),
       zone: 'right'
     });
 
@@ -1161,6 +1154,20 @@ this.contextResolver = new ContextResolver(
       setIcon(srcChevron, 'chevron-down');
       srcBtn.addEventListener('click', () => {
         this.showInputMenu();
+      });
+
+      // ---- Separador discreto ----
+      prepModule.createDiv({ cls: 'fl-memory-prep-sep' });
+
+      // ---- Botón Run (alineado a la derecha) ----
+      const runBtn = prepModule.createEl('button', {
+        cls: 'fl-memory-prep-run',
+        attr: { type: 'button' }
+      });
+      setIcon(runBtn, 'play');
+      runBtn.createSpan({ text: i18n.t('widgets.memory.action.run') });
+      runBtn.addEventListener('click', () => {
+        void this.execute();
       });
     }
 
