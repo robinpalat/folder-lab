@@ -1,16 +1,13 @@
 // ============================================================
-// PRUEBAS: MemoryWidget — ficha técnica pre-ejecución
+// PRUEBAS: MemoryWidget — módulo de preparación y transiciones
 // ============================================================
 // Ejecutar con: npm test
 //
-// - La ficha aparece al abrir Assistant con área vacía.
-// - Capacidades mostradas = seleccionadas.
-// - Fuentes mostradas = contexto efectivo.
-// - Actualización al cambiar fuente, nota, modo o instancias.
-// - Sin fuentes deshabilitadas ni duplicadas.
-// - Al ejecutar Run, la ficha desaparece.
-// - La ficha no se añade al prompt.
-// - Respuestas existentes no desaparecen al cambiar config.
+// - El módulo de preparación aparece con área vacía.
+// - El módulo muestra la capacidad seleccionada.
+// - El módulo se oculta al haber respuesta.
+// - La ficha antigua (spec-card) ya no se renderiza.
+// - currentResponse no se contamina con texto de configuración.
 // ============================================================
 
 import { test } from 'node:test';
@@ -171,26 +168,27 @@ function makeWidget({
 // Tests
 // ============================================================
 
-test('la ficha aparece al abrir Assistant con área de respuesta vacía', () => {
+test('el módulo de preparación aparece con área vacía', () => {
   const { widget } = makeWidget();
   widget.currentResponse = '';
+  widget.hasResponse = false;
   widget.render(widget.container, widget.lastContext);
 
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  assert.ok(card, 'ficha presente en el DOM');
+  const prep = widget.container._findByClass(widget.container, 'fl-memory-prep-module');
+  assert.ok(prep, 'módulo de preparación presente en el DOM');
 });
 
-test('sin capacidad seleccionada lo indica explícitamente', () => {
-  const { widget } = makeWidget({ selectedCapability: '' });
+test('la ficha antigua (spec-card) ya no se renderiza', () => {
+  const { widget } = makeWidget();
   widget.currentResponse = '';
+  widget.hasResponse = false;
   widget.render(widget.container, widget.lastContext);
 
   const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  const values = card._findAllByClass(card, 'fl-memory-spec-value');
-  assert.ok(values.some((v) => /ninguna|no capability/i.test(v.textContent)), 'indica sin capacidad');
+  assert.equal(card, null, 'spec-card no debe existir');
 });
 
-test('capacidad seleccionada se muestra con su nombre', () => {
+test('el módulo de preparación muestra la capacidad seleccionada', () => {
   const registry = {
     getByGroup: () => [{ id: 'research-thesis', label: 'Tesis de investigación' }],
     getGroups: () => [{ id: 'Memoria', label: 'Memoria' }],
@@ -202,95 +200,27 @@ test('capacidad seleccionada se muestra con su nombre', () => {
     registry
   });
   widget.currentResponse = '';
+  widget.hasResponse = false;
   widget.render(widget.container, widget.lastContext);
 
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  const values = card._findAllByClass(card, 'fl-memory-spec-value');
-  // getSpecCapabilityLabel resuelve vía capabilityTexts (i18n);
-  // sin clave i18n, usa found.label.
-  assert.ok(values.some((v) => v.textContent.includes('Tesis')), 'nombre de la capacidad');
+  const prep = widget.container._findByClass(widget.container, 'fl-memory-prep-module');
+  assert.ok(prep, 'módulo presente');
+  const capLabel = prep._findByClass(prep, 'fl-memory-prep-cap-label');
+  assert.ok(capLabel, 'etiqueta de capacidad presente');
+  assert.ok(capLabel.textContent.includes('Tesis'), 'nombre de la capacidad visible');
 });
 
-test('capacidad mindmap muestra Transform → Mind Map', () => {
-  const registry = {
-    getByGroup: () => [{ id: 'transform-mindmap', label: 'Mapa mental' }],
-    getGroups: () => [{ id: 'transformacion', label: 'Transformación' }],
-    getDefaultGroup: () => 'transformacion'
-  };
-  const { widget } = makeWidget({
-    selectedCapability: 'transform-mindmap',
-    selectedDomain: 'transformacion',
-    registry
-  });
-  widget.currentResponse = '';
-  widget.render(widget.container, widget.lastContext);
-
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  const values = card._findAllByClass(card, 'fl-memory-spec-value');
-  assert.ok(
-    values.some((v) => v.textContent === 'Transform → Mind Map'),
-    'etiqueta canónica en inglés'
-  );
-});
-
-test('modo nota muestra la nota actual como fuente', () => {
-  const { widget } = makeWidget({
-    inputSource: 'nota',
-    currentFile: { path: 'LIBRO/Declaración.md', basename: 'Declaración' }
-  });
-  widget.currentResponse = '';
-  widget.render(widget.container, widget.lastContext);
-
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  const items = card._findAllByClass(card, 'fl-memory-spec-source-item');
-  assert.ok(items.some((i) => i.textContent.includes('Declaración')), 'nota actual presente');
-});
-
-test('modo widget muestra companion e instancias adicionales sin duplicados', () => {
-  const instances = [
-    { instanceId: 'memory-1', typeId: 'memory', name: 'Asistente' },
-    { instanceId: 'notes-1', typeId: 'notes', name: 'Apuntes' },
-    { instanceId: 'coll-1', typeId: 'collections', name: 'Hechos' }
-  ];
-  // Companion = notes-1 (layout.bottom); explícita = coll-1.
-  const { widget } = makeWidget({
-    instances,
-    inputSource: 'widget',
-    selectedWidgetInstances: new Set(['coll-1'])
-  });
-  widget.currentResponse = '';
-  widget.render(widget.container, widget.lastContext);
-
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  const items = card._findAllByClass(card, 'fl-memory-spec-source-item');
-  const texts = items.map((i) => i.textContent);
-  assert.ok(texts.includes('Apuntes'), 'companion presente');
-  assert.ok(texts.includes('Hechos'), 'instancia adicional presente');
-  // Sin duplicados: companion no aparece dos veces.
-  assert.equal(texts.filter((t) => t === 'Apuntes').length, 1, 'sin duplicados');
-});
-
-test('modo board con board activo muestra Board', () => {
-  const { widget } = makeWidget({ inputSource: 'board' });
-  widget.isBoardModeActive = () => true;
-  widget.currentResponse = '';
-  widget.render(widget.container, widget.lastContext);
-
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  const items = card._findAllByClass(card, 'fl-memory-spec-source-item');
-  assert.ok(items.some((i) => /board/i.test(i.textContent)), 'Board presente');
-});
-
-test('la ficha desaparece al tener respuesta actual', () => {
+test('el módulo de preparación se oculta al haber respuesta', () => {
   const { widget } = makeWidget();
   widget.currentResponse = 'respuesta previa del asistente';
+  widget.hasResponse = true;
   widget.render(widget.container, widget.lastContext);
 
-  const card = widget.container._findByClass(widget.container, 'fl-memory-spec-card');
-  assert.equal(card, null, 'sin ficha con respuesta presente');
+  const prep = widget.container._findByClass(widget.container, 'fl-memory-prep-module');
+  assert.equal(prep, null, 'sin módulo de preparación con respuesta');
 });
 
-test('la ficha no se añade al prompt (currentResponse intacto)', async () => {
+test('la respuesta no se contamina con texto de configuración', async () => {
   const { widget, registry } = makeWidget({
     selectedCapability: 'research-thesis',
     registry: { getByGroup: () => [{ id: 'research-thesis', label: 'Tesis' }], getDefaultGroup: () => 'Memoria' }
@@ -298,7 +228,7 @@ test('la ficha no se añade al prompt (currentResponse intacto)', async () => {
   widget.currentResponse = '';
   widget.render(widget.container, widget.lastContext);
 
-  // Verificar que currentResponse no contiene texto de la ficha.
+  // Verificar que currentResponse no contiene texto de la ficha antigua.
   assert.ok(!widget.currentResponse.includes('CAPACIDADES'), 'ficha no en currentResponse');
   assert.ok(!widget.currentResponse.includes('FUENTES'), 'ficha no en currentResponse');
 });

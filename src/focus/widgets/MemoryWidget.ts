@@ -258,8 +258,9 @@ this.contextResolver = new ContextResolver(
     /*
      * En modo Browser, la barra de búsqueda se renderiza
      * INMEDIATAMENTE ENCIMA del toolbar, como línea adicional.
+     * El orden DOM depende de la posición del toolbar.
      */
-    if (this.browserMode) {
+    if (this.browserMode && this.position === 'top') {
       this.renderBrowserSearchBar(this.container);
     }
 
@@ -268,6 +269,9 @@ this.contextResolver = new ContextResolver(
       this.renderContent();
     } else {
       this.renderContent();
+      if (this.browserMode) {
+        this.renderBrowserSearchBar(this.container);
+      }
       this.renderControls(true);
     }
   }
@@ -308,9 +312,10 @@ this.contextResolver = new ContextResolver(
 
     /*
      * En modo Browser, la barra de búsqueda se renderiza
-     * INMEDIATAMENTE ENCIMA del toolbar.
+     * INMEDIATAMENTE ENCIMA del toolbar. El orden DOM depende
+     * de la posición del toolbar.
      */
-    if (this.browserMode) {
+    if (this.browserMode && this.position === 'top') {
       this.renderBrowserSearchBar(this.container);
     }
 
@@ -319,6 +324,9 @@ this.contextResolver = new ContextResolver(
       this.renderContent();
     } else {
       this.renderContent();
+      if (this.browserMode) {
+        this.renderBrowserSearchBar(this.container);
+      }
       this.renderControls(true);
     }
   }
@@ -607,7 +615,7 @@ this.contextResolver = new ContextResolver(
     if (!this.container) return;
 
     const anchor = this.container.querySelector(
-      '.fl-widget-control-item[data-control-id="input"]'
+      '.fl-memory-prep-src-btn'
     );
 
     if (!anchor?.instanceOf(HTMLElement)) return;
@@ -736,7 +744,7 @@ this.contextResolver = new ContextResolver(
     this.pruneSelectedInstances();
 
     const anchor = this.container.querySelector(
-      '.fl-widget-control-item[data-control-id="input"]'
+      '.fl-memory-prep-src-btn'
     );
 
     if (!anchor?.instanceOf(HTMLElement)) return;
@@ -1153,9 +1161,9 @@ this.contextResolver = new ContextResolver(
         this.currentResponse,
         this.responseArea
       );
-    } else {
-      this.renderResponsePlaceholder();
     }
+    // Sin respuesta: el módulo de preparación muestra la
+    // configuración; el área de respuesta queda vacía.
     // ============================================================
     // PANEL TODAY / BROWSER
     // ============================================================

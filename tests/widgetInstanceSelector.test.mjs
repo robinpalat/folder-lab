@@ -120,7 +120,7 @@ class FakeEl {
   setAttr() {} remove() {} addClassAll() {} scrollTo() {} scrollHeight = 0;
   querySelector(sel) {
     // Devolver un ancla válida para el picker de input.
-    if (String(sel).includes('data-control-id="input"')) {
+    if (String(sel).includes('fl-memory-prep-src-btn')) {
       const anchor = new FakeEl();
       anchor.getBoundingClientRect = () => ({ left: 0, bottom: 20, top: 0, right: 100 });
       anchor.instanceOf = (t) => t === globalThis.HTMLElement || this instanceof t;
@@ -361,7 +361,7 @@ test('ContextResolver.resolveWidgetInstances: filtra por state y excluye sin sta
   ];
   const definitions = {
     snips: { id: 'snips', state: { field: 'active', initial: true } },
-    tasks: { id: 'tasks', state: { field: 'completed', initial: true } },
+    tasks: { id: 'tasks', state: { field: 'completed', initial: false, activeWhen: { value: false } } },
     memory: { id: 'memory' } // Sin state → excluido.
   };
   const widgetManager = {
@@ -377,8 +377,8 @@ test('ContextResolver.resolveWidgetInstances: filtra por state y excluye sin sta
     },
     'tasks-1': {
       items: [
-        { text: 'pendiente', completed: true },
-        { text: 'hecha', completed: false }
+        { text: 'pendiente', completed: false },
+        { text: 'hecha', completed: true }
       ]
     },
     'memory-1': { items: [{ id: 'r1' }] }
