@@ -1214,26 +1214,24 @@ this.contextResolver = new ContextResolver(
         capCombo.addClass('is-disabled');
       } else {
         capCombo.addEventListener('click', () => {
-          void import('obsidian').then(({ Menu }) => {
-            const menu = new Menu();
-            for (const cap of domainCaps) {
-              const capLabel = getCapabilityLabel(cap.id, cap.label);
-              const isSelected = this.selectedCapability === cap.id;
-              menu.addItem(item => {
-                item.setTitle(capLabel)
-                  .setIcon(isSelected ? 'check' : 'circle')
-                  .onClick(() => {
-                    this.selectedCapability = cap.id;
-                    this.saveState();
-                    if (this.container && this.lastContext) {
-                      this.render(this.container, this.lastContext);
-                    }
-                  });
-              });
-            }
-            const rect = capCombo.getBoundingClientRect();
-            menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
-          });
+          const menu = new Menu();
+          for (const cap of domainCaps) {
+            const capLabel = getCapabilityLabel(cap.id, cap.label);
+            const isSelected = this.selectedCapability === cap.id;
+            menu.addItem(item => {
+              item.setTitle(capLabel)
+                .setIcon(isSelected ? 'check' : 'circle')
+                .onClick(() => {
+                  this.selectedCapability = cap.id;
+                  this.saveState();
+                  if (this.container && this.lastContext) {
+                    this.render(this.container, this.lastContext);
+                  }
+                });
+            });
+          }
+          const rect = capCombo.getBoundingClientRect();
+          menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
         });
       }
 
