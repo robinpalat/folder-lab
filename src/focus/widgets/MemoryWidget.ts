@@ -151,6 +151,7 @@ export class MemoryWidget implements FocusWidget {
   // ---- Estado del modo Browser ----
   private browserMode: boolean = false;
   private browserSearch: string = '';
+  private browserSearchVisible: boolean = true;
   private browserTreeVisible: boolean = false;
   private browserFilterCapability: string | null = null;
 
@@ -261,13 +262,13 @@ this.contextResolver = new ContextResolver(
      */
     if (this.position === 'top') {
       this.renderControls();
-      if (this.browserMode) {
+      if (this.browserMode && this.browserSearchVisible) {
         this.renderBrowserSearchBar(this.container);
       }
       this.renderContent();
     } else {
       this.renderContent();
-      if (this.browserMode) {
+      if (this.browserMode && this.browserSearchVisible) {
         this.renderBrowserSearchBar(this.container);
       }
       this.renderControls(true);
@@ -314,13 +315,13 @@ this.contextResolver = new ContextResolver(
      */
     if (this.position === 'top') {
       this.renderControls();
-      if (this.browserMode) {
+      if (this.browserMode && this.browserSearchVisible) {
         this.renderBrowserSearchBar(this.container);
       }
       this.renderContent();
     } else {
       this.renderContent();
-      if (this.browserMode) {
+      if (this.browserMode && this.browserSearchVisible) {
         this.renderBrowserSearchBar(this.container);
       }
       this.renderControls(true);
@@ -450,11 +451,18 @@ this.contextResolver = new ContextResolver(
     }
 
     // ----------------------------------------------------------
-    // MODO BROWSER: solo el selector de widgets en el toolbar.
-    // La barra de búsqueda, el filtro y cerrar van en el
-    // contenido (ver renderContent).
+    // MODO BROWSER: toolbar propio con toggle de búsqueda.
+    //   Izquierda: selector de widgets (ya añadido arriba)
+    //   Derecha:   lupa (toggle) | cerrar
     // ----------------------------------------------------------
     if (this.browserMode) {
+      // Lupa: alterna la visibilidad de la barra de búsqueda.
+      controls.iconAction({
+        id: 'toggle-search',
+        icon: 'search',
+        zone: 'right'
+      });
+
       return controls;
     }
 
@@ -1028,6 +1036,13 @@ this.contextResolver = new ContextResolver(
             return;
           }
 
+          if (controlId === 'toggle-search') {
+            // Alterna la visibilidad de la barra de búsqueda.
+            this.browserSearchVisible = !this.browserSearchVisible;
+            this.rerenderWidget();
+            return;
+          }
+
           if (controlId === 'clear-response') {
             this.clearResponse();
             return;
@@ -1042,6 +1057,17 @@ this.contextResolver = new ContextResolver(
         }
       }
     );
+
+    // Marcar el toggle de búsqueda como activo si la barra
+    // está visible.
+    if (this.browserMode && this.browserSearchVisible) {
+      const toggleEl = this.container?.querySelector(
+        '[data-control-id="toggle-search"]'
+      );
+      if (toggleEl instanceof HTMLElement) {
+        toggleEl.addClass('is-active');
+      }
+    }
   }
 
 
@@ -1445,12 +1471,12 @@ this.contextResolver = new ContextResolver(
       }
     });
 
-    // Etiqueta «Close»: texto cliqueable, no botón.
+    // Cerrar: icono X, cliqueable.
     const closeEl = searchBar.createSpan({
       cls: 'fl-browser-close-label',
-      attr: { role: 'button', tabindex: '0' },
-      text: 'Close'
+      attr: { role: 'button', tabindex: '0', 'aria-label': 'Close' }
     });
+    setIcon(closeEl, 'x');
     const closeAction = (): void => {
       this.browserMode = false;
       this.sessionView = 'capture';
