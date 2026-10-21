@@ -6115,6 +6115,32 @@ body.focus-splitter-dragging {
   height: 14px;
 }
 
+/*
+ * Combo box de capacidades: más ligero que el botón de dominio.
+ * Fondo transparente, borde discreto, valor izquierda, chevron
+ * derecha.
+ */
+.fl-memory-prep-cap-combo {
+  background: transparent;
+  border-color: transparent;
+  padding: 5px 8px;
+}
+
+.fl-memory-prep-cap-combo:hover {
+  background: var(--background-modifier-hover);
+  border-color: transparent;
+}
+
+.fl-memory-prep-cap-combo[disabled]:hover {
+  background: transparent;
+}
+
+.fl-memory-prep-cap-combo.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* Botón de retorno a la vista de captura desde resultados. */
 .fl-memory-back-btn {
   display: inline-flex;

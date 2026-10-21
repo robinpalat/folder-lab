@@ -400,6 +400,20 @@ this.contextResolver = new ContextResolver(
     return this.selectedCapability;
   }
 
+  /** Nombre localizado de un dominio a partir de su id. */
+  private getDomainLabelById(domainId: string): string {
+    try {
+      const groups = this.registry.getGroups();
+      const group = groups.find(g => g.id === domainId);
+      if (group) {
+        return getDomainLabel(group.id, group.label);
+      }
+    } catch (e) {
+      console.warn('Error getting domain label:', e);
+    }
+    return domainId;
+  }
+
 
   private getWorkLabel(): string {
     const sourceLabel = this.getSourceLabel();
@@ -1104,7 +1118,7 @@ this.contextResolver = new ContextResolver(
       });
       setIcon(configBtn, 'settings');
 
-      // ---- Bloque 1: Capacidad ----
+      // ---- Bloque 1: Dominio + Capacidad ----
       const capBlock = prepModule.createDiv({
         cls: 'fl-memory-prep-block'
       });
@@ -1114,7 +1128,8 @@ this.contextResolver = new ContextResolver(
         text: i18n.t('widgets.memory.spec.capabilities')
       });
 
-      const capBtn = capBlock.createEl('button', {
+      // Botón de dominio: abre el Browser de selección de capacidades.
+      const domainBtn = capBlock.createEl('button', {
         cls: 'fl-memory-prep-select',
         attr: {
           type: 'button',
@@ -1122,41 +1137,28 @@ this.contextResolver = new ContextResolver(
         }
       });
 
-      // Bloque de texto: capacidad (principal) + dominio (secundario).
-      const capText = capBtn.createDiv({
+      const domainText = domainBtn.createDiv({
         cls: 'fl-memory-prep-cap-text'
       });
 
-      const capValue = capText.createDiv({
+      const domainLabel = this.selectedDomain
+        ? this.getDomainLabelById(this.selectedDomain)
+        : i18n.t('widgets.memory.capability.placeholder');
+      const domainValue = domainText.createDiv({
         cls: 'fl-memory-prep-cap-value',
-        text: this.selectedCapability
-          ? this.getCapabilityLabel()
-          : i18n.t('widgets.memory.capability.placeholder')
+        text: domainLabel
       });
-      if (!this.selectedCapability) {
-        capValue.addClass('is-empty');
+      if (!this.selectedDomain) {
+        domainValue.addClass('is-empty');
       }
 
-      // Dominio de la capacidad (secundario, debajo).
-      if (this.selectedCapability && this.selectedDomain) {
-        const groups = this.registry.getGroups();
-        const group = groups.find(g => g.id === this.selectedDomain);
-        if (group) {
-          capText.createDiv({
-            cls: 'fl-memory-prep-cap-domain',
-            text: getDomainLabel(group.id, group.label)
-          });
-        }
-      }
-
-      // Icono de acceso a la biblioteca (derecha, centrado vertical).
-      const capIcon = capBtn.createSpan({
+      const domainIcon = domainBtn.createSpan({
         cls: 'fl-memory-prep-cap-icon',
         attr: { 'aria-hidden': 'true' }
       });
-      setIcon(capIcon, 'library');
+      setIcon(domainIcon, 'library');
 
-      capBtn.addEventListener('click', () => {
+      domainBtn.addEventListener('click', () => {
         const modal = new CapabilityBrowser(
           this.app,
           {
@@ -1180,6 +1182,60 @@ this.contextResolver = new ContextResolver(
         );
         modal.open();
       });
+
+      // Combo box de capacidades del dominio activo.
+      const capCombo = capBlock.createEl('button', {
+        cls: 'fl-memory-prep-select fl-memory-prep-cap-combo',
+        attr: {
+          type: 'button',
+          'aria-label': i18n.t('widgets.memory.spec.capabilities')
+        }
+      });
+
+      const capComboValue = capCombo.createDiv({
+        cls: 'fl-memory-prep-cap-value',
+        text: this.selectedCapability
+          ? this.getCapabilityLabel()
+          : i18n.t('widgets.memory.capability.placeholder')
+      });
+      if (!this.selectedCapability) {
+        capComboValue.addClass('is-empty');
+      }
+
+      const capComboChevron = capCombo.createSpan({
+        cls: 'fl-memory-prep-select-chevron',
+        attr: { 'aria-hidden': 'true' }
+      });
+      setIcon(capComboChevron, 'chevron-down');
+
+      const domainCaps = this.registry.getByGroup(this.selectedDomain);
+      if (domainCaps.length === 0) {
+        capCombo.setAttr('disabled', 'true');
+        capCombo.addClass('is-disabled');
+      } else {
+        capCombo.addEventListener('click', () => {
+          void import('obsidian').then(({ Menu }) => {
+            const menu = new Menu();
+            for (const cap of domainCaps) {
+              const capLabel = getCapabilityLabel(cap.id, cap.label);
+              const isSelected = this.selectedCapability === cap.id;
+              menu.addItem(item => {
+                item.setTitle(capLabel)
+                  .setIcon(isSelected ? 'check' : 'circle')
+                  .onClick(() => {
+                    this.selectedCapability = cap.id;
+                    this.saveState();
+                    if (this.container && this.lastContext) {
+                      this.render(this.container, this.lastContext);
+                    }
+                  });
+              });
+            }
+            const rect = capCombo.getBoundingClientRect();
+            menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+          });
+        });
+      }
 
       // ---- Bloque 2: Fuente de contexto ----
       const srcBlock = prepModule.createDiv({
