@@ -1146,36 +1146,10 @@ this.contextResolver = new ContextResolver(
         cls: 'fl-memory-prep-header'
       });
 
-      const headerText = header.createDiv({
-        cls: 'fl-memory-prep-header-text'
-      });
-
-      // Título: nombre de la instancia (futuro) o «Asistente».
-      // TODO: sustituir por el nombre real de la instancia cuando
-      // se implemente la personalización de instancias del widget.
-      headerText.createDiv({
-        cls: 'fl-memory-prep-header-title',
-        text: this.label
-      });
-
-      headerText.createDiv({
+      header.createDiv({
         cls: 'fl-memory-prep-header-subtitle',
         text: i18n.t('widgets.memory.prep.subtitle')
       });
-
-      // Botón de configuración del perfil.
-      // TODO: conectar a la interfaz de configuración del perfil
-      // cuando exista. Por ahora es un control real sin acción
-      // de persistencia para no simular datos que no se guardan.
-      const configBtn = header.createEl('button', {
-        cls: 'fl-memory-prep-header-config',
-        attr: {
-          type: 'button',
-          'aria-label': i18n.t('widgets.memory.prep.configure'),
-          title: i18n.t('widgets.memory.prep.configure')
-        }
-      });
-      setIcon(configBtn, 'settings');
 
       // ---- Bloque 1: Dominio + Capacidad ----
       const capBlock = prepModule.createDiv({
@@ -1367,9 +1341,6 @@ this.contextResolver = new ContextResolver(
       srcBtn.addEventListener('click', () => {
         this.showInputMenu();
       });
-
-      // ---- Separador discreto ----
-      prepModule.createDiv({ cls: 'fl-memory-prep-sep' });
 
       // ---- Botón Run (alineado a la derecha) ----
       const runBtn = prepModule.createEl('button', {

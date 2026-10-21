@@ -5893,7 +5893,6 @@ body.focus-splitter-dragging {
   border-radius: var(--radius-m);
   flex-shrink: 0;
   box-sizing: border-box;
-  border: 1px solid var(--background-modifier-border);
 }
 
 /* --- Cabecera del módulo --- */
@@ -5904,8 +5903,6 @@ body.focus-splitter-dragging {
   justify-content: space-between;
   gap: 10px;
   padding: 16px 0 12px;
-  border-bottom: 1px solid var(--background-modifier-border);
-  margin-bottom: 4px;
 }
 
 .fl-memory-prep-header-text {
@@ -5958,14 +5955,6 @@ body.focus-splitter-dragging {
 }
 
 /* --- Bloques de configuración --- */
-
-/* Separación discreta antes del botón Run. */
-.fl-memory-prep-sep {
-  width: 100%;
-  height: 1px;
-  background: var(--background-modifier-border);
-  margin: 4px 0;
-}
 
 /* Botón Run alineado a la derecha dentro del módulo. */
 .fl-memory-prep-run {
@@ -6116,13 +6105,13 @@ body.focus-splitter-dragging {
 }
 
 /*
- * Combo box de capacidades: más ligero que el botón de dominio.
- * Fondo transparente, borde discreto, valor izquierda, chevron
- * derecha.
+ * Combo box de capacidades: subordinado al selector de dominio.
+ * Sin fondo, sin borde, sin sombra, sin hover visible.
  */
 .fl-memory-prep-cap-combo {
-  background: transparent;
-  border-color: transparent;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   padding: 5px 8px;
 }
 
@@ -6133,12 +6122,12 @@ body.focus-splitter-dragging {
 }
 
 .fl-memory-prep-cap-combo:hover {
-  background: var(--background-modifier-hover);
-  border-color: transparent;
+  background: transparent !important;
+  border: none !important;
 }
 
 .fl-memory-prep-cap-combo[disabled]:hover {
-  background: transparent;
+  background: transparent !important;
 }
 
 .fl-memory-prep-cap-combo.is-disabled {
