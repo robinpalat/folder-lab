@@ -707,6 +707,10 @@
       "capability": {
         "placeholder": "Seleccionar"
       },
+      "prep": {
+        "subtitle": "Preparación del asistente",
+        "configure": "Configurar perfil del asistente"
+      },
       "action": {
         "apply": "Aplicar",
         "deactivateResponse": "Desactivar respuesta",

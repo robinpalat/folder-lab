@@ -166,7 +166,8 @@ function makeWidget({ instances = [] } = {}) {
   const widget = new MemoryWidget(
     app,
     { getStatus: () => ({ configured: true }), callTool: async () => ({ success: true, content: 'ok' }) },
-    {}, {}, widgetManager, {}
+    { getGroups: () => [], getByGroup: () => [], getDefaultGroup: () => '' },
+    {}, widgetManager, {}
   );
   widget.contextResolver = contextResolver;
   widget.currentFile = { path: 'Libro/Nota.md' };

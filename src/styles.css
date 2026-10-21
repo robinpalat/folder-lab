@@ -5886,14 +5886,88 @@ body.focus-splitter-dragging {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  width: 280px;
+  width: 300px;
   max-width: calc(100% - 32px);
-  padding: 24px 20px;
+  padding: 0 20px 24px;
   background: var(--background-secondary);
   border-radius: var(--radius-m);
   flex-shrink: 0;
   box-sizing: border-box;
+  border: 1px solid var(--background-modifier-border);
 }
+
+/* --- Cabecera del módulo --- */
+
+.fl-memory-prep-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 4px;
+}
+
+.fl-memory-prep-header-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.fl-memory-prep-header-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.fl-memory-prep-header-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fl-memory-prep-header-title {
+  font-size: var(--font-ui-small);
+  font-weight: 700;
+  color: var(--text-normal);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl-memory-prep-header-subtitle {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  line-height: 1.3;
+}
+
+.fl-memory-prep-header-config {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.fl-memory-prep-header-config svg {
+  width: 15px;
+  height: 15px;
+}
+
+.fl-memory-prep-header-config:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+/* --- Bloques de configuración --- */
 
 /* Separación discreta antes del botón Run. */
 .fl-memory-prep-sep {
@@ -5943,13 +6017,13 @@ body.focus-splitter-dragging {
   user-select: none;
 }
 
-/* Selector: control de formulario con chevron a la derecha. */
+/* Selector: control de formulario. */
 .fl-memory-prep-select {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
-  padding: 6px 10px;
+  padding: 8px 10px;
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
   background: var(--background-primary);
@@ -5969,24 +6043,29 @@ body.focus-splitter-dragging {
   outline-offset: 1px;
 }
 
-.fl-memory-prep-select-value {
-  flex: 1 1 auto;
-  min-width: 0;
+/* Capacidad seleccionada: elemento principal. */
+.fl-memory-prep-cap-value {
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+  color: var(--text-normal);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.fl-memory-prep-select-icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  opacity: 0.6;
-  margin-right: 6px;
+.fl-memory-prep-cap-value.is-empty {
+  color: var(--text-faint);
+  font-weight: 400;
+  font-style: italic;
 }
 
-.fl-memory-prep-select-icon svg {
-  width: 14px;
-  height: 14px;
+/* Dominio de la capacidad: secundario, debajo. */
+.fl-memory-prep-cap-domain {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Botón de retorno a la vista de captura desde resultados. */
@@ -6194,9 +6273,21 @@ body.focus-splitter-dragging {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 4px 8px 0;
-  border-top: 1px solid var(--background-modifier-border);
+  padding: 4px 8px;
   flex-shrink: 0;
+}
+
+/*
+ * La línea separadora se sitúa SIEMPRE entre la barra de
+ * búsqueda y la zona de contenido (fragmentos o toolbar),
+ * nunca entre la barra y el toolbar.
+ */
+.fl-widget-frame-top .fl-memory-browser-panel {
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.fl-widget-frame-bottom .fl-memory-browser-panel {
+  border-top: 1px solid var(--background-modifier-border);
 }
 
 .fl-memory-browser-tree {

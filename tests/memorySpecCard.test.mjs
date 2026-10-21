@@ -132,6 +132,7 @@ function makeWidget({
   };
   const reg = registry ?? {
     getByGroup: () => [],
+    getGroups: () => [],
     getDefaultGroup: () => 'Memoria'
   };
   const plugin = {
@@ -205,7 +206,7 @@ test('el módulo de preparación muestra la capacidad seleccionada', () => {
 
   const prep = widget.container._findByClass(widget.container, 'fl-memory-prep-module');
   assert.ok(prep, 'módulo presente');
-  const capLabel = prep._findByClass(prep, 'fl-memory-prep-select-value');
+  const capLabel = prep._findByClass(prep, 'fl-memory-prep-cap-value');
   assert.ok(capLabel, 'etiqueta de capacidad presente');
   assert.ok(capLabel.textContent.includes('Tesis'), 'nombre de la capacidad visible');
 });
@@ -223,7 +224,7 @@ test('el módulo de preparación se oculta al haber respuesta', () => {
 test('la respuesta no se contamina con texto de configuración', async () => {
   const { widget, registry } = makeWidget({
     selectedCapability: 'research-thesis',
-    registry: { getByGroup: () => [{ id: 'research-thesis', label: 'Tesis' }], getDefaultGroup: () => 'Memoria' }
+    registry: { getByGroup: () => [{ id: 'research-thesis', label: 'Tesis' }], getGroups: () => [], getDefaultGroup: () => 'Memoria' }
   });
   widget.currentResponse = '';
   widget.render(widget.container, widget.lastContext);

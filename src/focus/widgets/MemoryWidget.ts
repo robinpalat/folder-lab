@@ -1068,6 +1068,48 @@ this.contextResolver = new ContextResolver(
         cls: 'fl-memory-prep-module'
       });
 
+      // ---- Cabecera del módulo ----
+      const header = prepModule.createDiv({
+        cls: 'fl-memory-prep-header'
+      });
+
+      const headerIcon = header.createSpan({
+        cls: 'fl-memory-prep-header-icon',
+        attr: { 'aria-hidden': 'true' }
+      });
+      setIcon(headerIcon, 'bot');
+
+      const headerText = header.createDiv({
+        cls: 'fl-memory-prep-header-text'
+      });
+
+      // Título: nombre de la instancia (futuro) o «Asistente».
+      // TODO: sustituir por el nombre real de la instancia cuando
+      // se implemente la personalización de instancias del widget.
+      headerText.createDiv({
+        cls: 'fl-memory-prep-header-title',
+        text: this.label
+      });
+
+      headerText.createDiv({
+        cls: 'fl-memory-prep-header-subtitle',
+        text: i18n.t('widgets.memory.prep.subtitle')
+      });
+
+      // Botón de configuración del perfil.
+      // TODO: conectar a la interfaz de configuración del perfil
+      // cuando exista. Por ahora es un control real sin acción
+      // de persistencia para no simular datos que no se guardan.
+      const configBtn = header.createEl('button', {
+        cls: 'fl-memory-prep-header-config',
+        attr: {
+          type: 'button',
+          'aria-label': i18n.t('widgets.memory.prep.configure'),
+          title: i18n.t('widgets.memory.prep.configure')
+        }
+      });
+      setIcon(configBtn, 'settings');
+
       // ---- Bloque 1: Capacidad ----
       const capBlock = prepModule.createDiv({
         cls: 'fl-memory-prep-block'
@@ -1085,17 +1127,30 @@ this.contextResolver = new ContextResolver(
           'aria-label': i18n.t('widgets.memory.capability.placeholder')
         }
       });
-      const capIcon = capBtn.createSpan({
-        cls: 'fl-memory-prep-select-icon',
-        attr: { 'aria-hidden': 'true' }
-      });
-      setIcon(capIcon, 'library');
-      capBtn.createSpan({
-        cls: 'fl-memory-prep-select-value',
+
+      // Nombre de la capacidad seleccionada (principal).
+      const capValue = capBtn.createDiv({
+        cls: 'fl-memory-prep-cap-value',
         text: this.selectedCapability
           ? this.getCapabilityLabel()
           : i18n.t('widgets.memory.capability.placeholder')
       });
+      if (!this.selectedCapability) {
+        capValue.addClass('is-empty');
+      }
+
+      // Dominio de la capacidad (secundario, debajo).
+      if (this.selectedCapability && this.selectedDomain) {
+        const groups = this.registry.getGroups();
+        const group = groups.find(g => g.id === this.selectedDomain);
+        if (group) {
+          capBtn.createDiv({
+            cls: 'fl-memory-prep-cap-domain',
+            text: getDomainLabel(group.id, group.label)
+          });
+        }
+      }
+
       capBtn.addEventListener('click', () => {
         const modal = new CapabilityBrowser(
           this.app,
