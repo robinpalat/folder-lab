@@ -463,13 +463,6 @@ this.contextResolver = new ContextResolver(
         zone: 'right'
       });
 
-      // Contador de fragmentos guardados.
-      controls.status({
-        id: 'fragment-count',
-        label: String(this.results.length),
-        zone: 'right'
-      });
-
       return controls;
     }
 
@@ -1478,23 +1471,10 @@ this.contextResolver = new ContextResolver(
       }
     });
 
-    // Cerrar: icono X, cliqueable.
-    const closeEl = searchBar.createSpan({
-      cls: 'fl-browser-close-label',
-      attr: { role: 'button', tabindex: '0', 'aria-label': 'Close' }
-    });
-    setIcon(closeEl, 'x');
-    const closeAction = (): void => {
-      this.browserMode = false;
-      this.sessionView = 'capture';
-      this.rerenderWidget();
-    };
-    closeEl.addEventListener('click', closeAction);
-    closeEl.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        closeAction();
-      }
+    // Contador de fragmentos: sustituye al botón de cerrar.
+    searchBar.createSpan({
+      cls: 'fl-browser-fragment-count',
+      text: String(this.results.length)
     });
 
     // Árbol de capacidades (visible/oculto según filtro).

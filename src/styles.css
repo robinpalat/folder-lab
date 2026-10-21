@@ -1245,7 +1245,7 @@
 
 /* Estado activo del toggle de búsqueda del Browser. */
 .fl-widget-control-icon[data-control-id="toggle-search"].is-active {
-  background: var(--background-modifier-hover);
+  background: var(--background-modifier-active);
   border-radius: var(--radius-s);
 }
 
@@ -6335,26 +6335,19 @@ body.focus-splitter-dragging {
   outline-offset: 1px;
 }
 
-/* Etiqueta «Cerrar»: texto cliqueable, no botón. */
-.fl-browser-close-label {
+/* Contador de fragmentos en la barra de búsqueda. */
+.fl-browser-fragment-count {
   flex: 0 0 auto;
-  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
   font-size: var(--font-ui-smaller);
-  cursor: pointer;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
   user-select: none;
-  white-space: nowrap;
-  padding: 4px 6px;
-  border-radius: var(--radius-s);
-}
-
-.fl-browser-close-label:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
-}
-
-.fl-browser-close-label:focus-visible {
-  outline: 1px solid var(--interactive-accent);
-  outline-offset: 1px;
 }
 
 /* --- Panel unificado de búsqueda y árbol de capacidades --- */
