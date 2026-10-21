@@ -1122,8 +1122,12 @@ this.contextResolver = new ContextResolver(
         }
       });
 
-      // Nombre de la capacidad seleccionada (principal).
-      const capValue = capBtn.createDiv({
+      // Bloque de texto: capacidad (principal) + dominio (secundario).
+      const capText = capBtn.createDiv({
+        cls: 'fl-memory-prep-cap-text'
+      });
+
+      const capValue = capText.createDiv({
         cls: 'fl-memory-prep-cap-value',
         text: this.selectedCapability
           ? this.getCapabilityLabel()
@@ -1138,12 +1142,19 @@ this.contextResolver = new ContextResolver(
         const groups = this.registry.getGroups();
         const group = groups.find(g => g.id === this.selectedDomain);
         if (group) {
-          capBtn.createDiv({
+          capText.createDiv({
             cls: 'fl-memory-prep-cap-domain',
             text: getDomainLabel(group.id, group.label)
           });
         }
       }
+
+      // Icono de acceso a la biblioteca (derecha, centrado vertical).
+      const capIcon = capBtn.createSpan({
+        cls: 'fl-memory-prep-cap-icon',
+        attr: { 'aria-hidden': 'true' }
+      });
+      setIcon(capIcon, 'library');
 
       capBtn.addEventListener('click', () => {
         const modal = new CapabilityBrowser(
@@ -1373,18 +1384,26 @@ this.contextResolver = new ContextResolver(
     });
 
     // Control de filtro: alterna el árbol de capacidades.
-    const filterBtn = searchBar.createEl('button', {
+    const filterBtn = searchBar.createSpan({
       cls: 'fl-browser-filter-btn',
       attr: {
-        type: 'button',
+        role: 'button',
+        tabindex: '0',
         'aria-label': i18n.t('widgets.memory.browser.filterCapability'),
         title: i18n.t('widgets.memory.browser.filterCapability')
       }
     });
     setIcon(filterBtn, 'filter');
-    filterBtn.addEventListener('click', () => {
+    const toggleTree = (): void => {
       this.browserTreeVisible = !this.browserTreeVisible;
       this.rerenderWidget();
+    };
+    filterBtn.addEventListener('click', toggleTree);
+    filterBtn.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTree();
+      }
     });
 
     // Etiqueta «Close»: texto cliqueable, no botón.

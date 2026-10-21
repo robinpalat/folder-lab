@@ -6010,8 +6010,9 @@ body.focus-splitter-dragging {
 /* Selector: control de formulario. */
 .fl-memory-prep-select {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--background-modifier-border);
@@ -6025,13 +6026,10 @@ body.focus-splitter-dragging {
 }
 
 /*
- * Selector de fuente: fila con valor a la izquierda y chevron
- * a la derecha, en la misma línea. Hereda el estilo base pero
- * cambia la dirección del flex.
+ * Selector de fuente: valor a la izquierda, chevron a la
+ * derecha. Hereda el estilo base (row).
  */
 .fl-memory-prep-src-select {
-  flex-direction: row;
-  align-items: center;
   gap: 6px;
 }
 
@@ -6065,9 +6063,18 @@ body.focus-splitter-dragging {
   height: 13px;
 }
 
+/* Bloque de texto del selector de capacidad: columna con
+   capacidad arriba y dominio debajo. */
+.fl-memory-prep-cap-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* Capacidad seleccionada: elemento principal. */
 .fl-memory-prep-cap-value {
-  width: 100%;
   min-width: 0;
   font-size: var(--font-ui-small);
   font-weight: 600;
@@ -6075,6 +6082,7 @@ body.focus-splitter-dragging {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .fl-memory-prep-cap-value.is-empty {
@@ -6085,13 +6093,26 @@ body.focus-splitter-dragging {
 
 /* Dominio de la capacidad: secundario, debajo. */
 .fl-memory-prep-cap-domain {
-  width: 100%;
   min-width: 0;
   font-size: var(--font-ui-smaller);
   color: var(--text-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* Icono de acceso a la biblioteca: derecha, centrado. */
+.fl-memory-prep-cap-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.5;
+}
+
+.fl-memory-prep-cap-icon svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Botón de retorno a la vista de captura desde resultados. */
@@ -6252,23 +6273,33 @@ body.focus-splitter-dragging {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
   height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-s);
+  min-height: 28px;
+  padding: 0 6px;
+  margin: 0;
+  border: none;
+  border-radius: 0;
   background: transparent;
   color: var(--text-faint);
   cursor: pointer;
+  line-height: 1;
+  vertical-align: middle;
+  user-select: none;
 }
 
 .fl-browser-filter-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
 }
 
 .fl-browser-filter-btn:hover {
   color: var(--text-normal);
+}
+
+.fl-browser-filter-btn:focus-visible {
+  outline: 1px solid var(--interactive-accent);
+  outline-offset: 1px;
 }
 
 /* Etiqueta «Cerrar»: texto cliqueable, no botón. */
