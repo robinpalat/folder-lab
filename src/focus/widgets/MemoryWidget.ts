@@ -463,6 +463,13 @@ this.contextResolver = new ContextResolver(
         zone: 'right'
       });
 
+      // Contador de fragmentos guardados.
+      controls.status({
+        id: 'fragment-count',
+        label: String(this.results.length),
+        zone: 'right'
+      });
+
       return controls;
     }
 
