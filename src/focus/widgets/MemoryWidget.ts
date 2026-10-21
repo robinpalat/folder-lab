@@ -942,6 +942,65 @@ this.contextResolver = new ContextResolver(
     this.centerMenuAction(menu);
   }
 
+  /**
+   * Reabre el menú de capacidades tras cambiar la selección
+   * pendiente. Mismo patrón que reopenInstanceMenu: filas
+   * completas con setChecked, botón OK, descarte al cerrar.
+   */
+  private reopenCapabilityMenu(
+    rect: DOMRect,
+    domainCaps: Array<{ id: string; label: string }>,
+    pending: string,
+    onConfirm: (capabilityId: string) => void
+  ): void {
+    const menu = new Menu();
+    let confirmed = false;
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t('widgets.memory.spec.capabilities'))
+        .setDisabled(true);
+    });
+
+    menu.addSeparator();
+
+    for (const cap of domainCaps) {
+      const capLabel = getCapabilityLabel(cap.id, cap.label);
+      menu.addItem((item) => {
+        item
+          .setTitle(capLabel)
+          .setChecked(pending === cap.id);
+        item.onClick(() => {
+          pending = cap.id;
+          menu.hide();
+          window.setTimeout(() => {
+            this.reopenCapabilityMenu(rect, domainCaps, pending, onConfirm);
+          }, 0);
+        });
+      });
+    }
+
+    menu.addSeparator();
+
+    menu.addItem((item) => {
+      item
+        .setTitle(i18n.t('widgets.memory.instanceMenu.ok'))
+        .onClick(() => {
+          confirmed = true;
+          onConfirm(pending);
+        });
+    });
+
+    menu.onHide(() => {
+      if (!confirmed) {
+        // Descartar: no se aplica la selección pendiente.
+      }
+    });
+
+    menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+    this.centerMenuAction(menu);
+  }
+
 
   private renderControls(includeAssistantControls: boolean = true): void {
     if (!this.container) {
@@ -1215,23 +1274,66 @@ this.contextResolver = new ContextResolver(
       } else {
         capCombo.addEventListener('click', () => {
           const menu = new Menu();
+          const rect = capCombo.getBoundingClientRect();
+
+          // Encabezado informativo, no seleccionable.
+          menu.addItem(item => {
+            item
+              .setTitle(i18n.t('widgets.memory.spec.capabilities'))
+              .setDisabled(true);
+          });
+
+          menu.addSeparator();
+
+          // Selección transaccional: pending + OK, igual que
+          // el menú de instancias del selector de fuente.
+          let pending = this.selectedCapability;
+          let confirmed = false;
+
           for (const cap of domainCaps) {
             const capLabel = getCapabilityLabel(cap.id, cap.label);
-            const isSelected = this.selectedCapability === cap.id;
             menu.addItem(item => {
-              item.setTitle(capLabel)
-                .setIcon(isSelected ? 'check' : 'circle')
-                .onClick(() => {
-                  this.selectedCapability = cap.id;
-                  this.saveState();
-                  if (this.container && this.lastContext) {
-                    this.render(this.container, this.lastContext);
-                  }
-                });
+              item
+                .setTitle(capLabel)
+                .setChecked(pending === cap.id);
+              item.onClick(() => {
+                pending = cap.id;
+                menu.hide();
+                window.setTimeout(() => {
+                  this.reopenCapabilityMenu(rect, domainCaps, pending, (final) => {
+                    this.selectedCapability = final;
+                    this.saveState();
+                    if (this.container && this.lastContext) {
+                      this.render(this.container, this.lastContext);
+                    }
+                  });
+                }, 0);
+              });
             });
           }
-          const rect = capCombo.getBoundingClientRect();
+
+          menu.addSeparator();
+
+          // OK: confirma la selección.
+          menu.addItem(item => {
+            item.setTitle('OK').onClick(() => {
+              confirmed = true;
+              this.selectedCapability = pending;
+              this.saveState();
+              if (this.container && this.lastContext) {
+                this.render(this.container, this.lastContext);
+              }
+            });
+          });
+
+          menu.onHide(() => {
+            if (!confirmed) {
+              // Descartar cambios al cerrar sin OK.
+            }
+          });
+
           menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+          this.centerMenuAction(menu);
         });
       }
 

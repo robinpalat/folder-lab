@@ -6126,6 +6126,12 @@ body.focus-splitter-dragging {
   padding: 5px 8px;
 }
 
+/* El valor del combo ocupa el espacio restante para que el
+   chevron quede alineado al extremo derecho. */
+.fl-memory-prep-cap-combo .fl-memory-prep-cap-value {
+  flex: 1 1 auto;
+}
+
 .fl-memory-prep-cap-combo:hover {
   background: var(--background-modifier-hover);
   border-color: transparent;
