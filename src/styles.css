@@ -5901,21 +5901,11 @@ body.focus-splitter-dragging {
 .fl-memory-prep-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   padding: 16px 0 12px;
   border-bottom: 1px solid var(--background-modifier-border);
   margin-bottom: 4px;
-}
-
-.fl-memory-prep-header-icon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  color: var(--text-muted);
-}
-
-.fl-memory-prep-header-icon svg {
-  width: 20px;
-  height: 20px;
 }
 
 .fl-memory-prep-header-text {
@@ -6034,6 +6024,17 @@ body.focus-splitter-dragging {
   text-align: left;
 }
 
+/*
+ * Selector de fuente: fila con valor a la izquierda y chevron
+ * a la derecha, en la misma línea. Hereda el estilo base pero
+ * cambia la dirección del flex.
+ */
+.fl-memory-prep-src-select {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
 .fl-memory-prep-select:hover {
   border-color: var(--interactive-normal);
 }
@@ -6043,8 +6044,31 @@ body.focus-splitter-dragging {
   outline-offset: 1px;
 }
 
+/* Valor del selector: ocupa el espacio restante. */
+.fl-memory-prep-select-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chevron del selector de fuente. */
+.fl-memory-prep-select-chevron {
+  flex: 0 0 auto;
+  display: inline-flex;
+  opacity: 0.5;
+}
+
+.fl-memory-prep-select-chevron svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* Capacidad seleccionada: elemento principal. */
 .fl-memory-prep-cap-value {
+  width: 100%;
+  min-width: 0;
   font-size: var(--font-ui-small);
   font-weight: 600;
   color: var(--text-normal);
@@ -6061,6 +6085,8 @@ body.focus-splitter-dragging {
 
 /* Dominio de la capacidad: secundario, debajo. */
 .fl-memory-prep-cap-domain {
+  width: 100%;
+  min-width: 0;
   font-size: var(--font-ui-smaller);
   color: var(--text-faint);
   overflow: hidden;

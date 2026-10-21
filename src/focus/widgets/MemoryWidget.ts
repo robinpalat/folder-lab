@@ -1073,12 +1073,6 @@ this.contextResolver = new ContextResolver(
         cls: 'fl-memory-prep-header'
       });
 
-      const headerIcon = header.createSpan({
-        cls: 'fl-memory-prep-header-icon',
-        attr: { 'aria-hidden': 'true' }
-      });
-      setIcon(headerIcon, 'bot');
-
       const headerText = header.createDiv({
         cls: 'fl-memory-prep-header-text'
       });
